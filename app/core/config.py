@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     postgres_host: str = "localhost"
-    postgres_port: int = 5432
+    postgres_port: int = 5433
     postgres_db: str = "manufacturing_kg"
     postgres_user: str = "manufacturing"
     postgres_password: str = Field(default="manufacturing", repr=False)

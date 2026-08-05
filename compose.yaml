@@ -1,13 +1,16 @@
 services:
   db:
-    image: apache/age:PG16_latest
+    build:
+      context: ./schemas
+    image: arka/age-pgvector:pg16
     container_name: arka-db
     environment:
       POSTGRES_DB: arka_kg
       POSTGRES_USER: arka
       POSTGRES_PASSWORD: arka
     ports:
-      - "5432:5432"
+      # 5432 host sudah dipakai proyek lain; ARKA memakai 5433.
+      - "5433:5432"
     volumes:
       - arka-pgdata:/var/lib/postgresql/data
       - ./schemas/init:/docker-entrypoint-initdb.d:ro
