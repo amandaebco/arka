@@ -42,3 +42,6 @@ htmlcov/
 .DS_Store
 .idea/
 *.swp
+
+# Catatan internal — JANGAN di-commit
+.context/
