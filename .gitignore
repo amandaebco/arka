@@ -1,0 +1,44 @@
+# === DATA — jangan pernah di-commit ===
+data/
+*.csv
+*.jsonl
+*.parquet
+*.xlsx
+*.dump
+*.sql.gz
+
+# === Rahasia ===
+.env
+.env.*
+!.env.example
+*credentials*.json
+*service-account*.json
+secrets/
+
+# === Artefak yang dihasilkan ===
+out/
+output/
+artifacts/
+*.pptx
+*.pdf
+*.png
+!docs/**/*.png
+
+# === Python ===
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# === OS / editor ===
+.DS_Store
+.idea/
+*.swp
