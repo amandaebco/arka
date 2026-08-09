@@ -1,0 +1,10 @@
+.venv/
+.git/
+.context/
+out/
+migrations/versions/__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+credentials.json

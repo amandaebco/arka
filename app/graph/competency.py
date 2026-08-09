@@ -6,8 +6,8 @@ import psycopg
 from psycopg import sql
 
 from app.core.config import get_settings
-from app.graph.neighborhood import AGTYPE_SUFFIX, GRAPH_NAME_PATTERN
 from app.db.connection import connection_string as _connection_string
+from app.graph.neighborhood import AGTYPE_SUFFIX, GRAPH_NAME_PATTERN
 
 
 @dataclass(frozen=True)
