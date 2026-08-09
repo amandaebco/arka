@@ -44,7 +44,25 @@ class Technician(TimestampMixin, Base):
 
 
 class SparePart(TimestampMixin, Base):
+    """Sparepart beserta atribut rantai pasok.
+
+    `static_criticality` adalah nilai yang tertulis di master data — ditetapkan
+    sekali saat pendaftaran material dan nyaris tidak pernah ditinjau ulang.
+    Kekritisan dinamis ARKA dihitung terpisah dan tidak disimpan di sini;
+    yang bernilai justru **selisih** antara keduanya.
+    """
+
     __tablename__ = "spare_parts"
+    __table_args__ = (
+        CheckConstraint(
+            "static_criticality IS NULL OR (static_criticality >= 0 AND static_criticality <= 1)",
+            name="static_criticality_range",
+        ),
+        CheckConstraint(
+            "lead_time_weeks IS NULL OR lead_time_weeks >= 0",
+            name="nonnegative_lead_time",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         primary_key=True, server_default=text("gen_random_uuid()")
@@ -54,6 +72,12 @@ class SparePart(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(255))
     manufacturer: Mapped[str | None] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
+
+    # Rantai pasok — dasar komponen `supply_risk` pada kekritisan dinamis.
+    static_criticality: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
+    lead_time_weeks: Mapped[int | None] = mapped_column(Integer)
+    vendor_count: Mapped[int | None] = mapped_column(Integer)
+    primary_vendor: Mapped[str | None] = mapped_column(String(255))
 
     activity_usages: Mapped[list["ActivitySparePart"]] = relationship(
         back_populates="spare_part", cascade="all, delete-orphan"
@@ -159,9 +183,10 @@ class NotificationConceptLink(TimestampMixin, Base):
     semantic_concept_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("semantic_concepts.id", ondelete="RESTRICT")
     )
-    catalog_code_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("reference.catalog_codes.id", ondelete="RESTRICT")
-    )
+    # Sisa brownfield: dulu menunjuk `reference.catalog_codes`, master kode dari
+    # jalur ETL. ARKA tidak punya ETL — data sintetis ditulis langsung ke tabel
+    # kanonik — jadi skema `reference` tidak pernah ada. Kolomnya dilepas;
+    # `source_item_id` sudah cukup melacak asal usulan pemetaan.
     source_item_id: Mapped[uuid.UUID] = mapped_column()
     relationship_type: Mapped[str] = mapped_column(String(50))
     review_status: Mapped[str] = mapped_column(String(30))
