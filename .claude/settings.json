@@ -56,7 +56,9 @@
       "Bash(git commit -q -m 'build: image with Chromium for Cloud Run and Agent Engine *)",
       "Bash(git commit -q -m 'docs: CLAUDE.md as cross-session handover, spec, and constitution 1.2.0 *)",
       "Bash(git commit -q -m 'feat\\(detection\\): deterministic scoring that decides what deserves attention *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(.specify/scripts/bash/setup-plan.sh --json)",
+      "Bash(git commit -q -m 'docs\\(plan\\): implementation plan for the detection and investigation chain *)"
     ],
     "additionalDirectories": [
       "/Users/amanda/demo/arka"

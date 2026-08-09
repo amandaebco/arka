@@ -71,7 +71,7 @@ def main() -> int:
             "emphasis": emphasis,
             "form": {"rekomendasi": "priority_actions"},
             "accents": {"tinggi": "high", "sedang": "medium"},
-            "rationale": "Kandidat penyebab dominan karena temuan ini menunggu putusan.",
+            "rationale": "Kandidat penyebab dominant karena temuan ini menunggu putusan.",
         }
     )
     default_emphasis = kb.resolve_style(style)["storytelling"].get("emphasis_order") or {}
@@ -95,8 +95,8 @@ def main() -> int:
 
     if args.prompt_saja:
         trail.record_round(1, spec, prompt)
-        jejak = trail.finish("PROMPT_ONLY")
-        print(f"Jejak    : {jejak.parent}")
+        trail_path = trail.finish("PROMPT_ONLY")
+        print(f"Jejak    : {trail_path.parent}")
         return 0
 
     try:
@@ -111,17 +111,17 @@ def main() -> int:
     if not args.tanpa_periksa:
         review = _inspect(page, content, blocks, style, kb)
         for one in review["unauthorised"]:
-            print(f"  ! teks tak disetujui: “{one}”")
+            print(f"  ! text tak allowed: “{one}”")
 
     page_path = trail.record_round(1, spec, prompt, page=page, review=review)
-    hasil = "PUBLISHED" if not (review and review["unauthorised"]) else "PUBLISHED_WITH_FINDINGS"
-    jejak = trail.finish(hasil)
+    outcome = "PUBLISHED" if not (review and review["unauthorised"]) else "PUBLISHED_WITH_FINDINGS"
+    trail_path = trail.finish(outcome)
 
     print(f"Halaman  : {page_path} ({len(page):,} bita)")
     if review:
-        print(f"Terbaca  : {review['strings_read']} teks, "
-              f"{len(review['unauthorised'])} tak disetujui")
-    print(f"Jejak    : {jejak.parent}")
+        print(f"Terbaca  : {review['strings_read']} text, "
+              f"{len(review['unauthorised'])} tak allowed")
+    print(f"Jejak    : {trail_path.parent}")
     return 0
 
 

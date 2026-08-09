@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 
 from app.agents.designer import KUNCI_SPESIFIKASI
-from app.agents.qa import _berasal_dari, _kumpulan_teks_temuan, periksa_infografis
+from app.agents.qa import _comes_from, _finding_text, periksa_infografis
 from app.agents.reporter import KUNCI_TEMUAN
 from app.designer.content import build_content, is_composed_label
 from app.reporting.blocks import susun_blok
@@ -65,20 +65,20 @@ def spesifikasi(selected, **ubah) -> dict:
 
 def test_teks_kanvas_semuanya_berasal_dari_temuan(finding, content, selected):
     """Nothing on the canvas may be invented — this is the exception's guard."""
-    sumber = _kumpulan_teks_temuan(finding)
-    for blok in selected:
-        for item in content.items(blok):
-            kandidat = [item.text]
+    source_text = _finding_text(finding)
+    for block in selected:
+        for item in content.items(block):
+            checkable = [item.text]
             if item.label and not is_composed_label(item.label):
-                kandidat.append(item.label)
-            for nilai in kandidat:
-                if nilai:
-                    assert _berasal_dari(nilai, sumber), f"{blok}: “{nilai}”"
+                checkable.append(item.label)
+            for value in checkable:
+                if value:
+                    assert _comes_from(value, source_text), f"{block}: “{value}”"
 
 
 def test_kalimat_karangan_tertangkap(finding):
-    sumber = _kumpulan_teks_temuan(finding)
-    assert not _berasal_dari("Kerusakan katastrofik akan segera terjadi", sumber)
+    source_text = _finding_text(finding)
+    assert not _comes_from("Kerusakan katastrofik akan segera terjadi", source_text)
 
 
 def test_label_struktural_dikenali_sebagai_susunan(finding):
@@ -93,38 +93,38 @@ def test_label_struktural_dikenali_sebagai_susunan(finding):
 
 @pytest.mark.asyncio
 async def test_infografis_sehat_lulus(finding, selected):
-    hasil = await periksa_infografis(konteks(finding, spesifikasi(selected)))
-    assert hasil.startswith("LULUS")
+    outcome = await periksa_infografis(konteks(finding, spesifikasi(selected)))
+    assert outcome.startswith("LULUS")
 
 
 @pytest.mark.asyncio
 async def test_tanpa_spesifikasi_tidak_ada_yang_diperiksa(finding):
     konteks_kosong = KonteksPalsu({KUNCI_TEMUAN: finding.model_dump(mode="json")})
-    hasil = await periksa_infografis(konteks_kosong)
-    assert "Belum ada infografis" in hasil
+    outcome = await periksa_infografis(konteks_kosong)
+    assert "Belum ada infografis" in outcome
 
 
 @pytest.mark.asyncio
 async def test_dua_blok_dominan_ditangkap(finding, selected):
     spec = spesifikasi(selected)
     spec["emphasis"][selected[1]] = "dominant"
-    hasil = await periksa_infografis(konteks(finding, spec))
-    assert "hanya boleh satu" in hasil
+    outcome = await periksa_infografis(konteks(finding, spec))
+    assert "hanya boleh satu" in outcome
 
 
 @pytest.mark.asyncio
 async def test_tanpa_titik_fokus_ditangkap(finding, selected):
     spec = spesifikasi(selected)
     spec["emphasis"] = {s: "secondary" for s in selected}
-    hasil = await periksa_infografis(konteks(finding, spec))
-    assert "tidak punya titik fokus" in hasil
+    outcome = await periksa_infografis(konteks(finding, spec))
+    assert "tidak punya titik fokus" in outcome
 
 
 @pytest.mark.asyncio
 async def test_blok_tanpa_isi_ditangkap(finding, selected):
     spec = spesifikasi(selected, order=selected + ["rantai_kausal_palsu"])
-    hasil = await periksa_infografis(konteks(finding, spec))
-    assert "tidak punya isi" in hasil
+    outcome = await periksa_infografis(konteks(finding, spec))
+    assert "tidak punya isi" in outcome
 
 
 @pytest.mark.asyncio
@@ -133,5 +133,5 @@ async def test_eskalasi_wajib_terlihat_di_awal(finding, selected):
         pytest.skip("temuan contoh tidak menuntut eskalasi")
     tanpa_kandidat = [s for s in selected if s != "kandidat_penyebab"]
     spec = spesifikasi(selected, order=tanpa_kandidat + ["kandidat_penyebab"])
-    hasil = await periksa_infografis(konteks(finding, spec))
-    assert "eskalasi" in hasil.lower()
+    outcome = await periksa_infografis(konteks(finding, spec))
+    assert "eskalasi" in outcome.lower()

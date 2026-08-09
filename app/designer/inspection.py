@@ -94,12 +94,12 @@ def read_page_text(page: bytes) -> list[str]:
     except Exception as exc:  # noqa: BLE001 — turned into one explicit failure type
         raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
 
-    teks = (response.text or "").strip()
-    if not teks:
+    text = (response.text or "").strip()
+    if not text:
         raise InspectionUnavailable("pembaca halaman tidak mengembalikan teks apa pun")
 
-    baris = [b.strip(" -•\t") for b in teks.splitlines()]
-    return [b for b in baris if b]
+    lines = [b.strip(" -•\t") for b in text.splitlines()]
+    return [b for b in lines if b]
 
 
 # Text that legitimately appears on a page without coming from the finding:
@@ -157,15 +157,15 @@ def unauthorised_text(
     and join text in ways that are cosmetic. Very short fragments are ignored:
     they carry too little meaning to distinguish a fabrication from a stray glyph.
     """
-    disetujui = [normalise(a) for a in authorised if a]
-    asing: list[str] = []
+    allowed = [normalise(a) for a in authorised if a]
+    unknown: list[str] = []
 
-    for satu in drawn:
-        bersih = normalise(satu)
-        if len(bersih) < min_length:
+    for one in drawn:
+        clean = normalise(one)
+        if len(clean) < min_length:
             continue
-        if any(bersih in a or a in bersih for a in disetujui if a):
+        if any(clean in a or a in clean for a in allowed if a):
             continue
-        asing.append(satu)
+        unknown.append(one)
 
-    return asing
+    return unknown
