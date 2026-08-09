@@ -1,0 +1,63 @@
+{% import "_blok.html.j2" as blok_makro %}
+{# Nota dinas — korespondensi resmi antar unit. Struktur mengikuti tata
+   persuratan Indonesia pada umumnya: kop, identitas surat, pembuka, isi,
+   penutup, tanda tangan, tembusan. Tidak terikat organisasi mana pun. #}
+<article class="memo dok-nota-dinas">
+  <header class="kop kop-surat">
+    {% if konteks.unit_penerbit or konteks.logo %}
+    <div class="penerbit">
+      {% if konteks.logo %}<img class="lencana" src="{{ konteks.logo }}" alt="">{% endif %}
+      {% if konteks.unit_penerbit %}<span class="unit">{{ konteks.unit_penerbit }}</span>{% endif %}
+    </div>
+    {% endif %}
+    <h1>Nota Dinas</h1>
+    {% if konteks.nomor %}<div class="nomor">Nomor: {{ konteks.nomor }}</div>{% endif %}
+  </header>
+
+  <dl class="identitas">
+    {% if konteks.kepada %}<div><dt>Kepada</dt><dd>{{ konteks.kepada }}</dd></div>{% endif %}
+    {% if konteks.dari %}<div><dt>Dari</dt><dd>{{ konteks.dari }}</dd></div>{% endif %}
+    <div><dt>Tanggal</dt><dd>{{ finding.dibuat_pada | tanggal }}</dd></div>
+    <div><dt>Perihal</dt>
+      <dd>{{ konteks.perihal or "Hasil Investigasi Keandalan Aset " ~ finding.equipment_tag }}</dd>
+    </div>
+  </dl>
+
+  <p class="pembuka">
+    Bersama ini kami sampaikan hasil investigasi keandalan aset
+    <strong>{{ finding.equipment_tag }}</strong> di {{ finding.pabrik }}.
+    Seluruh angka dan rujukan dokumen pada nota dinas ini dihasilkan langsung
+    dari basis pengetahuan dan dapat ditelusuri ke sumbernya.
+  </p>
+
+  {% if finding.perlu_eskalasi %}
+  <p class="eskalasi">
+    <strong>Memerlukan keputusan.</strong>
+    {{ finding.alasan_eskalasi or "Dua kandidat teratas berselisih di bawah ambang keyakinan." }}
+  </p>
+  {% endif %}
+
+  {% for blok in blok_terpilih %}{{ blok_makro.render_blok(blok) }}{% endfor %}
+
+  <p class="penutup">
+    Demikian kami sampaikan. Atas perhatian dan tindak lanjut Anda,
+    kami ucapkan terima kasih.
+  </p>
+
+  <div class="ttd">
+    {% if konteks.jabatan_penanda_tangan %}
+    <div class="jabatan">{{ konteks.jabatan_penanda_tangan }}</div>
+    {% endif %}
+    <div class="ruang-ttd"></div>
+    <div class="nama">{{ konteks.penanda_tangan or "( .......................... )" }}</div>
+  </div>
+
+  {% if konteks.tembusan %}
+  <div class="tembusan">
+    <span>Tembusan:</span>
+    <ol>{% for t in konteks.tembusan %}<li>{{ t }}</li>{% endfor %}</ol>
+  </div>
+  {% endif %}
+
+  {{ blok_makro.jejak_asal(finding) }}
+</article>

@@ -1,0 +1,30 @@
+{% import "_blok.html.j2" as blok_makro %}
+{# Memo internal — bentuk paling ringkas. Tanpa penomoran surat, tanpa tanda tangan. #}
+<article class="memo dok-memo">
+  <header class="kop">
+    {% if konteks.unit_penerbit or konteks.logo %}
+    <div class="penerbit">
+      {% if konteks.logo %}<img class="lencana" src="{{ konteks.logo }}" alt="">{% endif %}
+      {% if konteks.unit_penerbit %}<span class="unit">{{ konteks.unit_penerbit }}</span>{% endif %}
+    </div>
+    {% endif %}
+    <h1>Memo Investigasi Keandalan Aset</h1>
+    <dl class="meta">
+      <div><dt>Nomor</dt><dd>{{ finding.finding_id }}</dd></div>
+      <div><dt>Tanggal</dt><dd>{{ finding.dibuat_pada | tanggal }}</dd></div>
+      <div><dt>Aset</dt><dd>{{ finding.equipment_tag }}</dd></div>
+      <div><dt>Pabrik</dt><dd>{{ finding.pabrik }}</dd></div>
+    </dl>
+  </header>
+
+  {% if finding.perlu_eskalasi %}
+  <p class="eskalasi">
+    <strong>Perlu putusan manusia.</strong>
+    {{ finding.alasan_eskalasi or "Dua kandidat teratas berselisih di bawah ambang keyakinan." }}
+  </p>
+  {% endif %}
+
+  {% for blok in blok_terpilih %}{{ blok_makro.render_blok(blok) }}{% endfor %}
+
+  {{ blok_makro.jejak_asal(finding) }}
+</article>

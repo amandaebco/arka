@@ -1,0 +1,155 @@
+{# Render satu blok memo. Dipakai bersama oleh semua jenis dokumen, sehingga
+   template baru cukup mengurus chrome-nya sendiri — kop, penomoran, tanda
+   tangan — tanpa menyalin ulang markup isi. #}
+
+{% macro render_blok(blok) %}
+<section class="blok" id="blok-{{ blok.id }}">
+  <h2>{{ blok.judul }}</h2>
+  {% if blok.narasi %}<p class="narasi">{{ blok.narasi }}</p>{% endif %}
+
+  {% if blok.id == "ringkasan" %}
+    <dl class="ringkas">
+      {% if blok.data.model_equipment %}
+      {# `hyphens: none` di CSS menjaga nomor model tidak terpenggal di tanda
+         hubung; kalau sempit ia patah di spasi, dan itu memang boleh. #}
+      <div><dt>Model</dt><dd>{{ blok.data.model_equipment }}</dd></div>
+      {% endif %}
+      <div><dt>Keyakinan</dt><dd>{{ blok.data.keyakinan | title }}</dd></div>
+      <div><dt>Preseden</dt><dd>{{ blok.data.jumlah_preseden }} kasus</dd></div>
+      <div><dt>Sitasi</dt><dd>{{ blok.data.jumlah_sitasi }} dokumen</dd></div>
+    </dl>
+    {% if blok.data.gejala %}
+    <p class="gejala"><span>Gejala teramati:</span> {{ blok.data.gejala | join("; ") }}</p>
+    {% endif %}
+    {% if blok.data.penyebab_teratas %}
+    <p class="teratas">
+      Penyebab paling mungkin: <strong>{{ blok.data.penyebab_teratas.nama }}</strong>
+      <span class="skor">skor {{ blok.data.penyebab_teratas.skor.total | angka }}</span>
+    </p>
+    {% endif %}
+
+  {% elif blok.id == "kandidat_penyebab" %}
+    {% if blok.data.grafik %}{{ blok.data.grafik | safe }}{% endif %}
+    <table>
+      <thead>
+        <tr>
+          <th>Penyebab</th><th>Gejala</th><th>Komponen</th>
+          <th>Korob.</th><th>Kebaruan</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for k in blok.data.kandidat %}
+        <tr{% if loop.first %} class="unggul"{% endif %}>
+          <td>
+            {{ k.nama }}
+            {% if k.sitasi %}<sup class="ref">{{ k.sitasi | map(attribute="canonical_id") | join(", ") }}</sup>{% endif %}
+          </td>
+          <td class="num">{{ k.skor.symptom_overlap | angka }}</td>
+          <td class="num">{{ k.skor.component_match | angka }}</td>
+          <td class="num">{{ k.skor.corroboration | angka }}</td>
+          <td class="num">{{ k.skor.recency | angka }}</td>
+          <td class="num total">{{ k.skor.total | angka }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+  {% elif blok.id == "preseden_lintas_pabrik" %}
+    <p class="cakupan">Pabrik terlibat: {{ blok.data.pabrik_terlibat | join(", ") }}</p>
+    {% if blok.data.grafik %}{{ blok.data.grafik | safe }}{% endif %}
+    <ul class="preseden">
+    {% for p in blok.data.preseden %}
+      <li>
+        <span class="kepala">{{ p.pabrik }} · {{ p.equipment_tag }} · {{ p.tanggal_kejadian | tanggal }}</span>
+        {% if p.gejala %}<span class="detail">Gejala: {{ p.gejala | join("; ") }}</span>{% endif %}
+        {% if p.penyelesaian %}<span class="solusi">Penyelesaian: {{ p.penyelesaian }}</span>{% endif %}
+        {% if p.downtime_jam is not none %}<span class="detail">Downtime: {{ p.downtime_jam | angka }} jam</span>{% endif %}
+        {% if p.sitasi %}<span class="ref">{{ p.sitasi | map(attribute="canonical_id") | join(", ") }}</span>{% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+
+  {% elif blok.id == "rantai_kausal" %}
+    <ol class="rantai">
+    {% for m in blok.data.mata_rantai %}
+      <li><span class="peran">{{ m.peran }}</span> {{ m.label }}
+        {% if m.detail %}<span class="detail">{{ m.detail }}</span>{% endif %}
+      </li>
+    {% endfor %}
+    </ol>
+
+  {% elif blok.id == "sparepart_kritis" %}
+    {% if blok.data.grafik %}{{ blok.data.grafik | safe }}{% endif %}
+    <table>
+      <thead>
+        <tr><th>Sparepart</th><th>Master</th><th>ARKA</th><th>Selisih</th><th>Pasokan</th></tr>
+      </thead>
+      <tbody>
+      {% for s in blok.data.sparepart %}
+        <tr>
+          <td>{{ s.nama }} <span class="pn">{{ s.part_number }}</span></td>
+          <td class="num">{{ s.static_criticality | angka }}</td>
+          <td class="num">{{ s.criticality | angka }}</td>
+          <td class="num total">{{ s.selisih | angka(tanda=True) }}</td>
+          <td class="pasokan">
+            {%- if s.lead_time_minggu %}{{ s.lead_time_minggu }} mgg{% endif -%}
+            {%- if s.jumlah_vendor %} · {{ s.jumlah_vendor }} vendor{% endif -%}
+            {%- if s.pabrik_terdampak %} · {{ s.pabrik_terdampak | length }} pabrik{% endif -%}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+  {% elif blok.id == "jejak_penalaran" %}
+    <ol class="jejak">
+    {% for l in blok.data.langkah %}
+      <li>
+        <span class="aksi">{{ l.aksi }}</span>
+        <span class="hasil">{{ l.hasil }}</span>
+        {% if l.jumlah_simpul is not none %}<span class="detail">{{ l.jumlah_simpul }} simpul</span>{% endif %}
+      </li>
+    {% endfor %}
+    </ol>
+
+  {% elif blok.id == "rekomendasi" %}
+    <ul class="rekomendasi">
+    {% for r in blok.data.rekomendasi %}
+      <li>
+        <span class="prioritas p-{{ r.prioritas }}">{{ r.prioritas }}</span>
+        {{ r.tindakan }}
+        {% if r.dasar %}<span class="detail">{{ r.dasar }}</span>{% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+
+  {% elif blok.id == "sitasi" %}
+    <ol class="sitasi">
+    {% for s in blok.data.sitasi %}
+      <li>
+        <span class="cid">{{ s.canonical_id }}</span>
+        {{ s.judul }}
+        <span class="detail">{{ s.tipe_dokumen }}{% if s.tanggal %} · {{ s.tanggal | tanggal }}{% endif %}{% if s.lokator %} · {{ s.lokator }}{% endif %}</span>
+        {% if s.kutipan %}<blockquote>{{ s.kutipan }}</blockquote>{% endif %}
+      </li>
+    {% endfor %}
+    </ol>
+  {% endif %}
+</section>
+{% endmacro %}
+
+{# Keterangan asal dokumen. Ditaruh di kaki, bukan di kop: yang bertanggung
+   jawab atas isi dokumen adalah unit yang menandatanganinya, sedangkan ARKA
+   adalah alat yang menyusunnya. Di posisi ini merek berfungsi sebagai jejak
+   asal-usul — bagian dari keterlacakan, bukan identitas dokumen. #}
+{% macro jejak_asal(finding) %}
+<footer class="jejak-asal">
+  <span class="alat">ARKA · Asset Reliability Knowledge Agent</span>
+  <span class="keterangan">
+    Disusun otomatis dari basis pengetahuan keandalan. Seluruh angka, skor, dan
+    rujukan dirender langsung dari data; narasi disusun agent dan wajib ditinjau
+    manusia sebelum ditindaklanjuti.
+  </span>
+  <span class="acuan">Acuan temuan: {{ finding.finding_id }}</span>
+</footer>
+{% endmacro %}
