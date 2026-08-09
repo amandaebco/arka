@@ -42,24 +42,28 @@ untuk membangun, bukan memutuskan.
 ## Arsitektur
 
 ```
-Scout → Investigator → Reporter        (rantai)
-Curator                                (ortogonal)
+Scout → Investigator → Reporter → Designer   (rantai)
+Curator                                      (ortogonal)
         ↓
 PostgreSQL + Apache AGE + pgvector
         ↓
 ADK Artifacts: memo · infografis · deck
 ```
 
-### Empat agent — masing-masing punya satu keputusan
+### Lima agent — masing-masing punya satu keputusan
 
 | Agent | Keputusan miliknya | Serah-terima |
 |---|---|---|
 | `scout` | Mana yang layak diselidiki | → investigator |
 | `investigator` | Langkah penelusuran berikutnya; kapan eskalasi ke manusia | → reporter |
-| `reporter` | Blok mana yang masuk dokumen dan urutannya | → artifact |
+| `reporter` | Blok mana yang masuk dokumen dan urutannya | → designer, artifact |
+| `designer` | Penekanan visual dan bentuk visual tiap blok | → artifact |
 | `curator` | Pemetaan mana yang aman disetujui otomatis | → proyeksi ulang graph |
 
-⚠️ **Jangan bangun framework.** Empat modul sederhana dengan kontrak jelas.
+Batas `reporter` ↔ `designer` dijaga ketat: pemilihan blok tetap milik reporter,
+designer menerimanya sebagai masukan. Dua agent tidak boleh punya keputusan sama.
+
+⚠️ **Jangan bangun framework.** Lima modul sederhana dengan kontrak jelas.
 
 ### Prinsip yang tidak boleh dilanggar
 
@@ -70,8 +74,21 @@ ADK Artifacts: memo · infografis · deck
 | Skor deteksi & kekritisan | Memutuskan jalur penelusuran berikutnya |
 | Traversal graph | Menafsirkan teks bebas notifikasi |
 | Angka, grafik, diagram, sitasi | Memilih blok dokumen, menyusun narasi |
+| Penyusunan nilai untuk seluruh keluaran | Mengusulkan penekanan & bentuk visual |
 
 **Model tidak pernah menyentuh angka.** Salah pilih blok tidak fatal; salah ketik angka fatal.
+
+**Cakupan (Constitution 1.2.0).** Prinsip ini mengikat penuh pada **dokumen bukti**
+— memo, nota dinas, laporan. **Infografis dikecualikan pada tahap penggambaran**
+saja: teks dan angkanya tetap disusun kode dari `Finding`, yang berasal dari model
+hanya penggambaran halaman. Tiga imbangan wajib menyertainya:
+
+1. Tidak ada nilai yang hanya dibawa bentuk — setiap angka juga tertulis
+2. Penilai memeriksa setiap string terhadap `Finding` sebelum terbit
+3. Memo tetap catatan resmi untuk angka yang dipakai mengambil keputusan
+
+Yang dipertaruhkan pada infografis adalah keterbacaan; pada memo, kebenaran.
+Keduanya tidak ditukar.
 
 **Agent tidak pernah menulis fakta** ke graph — semua temuan masuk sebagai kandidat
 `unreviewed` menunggu persetujuan manusia.
@@ -100,15 +117,118 @@ Nilai jualnya ada di **selisih terhadap `static_criticality`** di master data.
 
 **D0 selesai** — repo, Spec Kit, struktur ADK, kode dasar tersalin, compose.
 
-**D1 (6 Agt):**
-1. `uv sync` + `docker compose up -d`
-2. `/speckit-specify` — kunci spesifikasi (sekalian bahan SDD, 8 poin)
-3. Tulis ulang `app/synthetic/generator.py` sesuai spesifikasi data
-4. Autogenerate migrasi awal dari models (`migrations/versions/` sengaja kosong)
-5. Proyeksi graph — verifikasi preseden lintas pabrik keluar dari query
+**D1 (6 Agt) — sebagian selesai.** Project **sudah didaftarkan**.
 
-**D2 (7 Agt):** ⚠️ **DAFTARKAN PROJECT — deadline hari ini.** Scout + deteksi.
-Investigator kerangka. **Uji deploy hello-world ke Agent Engine** (jangan tunda ke D5).
+Selesai:
+- ✅ Constitution diisi (`.specify/memory/constitution.md`) — 6 prinsip, v1.0.0
+- ✅ Spec 001 diisi — 5 user story, 20 FR, 7 SC, tabel status brownfield
+- ✅ **Lapisan pelaporan penuh** — dikerjakan mendahului jadwal (materi D4)
+- ✅ Reporter diuji hidup ke Gemini: `ringkas_temuan` → `muat_temuan` →
+  `terbitkan_dokumen` → artifact PDF tersimpan, tanpa campur tangan
+- ✅ Agent hello-world (`app/agents/hello.py`) jalan lokal via Vertex AI
+
+Berlanjut di D2 — status terbaru:
+- ✅ `uv sync` + `docker compose up -d` — AGE + pgvector aktif
+- ✅ Migrasi awal + atribut rantai pasok pada `spare_parts` (40 tabel)
+- ✅ `app/synthetic/generator.py` ditulis ulang — langsung ke tabel kanonik, tanpa CSV.
+  Syarat jalur emas jadi konstanta di `app/synthetic/jalur_emas.py`
+- ✅ Preseden lintas pabrik terbukti keluar dari query SQL
+- ⬜ **Kalibrasi kasus ambigu ≤0,05** — sengaja ditunda sampai scorer Scout ada,
+  supaya diukur, bukan ditebak
+- ⬜ Volume latar (~5.000 equipment, ~20.000 WO) di atas jalur emas
+- ⬜ `app/synthetic/validation.py` sebagai penjaga — versi lama (bentuk CSV) dihapus
+- ⬜ Proyeksi graph — `app/graph/project.py` sudah ada, belum dijalankan
+
+**D2 (7 Agt):** Scout + deteksi. Investigator kerangka.
+
+### Deploy Agent Engine — sudah terbukti jalan (7 Agt)
+
+Project pindah ke **`ebco-aihack-amanda`** (peran `editor`, jadi bisa bikin bucket).
+Staging bucket: `gs://ebco-aihack-amanda-arka-staging`. Resep tersimpan di
+`scripts/deploy_hello.py` (jalur pickle) dan `scripts/deploy_sumber.py` (jalur sumber).
+
+Yang terbukti:
+- ✅ Agent ter-deploy hidup, menjawab, dan memanggil tool
+- ✅ Model `gemini-3.6-flash` di lokasi **`global`** bisa dipanggil dari agent di
+  region `us-central1` — jangan pindahkan model ke region, ia memang tidak ada di sana
+
+Jebakan yang mahal ditemukan ulang — **jangan diulang**:
+- Agent dikirim sebagai **pickle**, jadi paket `app` wajib ikut lewat `extra_packages`.
+  Tanpa itu container gagal start: `ModuleNotFoundError: No module named 'app.agents'`.
+- Di jalur sumber, entrypoint wajib objek **`AdkApp`** (lihat `app/agents/aplikasi.py`),
+  bukan agent mentah, dan `class_methods` wajib diisi sendiri.
+- ⚠️ **`build_options` / `installation_scripts` divalidasi SDK lalu tidak pernah
+  dikirim ke API** — di kedua jalur. Tidak ada `buildOptions` di payload SDK, dan
+  log build tidak memuat eksekusi skrip. **Jangan mengandalkannya** untuk memasang
+  dependensi sistem.
+
+⚠️ Chromium **tidak bisa** dipasang lewat jalur bawaan Agent Engine (installation
+script diabaikan; pemasangan runtime melebihi anggaran waktu permintaan).
+**Jalan keluarnya: container sendiri** — lihat bagian berikut.
+
+### Cloud Run — hidup dan terbukti (7 Agt)
+
+`https://arka-110352541672.us-central1.run.app` · region `us-central1` ·
+image `us-central1-docker.pkg.dev/ebco-aihack-amanda/arka/arka:v1`
+
+**Rantai penuh sudah berjalan di sana**: reporter menerbitkan PDF (88 KB, dirender
+Chromium di dalam container), penilai memeriksa, `selesai` menghentikan putaran.
+
+Resep dan jebakannya:
+- `Dockerfile` — `python:3.12-slim` + `playwright install --with-deps chromium`.
+  **2,53 GB**; image resmi Playwright dipakai lebih dulu tapi 4,27 GB karena memuat
+  tiga peramban. Versi biner peramban harus sepadan dengan paket `playwright`.
+- `adk_agents/` — ADK menuntut satu direktori per agent berisi `agent.py`.
+  Isinya pembungkus tipis; logika tetap di `app/agents/`.
+- Mac ARM → Cloud Run butuh **`--platform linux/amd64`**. `gcloud builds submit`
+  ditolak `PERMISSION_DENIED` walau peran `editor`, jadi dipakai `docker buildx`
+  lalu push langsung ke Artifact Registry.
+- ⚠️ **gcloud crash di `gcloud run deploy`** (`unsupported operand type(s) for |`)
+  karena Python 3.9 bawaannya. Obatnya:
+  `CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 gcloud run deploy ...`
+
+⬜ Agent Engine dengan image yang sama lewat `image_spec` — belum dicoba.
+
+### Lapisan pelaporan — sudah jadi, kontraknya kunci
+
+`Finding` (`app/reporting/finding.py`) adalah **satu-satunya** masukan reporter.
+Investigator cukup menulis objek itu ke session state kunci `finding`; tidak ada
+baris di reporter yang perlu berubah.
+
+| Berkas | Peran |
+|---|---|
+| `app/reporting/finding.py` | Kontrak serah-terima investigator → reporter |
+| `app/reporting/blocks.py` | 8 blok, dirakit deterministik dari `Finding` |
+| `app/reporting/dokumen.py` | Registry jenis + `KonteksDokumen` (kelengkapan surat) |
+| `app/reporting/memo.py` | Render HTML (kerja internal) + PDF A4 (untuk manusia) |
+| `app/reporting/grafik.py` | 3 grafik SVG inline, dirakit dari data |
+| `app/reporting/lencana.py` | Lencana unit dibangkitkan — tidak ada logo tersimpan |
+| `app/agents/qa.py` | Penilai mutu + `LoopAgent` maks 3 putaran |
+| `app/reporting/templates/_blok.html.j2` | Makro isi — dipakai bersama semua jenis |
+| `app/reporting/narasi.py` | Penyaring narasi model — kalimat berangka dibuang |
+| `app/agents/reporter.py` | Agent ADK, 3 tool |
+| `app/synthetic/finding_contoh.py` | Temuan contoh — uji tanpa DB dan tanpa investigator |
+
+Tiga jenis dokumen: `memo`, `nota_dinas`, `laporan`. Isi dan angka identik;
+yang berbeda hanya chrome dan kebijakan blok bawaan. Jenis keempat = satu template
+chrome + satu entri registry.
+
+Penegakan prinsip (bukan sekadar instruksi prompt):
+- Pilihan blok model diperlakukan **usulan** — id asing diabaikan, blok kosong disaring,
+  `ringkasan` dan `sitasi` disisipkan paksa.
+- Angka dirender lewat filter `angka` dari data; narasi model tidak punya jalur mengubahnya.
+- Kalimat narasi bermuatan angka **dibuang di `pilih_blok`** — termasuk angka dalam
+  bentuk kata ("dua kandidat" sama terlarangnya dengan "2 kandidat"). Kebocoran nyata
+  yang memicu penjaga ini terjadi pada uji hidup pertama. `satu` dan bilangan tingkat
+  (`kedua`, `ketiga`) sengaja dilewatkan — nyaris selalu idiomatik.
+- `DokumenTanpaSitasi` menolak penerbitan tanpa rujukan (FR-009, prinsip II).
+
+69 tes hijau, ruff bersih pada berkas yang disentuh:
+`test_reporting_memo.py` (33) · `test_narasi.py` (18) · `test_reporter_agent.py` (18).
+
+Render contoh tanpa DB: `uv run python scripts/render_contoh.py` → `out/`.
+PDF **berfungsi** (chromium terpasang); jalur mundur ke HTML tetap ada di
+`terbitkan_dokumen` kalau peramban hilang di lingkungan lain.
 
 **D3:** Investigator penuh + jejak penalaran + sitasi · chat
 **D4:** Memo + criticality + radius dampak — 🎯 **demo end-to-end harus jalan hari ini**
@@ -116,7 +236,11 @@ Investigator kerangka. **Uji deploy hello-world ke Agent Engine** (jangan tunda 
 **D6:** Submission
 
 ### Urutan pemotongan kalau tertinggal
-1. PPTX → buang · 2. Curator → skrip batch sederhana · 3. Infografis → 3 blok saja
+1. PPTX → buang · 2. Curator → skrip batch sederhana · 3. Infografis → satu persona,
+blok paling sedikit
+
+Yang **tidak pernah** dipotong dari infografis: Prinsip I. Kalau waktunya habis,
+yang hilang adalah persona kedua dan blok pilihan — bukan kesetiaan angka.
 
 **Tidak pernah dipotong:** sitasi dokumen · jejak penalaran multi-hop · deploy Agent Engine
 
@@ -149,5 +273,47 @@ katalog 200.000+ mapping yang **sengaja kotor** (typo ala OCR, tag ambigu, ~8% W
 ## Konvensi
 
 - Python 3.12 · `uv` · ruff line-length 100 · pytest asyncio auto
-- Bahasa dokumen dan komentar: **Indonesia**
+- Model: **`gemini-3.6-flash`**, lokasi **`global`** (bukan region)
+- Project GCP: **`ebco-aihack-amanda`** — satu sumber kebenaran di `.env`;
+  `Settings` membacanya, `terapkan_env_vertex()` menyalinnya ke `os.environ`
+  karena `google-genai` membaca lingkungan, bukan objek Settings
 - `app/synthetic/` adalah alat waktu-pengembangan — tidak ikut ter-deploy ke Agent Engine
+
+### 🔤 Bahasa — berubah 7 Agt
+
+**Seluruh kode, komentar, docstring, dan prompt agent memakai bahasa Inggris.**
+Termasuk nama modul, fungsi, dan variabel. Ini menggantikan konvensi sebelumnya
+yang memakai bahasa Indonesia.
+
+Yang **tetap** bahasa Indonesia: isi dokumen yang diterbitkan ARKA (memo, nota
+dinas, laporan) dan teks yang dibaca pengguna akhir — pembacanya reliability
+engineer Indonesia. Jadi prompt ditulis dalam bahasa Inggris, tetapi memerintahkan
+model menjawab dan menulis dokumen dalam bahasa Indonesia.
+
+Kode yang ditulis sebelum 7 Agt masih berbahasa Indonesia (`app/reporting/`,
+`app/synthetic/`, `app/agents/`, `tests/`).
+
+**Cara migrasinya — bertahap per modul, satu modul utuh sekali jalan.** Berkas
+setengah-Inggris lebih buruk daripada berkas yang belum disentuh: pembaca tidak
+tahu mana konvensi yang berlaku. Satu modul berarti berkasnya **beserta tesnya**,
+termasuk nama berkas, kelas, fungsi, dan variabel.
+
+Dikerjakan saat modul itu memang sedang disentuh untuk alasan lain — bukan
+sebagai proyek tersendiri. Urutan yang masuk akal, dari yang paling jarang
+berubah ke yang paling sering:
+
+1. `app/synthetic/` — paling terisolasi, hanya alat waktu-pengembangan
+2. `app/reporting/` — sudah stabil, tesnya rapat (33 + 14 + 15)
+3. `app/agents/` — paling sering berubah, migrasi paling akhir
+
+⚠️ Prompt agent ikut dimigrasi ke bahasa Inggris, tetapi **harus tetap
+memerintahkan model menulis dokumen dalam bahasa Indonesia**. Menerjemahkan
+prompt tanpa menambahkan perintah itu akan mengubah bahasa dokumen terbitan —
+regresi yang tidak akan tertangkap tes mana pun.
+
+### Kerangka & deployment
+
+- **Google ADK** (Agent Development Kit) — bukan framework buatan sendiri
+- Deployment: **Cloud Run** dan **Vertex AI Agent Engine**, memakai image yang sama
+- Pengembangan mengikuti **Spec-Driven Development** (GitHub Spec Kit):
+  spec → plan → tasks → implement. Fitur baru dimulai dari `specs/`, bukan dari kode.

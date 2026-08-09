@@ -1,50 +1,182 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# ARKA Constitution
+
+ARKA — Asset Reliability Knowledge Agent — menyelidiki akar masalah kegagalan mesin
+di manufaktur FMCG multi-pabrik. Prinsip di bawah ini mengikat seluruh spesifikasi,
+rencana, dan implementasi turunannya. Bila sebuah rancangan berbenturan dengan salah
+satu prinsip, rancangan itu yang berubah.
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Angka Deterministik, Bahasa oleh Model (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Pembagian ini adalah fondasi kredibilitas seluruh sistem.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+| Deterministik — kode | LLM — Gemini |
+|---|---|
+| Skor deteksi dan kekritisan | Memutuskan jalur penelusuran berikutnya |
+| Traversal graph | Menafsirkan teks bebas notifikasi |
+| Angka, grafik, diagram, sitasi | Memilih blok dokumen, menyusun narasi |
+| Penyusunan nilai untuk seluruh keluaran | Mengusulkan penekanan dan bentuk visual |
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Model bahasa tidak pernah menyentuh angka. Salah memilih blok dokumen tidak fatal;
+salah mengetik satu angka menghancurkan kepercayaan pada seluruh laporan.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Konsekuensi rancangan: nilai numerik mengalir dari sumber data ke keluaran tanpa
+melewati model. Keluaran model diperlakukan sebagai **usulan**, bukan perintah —
+lapisan penerima wajib menyaring nilai yang tidak dikenal, bukan mempercayainya.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Cakupan.** Prinsip ini mengikat penuh pada **dokumen bukti** — memo, nota dinas,
+dan laporan. Di sana nilai mengalir dari data ke keluaran tanpa pernah melewati
+model, dan grafik dirender deterministik.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**Infografis dikecualikan sebagian**, dengan batas dan imbangan yang tegas. Ia
+artefak ringkas untuk pembaca yang tidak akan membuka memo; ia **bukan catatan
+resmi**, dan tidak pernah menjadi satu-satunya sumber sebuah angka.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+| Tetap wajib | Boleh dari model |
+|---|---|
+| Seluruh teks, angka, label, dan sitasi disusun kode dari `Finding` | Penggambaran halaman: tata letak, bentuk visual, ilustrasi |
+| Nilai yang dikirim ke penggambar bersifat verbatim | — |
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Imbangan yang membuat pengecualian ini dapat dipertanggungjawabkan — ketiganya
+wajib, bukan pilihan:
+
+1. **Tidak ada nilai yang hanya dibawa oleh bentuk.** Setiap angka tertulis di
+   sebelah grafiknya, sehingga kesalahan penggambaran tidak pernah menjadi
+   kesalahan angka.
+2. **Gerbang mutu memeriksa setiap string** pada halaman terhadap `Finding`.
+   Teks yang tidak ditemukan di sumber membatalkan penerbitan.
+3. **Memo tetap catatan resminya.** Angka yang dipakai untuk mengambil keputusan
+   dirujuk dari memo, bukan dari infografis.
+
+Batas ini disengaja: yang dipertaruhkan pada infografis adalah keterbacaan, dan
+yang dipertaruhkan pada memo adalah kebenaran. Keduanya tidak ditukar.
+
+### II. Setiap Klaim Dapat Ditelusuri
+
+Setiap pernyataan dalam dokumen keluaran harus dapat dirunut ke dokumen sumber
+atau ke simpul graph yang menjadi dasarnya. Sitasi bukan hiasan dan tidak pernah
+masuk daftar fitur yang boleh dipotong.
+
+Dokumen tanpa sitasi tidak boleh terbit.
+
+### III. Agent Tidak Pernah Menulis Fakta
+
+Agent tidak menulis langsung ke knowledge graph. Seluruh temuan masuk sebagai
+kandidat berstatus `unreviewed` dan menunggu persetujuan manusia. Yang boleh
+disetujui otomatis hanyalah kelas pemetaan yang sudah dinyatakan aman secara
+eksplisit.
+
+Sistem yang menulis kesimpulannya sendiri ke sumber kebenaran akan mengukuhkan
+kesalahannya sendiri.
+
+### IV. Ketidakpastian Dieskalasi, Bukan Ditebak
+
+Bila dua kandidat penyebab teratas berselisih di bawah ambang keyakinan, sistem
+menyatakan perlu putusan manusia dan menyajikan keduanya. Sistem tidak memilih
+salah satu demi terlihat yakin.
+
+Keyakinan palsu lebih berbahaya daripada ketidakpastian yang diakui.
+
+### V. Modul Berkeputusan Tunggal, Bukan Kerangka Kerja
+
+`scout → investigator → reporter → designer` adalah rantai; `curator` berjalan
+ortogonal. Masing-masing memiliki tepat satu keputusan dan satu kontrak serah-terima.
+
+| Modul | Keputusan miliknya |
+|---|---|
+| `scout` | Apa yang layak diselidiki |
+| `investigator` | Langkah penelusuran berikutnya |
+| `reporter` | Blok mana masuk dokumen dan urutannya |
+| `designer` | Penekanan visual dan bentuk visual tiap blok |
+| `curator` | Pemetaan mana yang layak diusulkan ke graph |
+
+Batas antara `reporter` dan `designer` dijaga ketat: pemilihan blok tetap milik
+`reporter`, dan `designer` menerimanya sebagai masukan. Dua modul tidak boleh
+memiliki keputusan yang sama.
+
+Jangan membangun kerangka kerja umum. Modul sederhana dengan kontrak jelas lebih
+mudah dijelaskan ke penilai dan lebih mudah diperbaiki saat waktu menipis. Modul
+kelima ditambahkan karena keputusan penyajian visual memang belum dimiliki modul
+manapun — bukan karena sistem membutuhkan lapisan abstraksi baru.
+
+### VI. Nol Data Klien (NON-NEGOTIABLE)
+
+Repositori ini tidak memuat data klien satu baris pun, dan tidak menyebut nama
+perusahaan, sektor nyata, atau lokasi asli — baik di kode, komentar, data, maupun
+dokumen. Domain disebut "manufaktur FMCG multi-pabrik" saja. Skema penandaan aset
+dirancang sendiri, tidak meniru format sistem manapun.
+
+Seluruh data bersifat sintetis dan ditulis langsung ke tabel kanonik.
+
+## Batasan Teknis
+
+- **Runtime agent**: Google ADK, di-deploy ke Vertex AI Agent Engine.
+- **Penyimpanan**: PostgreSQL 16 + Apache AGE + pgvector. Satu basis data untuk
+  relasional, graph, dan vektor.
+- **Bahasa**: Python 3.12, dikelola `uv`. Ruff dengan `line-length` 100.
+- **Bahasa kode**: pengenal, docstring, dan komentar dalam bahasa Inggris.
+- **Bahasa dokumen**: Indonesia untuk spesifikasi dan dokumen naratif. Berkas
+  yang ditulis sebelum amandemen ini boleh tetap berbahasa Indonesia sampai
+  disentuh; penerjemahan massal bukan pekerjaan yang mendesak.
+- **`app/synthetic/`** adalah perkakas waktu-pengembangan dan tidak ikut ter-deploy.
+- Keluaran dikirim sebagai ADK Artifacts.
+
+## Alur Kerja
+
+Proyek ini **brownfield**. Basis kode awal — model data, modul graph, lapisan
+pelaporan — ditulis sebelum Spec Kit diterapkan. Konsekuensinya:
+
+1. Spesifikasi mendokumentasikan komponen yang sudah berjalan **apa adanya**,
+   ditandai jelas sebagai kondisi terpasang. Tidak ada klaim bahwa komponen
+   tersebut lahir dari spesifikasi.
+2. Komponen yang belum ditulis mengikuti urutan spec-first sepenuhnya:
+   `specify → plan → tasks → implement`.
+3. Perubahan pada komponen terpasang memutakhirkan spesifikasi lebih dulu.
+
+Kejujuran urutan lebih bernilai daripada tampak rapi. Riwayat commit terbuka bagi
+penilai dan harus cocok dengan yang dinyatakan.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+Constitution ini mengungguli seluruh dokumen lain dalam repositori. Prinsip
+bertanda NON-NEGOTIABLE tidak boleh dilanggar demi tenggat; bila waktu menipis,
+yang dipotong adalah cakupan fitur, bukan prinsip.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Urutan pemotongan cakupan yang sudah disepakati: deck PPTX dibuang lebih dulu,
+lalu curator disederhanakan menjadi skrip batch, lalu infografis diringkas —
+dan bila diringkas, yang dipertahankan adalah satu persona dengan blok paling
+sedikit, bukan versi yang melonggarkan Prinsip I.
+Tidak pernah dipotong: sitasi dokumen, jejak penalaran multi-hop, dan deploy
+ke Agent Engine.
+
+Setiap spesifikasi baru wajib menyebut prinsip mana yang mengikatnya. Penyimpangan
+harus dicatat beserta alasannya di spesifikasi terkait, bukan diselesaikan diam-diam
+di dalam kode.
+
+### Riwayat amandemen
+
+**1.2.0 — 2026-08-07.** Menetapkan cakupan Prinsip I untuk infografis.
+
+- **Prinsip I** dipersempit cakupannya, bukan dilanggar. Mengikat penuh pada dokumen
+  bukti; infografis dikecualikan pada tahap penggambaran, dengan tiga imbangan wajib:
+  tidak ada nilai yang hanya dibawa bentuk, gerbang mutu memeriksa setiap string
+  terhadap `Finding`, dan memo tetap catatan resmi. Prinsip tetap NON-NEGOTIABLE
+  pada cakupannya.
+- Alasan: keragaman tumpukan teknologi dinilai lebih bernilai daripada keseragaman
+  jalur render, dan risikonya tertutup oleh ketiga imbangan di atas. Keputusan
+  pemilik proyek, tercatat terbuka.
+
+**1.1.0 — 2026-08-07.** Menyiapkan modul `designer`.
+
+- **Prinsip I** dipertajam, bukan dilonggarkan. Ditambahkan batas eksplisit untuk
+  keluaran visual: geometri yang membawa nilai tetap wajib deterministik, sementara
+  penekanan, pemilihan bentuk, dan ilustrasi tanpa nilai boleh berasal dari model
+  sebagai usulan. Ditambahkan aturan bahwa tidak ada nilai yang hanya dibawa oleh
+  bentuk. Prinsip tetap NON-NEGOTIABLE.
+- **Prinsip V** diperluas dari empat menjadi lima modul, dengan tabel keputusan
+  eksplisit untuk mencegah `reporter` dan `designer` memiliki keputusan yang sama.
+- **Batasan Teknis** mengubah bahasa kode menjadi Inggris; bahasa dokumen tetap
+  Indonesia.
+
+**Version**: 1.2.0 | **Ratified**: 2026-08-06 | **Last Amended**: 2026-08-07
