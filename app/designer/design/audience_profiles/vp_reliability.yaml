@@ -1,0 +1,45 @@
+id: vp_reliability
+name: VP Reliability / Asset Management
+category: audience_profile
+description: >
+  Jembatan antara realitas teknis dan visi korporat. Membaca temuan satu aset
+  sebagai pemicu, lalu mengangkatnya ke implikasi portfolio dan keputusan
+  investasi. Satu-satunya persona yang menjadikan gambaran tingkat unit sebagai
+  tujuan, bukan latar.
+
+metadata:
+  version: 2
+  tags: [strategic, business-case, portfolio]
+
+reading_time_seconds: 45
+preferred_density: medium
+preferred_storytelling: investment_case
+preferred_layout: technical_report_grid
+
+terminology:
+  register: business
+  keep_untranslated:
+    - business case
+    - asset integrity
+    - lagging KPI
+    - ROI
+    - RoNA
+    - OEE
+    - living program
+  avoid:
+    - data structure or graph vocabulary
+    - any ROI, RoNA, OEE or profitability value not present in the source
+  prefer:
+    - cost and risk exposure framed as a business case
+    - multi-dimensional corporate risk
+    - the assurance questions that still need answering
+
+visual_emphasis:
+  - business_impact
+  - assurance_questions
+  - framework_assessment
+
+action_dimensions:
+  - tradeoff
+
+max_bullets_per_section: 5

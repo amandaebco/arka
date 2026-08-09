@@ -1,0 +1,36 @@
+id: comparison
+name: Comparison
+category: visualization_pattern
+description: >
+  Nilai terukur disandingkan dengan pembandingnya — batas desain, baseline,
+  atau periode sebelumnya. Bentuk yang paling sering benar-benar dibutuhkan,
+  karena sebagian besar temuan keandalan pada dasarnya adalah perbandingan.
+
+metadata:
+  version: 2
+  tags: [baseline, deviation, high-value]
+
+when_to_use:
+  - the measured value has a recorded design limit or baseline
+  - the size of the deviation is the point of the message
+  - two to six value pairs can be shown
+
+when_to_avoid:
+  - the source carries no reference value
+  - the two values use different units
+  - the difference is too small to see; state it as text instead
+
+preferred_placement: "inside the current condition card"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: true
+  required_fields:
+    - measured
+    - reference
+  min_items: 1
+
+rules:
+  - Measured value and reference carry distinct, explicit labels.
+  - Axes start at zero unless an explicit note says otherwise.
+  - The difference is written as a figure, not left to the eye to judge.

@@ -1,0 +1,82 @@
+id: professional
+name: Professional Baseline
+category: design_rules
+description: >
+  Batas dasar yang berlaku untuk semua deliverable. Melanggarnya membuat
+  dokumen terlihat seperti materi pemasaran, bukan hasil kerja teknis.
+
+metadata:
+  version: 2
+  tags: [baseline, always-applied]
+
+whitespace:
+  min_outer_margin_pct: 5
+  min_gap_between_cards_pct: 2
+  max_content_coverage_pct: 85
+  rule: "White space is structure, not leftover room waiting to be filled."
+
+# Irama spasial. Tanpa aturan ini, jarak di dalam kartu bisa menyamai jarak
+# antar-kartu, dan kelompok berhenti terbaca sebagai kelompok.
+spatial_rhythm:
+  base_unit: "one spacing unit; every gap and padding is a whole multiple of it"
+  grouping_law: >
+    The gap around a group is always larger than the gaps inside it. Items
+    within a card sit closer together than the cards sit to each other.
+  nested_radius: >
+    A rounded shape inside another has a smaller radius than its container,
+    reduced by the padding between them; never a larger or equal radius.
+  alignment: "every element sits on the same underlying grid; no optical drift"
+
+# Elevasi. Sebelumnya hanya disebut "soft drop shadow", sehingga bayangan bisa
+# berbeda-beda antar-kartu dalam satu halaman.
+elevation:
+  max_shadow_opacity_pct: 8
+  light_direction: "a single light source for the whole page, from above"
+  layering: "shadows are soft and layered, never one hard offset"
+  consistency: "every card at the same level carries an identical shadow"
+
+font_hierarchy:
+  min_levels: 3
+  max_levels: 5
+  min_step_ratio: 1.25
+
+# Plafon universal, bukan pengikat genre. Aturan genre (mis. technical_report)
+# yang menetapkan batas sebenarnya; angka di sini adalah titik di mana halaman
+# apa pun berhenti terbaca, apa pun jenis dokumennya. Yang paling ketat menang.
+limits:
+  max_cards: 14
+  max_sections: 14
+  max_icons: 14
+  max_charts: 3
+  max_accent_colours: 5
+  max_bullets_per_section: 8
+
+readability:
+  min_body_size_rule: "body text stays legible when printed at A4"
+  max_line_length_chars: 90
+  text_alignment: "left aligned; full justification is forbidden"
+  no_text_over_images: true
+
+accessibility:
+  min_contrast_body: 4.5
+  min_contrast_large_text: 3.0
+  colour_not_sole_indicator: true
+  print_safe_greyscale: true
+
+language:
+  instruction_language: en
+  content_language: source
+  rule: >
+    Every design instruction in this knowledge base is written in English for the
+    model. All text rendered on the canvas — titles, section headings, bullets,
+    chip labels — follows the language of the source report and is never
+    translated, abbreviated or rephrased.
+
+forbidden:
+  - human figures
+  - lorem ipsum or placeholder text
+  - numbers or labels absent from the source data
+  - cartoon, gaming or marketing-poster aesthetics
+  - watermarks, logos or signatures
+  - gradients on the background
+  - translating any text taken from the source report

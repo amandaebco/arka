@@ -1,0 +1,32 @@
+id: identity_band
+name: Identity Band
+category: visualization_pattern
+description: >
+  Deretan chip identitas aset di bawah judul — plant, unit kilang, functional
+  location, kritikalitas. Menjawab "peralatan yang mana persisnya" sebelum
+  pembaca masuk ke temuan, dan mencegah laporan tertukar antar-aset serupa.
+
+metadata:
+  version: 2
+  tags: [header, identification, always-present]
+
+when_to_use:
+  - always, when the report concerns one specific asset
+  - especially when tag numbers are similar across equipment in the same unit
+
+when_to_avoid:
+  - the report covers a portfolio rather than a single asset
+
+preferred_placement: "full-width band directly beneath the title"
+visual_emphasis: tertiary
+
+requires_data:
+  numeric_values: false
+  min_items: 2
+  max_items: 5
+
+rules:
+  - Identity values are reproduced verbatim, including tag number formatting.
+  - Small label above, heavier value beneath it.
+  - Criticality uses a semantic accent; the other identity chips stay neutral.
+  - This band never dominates; it is identification, not a finding.

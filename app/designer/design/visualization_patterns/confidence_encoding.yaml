@@ -1,0 +1,59 @@
+id: confidence_encoding
+name: Confidence Encoding
+category: visualization_pattern
+description: >
+  Cara baku menampilkan tingkat keyakinan dan status diagnosis. Sumbernya hanya
+  mengenal tiga tingkat, jadi tampilannya pun harus tiga tingkat — persentase
+  atau angka desimal apa pun yang muncul di infografis berarti karangan.
+
+metadata:
+  version: 2
+  tags: [universal, never-fabricate, governance]
+
+when_to_use:
+  - always, whenever the report carries a confidence level or diagnosis status
+  - on fact table rows as well as on the overall summary
+
+when_to_avoid:
+  - the source states no confidence level at all
+
+preferred_placement: "last column of the fact table, and its own card in the closing band"
+visual_emphasis: secondary
+
+confidence_scale:
+  high:
+    token: "■■■"
+    meaning_id: "sudah cukup kuat"
+    meaning_en: "well supported"
+  medium:
+    token: "■■□"
+    meaning_id: "indikasi awal"
+    meaning_en: "early indication"
+  low:
+    token: "■□□"
+    meaning_id: "masih perlu dipastikan"
+    meaning_en: "still to be confirmed"
+
+diagnosis_scale:
+  critical:
+    token: "🔴"
+    severity_key: high
+    meaning_id: "kritis, perlu tindakan segera"
+    meaning_en: "critical, immediate action required"
+  attention:
+    token: "🟡"
+    severity_key: medium
+    meaning_id: "perlu perhatian atau waspada"
+    meaning_en: "needs attention"
+  controlled:
+    token: "🟢"
+    severity_key: low
+    meaning_id: "terkendali"
+    meaning_en: "under control"
+
+rules:
+  - Three levels only; never render a confidence percentage.
+  - Tokens are reproduced exactly, never swapped for stars, gauges or bars.
+  - Diagnosis token colour follows the severity scale of the active colour system.
+  - Confidence is always paired with its wording so it reads without colour.
+  - Use the meaning wording that matches the source report's language.

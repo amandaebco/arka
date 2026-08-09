@@ -1,0 +1,38 @@
+id: donut_status
+name: Donut Status
+category: visualization_pattern
+description: >
+  Cincin proporsi dua bagian dengan angka besar di tengah — misalnya porsi siap
+  terhadap belum siap. Hanya jujur bila proporsinya benar-benar dihitung dari
+  data, bukan diperkirakan dari kesan.
+
+metadata:
+  version: 2
+  tags: [proportion, binary-split, headline]
+
+when_to_use:
+  - the proportion is genuinely computed and the parts sum to a whole
+  - the split has two or three parts
+  - the centre figure is the main message of the card
+
+when_to_avoid:
+  - the proportion is estimated rather than computed
+  - more than three parts; use bars
+  - a single figure with no denominator; use a KPI card
+
+preferred_placement: "inside the status card, legend alongside"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: true
+  required_fields:
+    - parts
+    - total
+  min_items: 2
+  max_items: 3
+
+rules:
+  - The centre figure names one side only, together with its label.
+  - The legend lists every part with its value.
+  - Parts must sum to a whole; if they do not, do not use this pattern.
+  - Units or percent signs stay attached to the figure.

@@ -1,0 +1,84 @@
+id: dashboard
+name: Dashboard
+category: layout
+description: >
+  Dua kolom dengan band identitas dan penilaian di atas. Alternatif yang lebih
+  lapang dari technical_report_grid, dipakai saat jumlah section lebih sedikit
+  dan tiap kartu berisi lebih banyak teks.
+
+metadata:
+  version: 3
+  tags: [alternate, balanced, medium-density]
+
+orientation: portrait
+columns: 2
+
+bands:
+  - id: header
+    content: "equipment name as the main title, report type as a subtitle"
+    span: full
+  - id: identity_band
+    content: "asset identity and criticality chips"
+    span: full
+  - id: content_grid
+    content: "section cards following the reading flow"
+    span: full
+  - id: closing
+    content: "priority actions and uncertainty notes"
+    span: full
+
+section_order:
+  - identity
+  - current_condition
+  - business_impact
+  - main_risks
+  - maintenance_strategy
+  - priority_actions
+  - confidence_level
+  - uncertainty
+
+numbering:
+  enabled: true
+  style: "sequential number prefixed to each card title"
+  rationale: "keeps card references consistent across layouts"
+
+card_chrome:
+  header: >
+    Each card title sits inside a solid filled header bar spanning the full card
+    width, primary colour fill with white text, with a small square badge on the
+    left holding the card number.
+  header_accent: >
+    A card whose content is dominated by one severity level takes that severity
+    colour as its header fill instead of the primary colour.
+  body: "white body area beneath the header bar, generous internal padding"
+  border: "thin border in the border colour, small uniform corner radius"
+  chips: >
+    Status and severity values render as small filled rounded rectangles with
+    white uppercase text, never as plain coloured words.
+  dividers: "thin hairline rules between items inside a card"
+  emphasis_treatment: >
+    A dominant card is visually heavier than its neighbours; a tertiary card
+    carries a lighter, thinner header.
+
+header_visual:
+  enabled: false
+  content: ""
+  rules:
+    - Not used in this layout.
+
+spacing:
+  outer_margin: "generous margin on all four sides, roughly 6 percent of canvas width"
+  band_gap: "large"
+  card_gutter: "moderate"
+
+alignment:
+  cards: "cards in the same row share equal height"
+  text: "left aligned; numbers aligned on the decimal point"
+  status_chips: "equal width, sharing one baseline"
+
+responsive_behavior:
+  overflow_strategy: "lower the density before reducing type size"
+  min_readable_density: medium
+  on_content_overflow: "switch to the technical_report_grid layout"
+
+max_sections: 8

@@ -1,0 +1,80 @@
+id: one_page
+name: One Page
+category: layout
+description: >
+  Satu kolom mengalir, tanpa kartu. Dipakai saat isi section berupa paragraf
+  panjang yang akan patah kalau dipaksa masuk kisi — misalnya laporan dengan
+  banyak narasi dan sedikit angka.
+
+metadata:
+  version: 3
+  tags: [narrative, single-column, fallback]
+
+orientation: portrait
+columns: 1
+
+bands:
+  - id: header
+    content: "title with identity chips on the same line"
+    span: full
+  - id: body
+    content: "all sections in sequence, separated by thin rules"
+    span: full
+  - id: footnote
+    content: "uncertainty notes"
+    span: full
+
+section_order:
+  - identity
+  - current_condition
+  - business_impact
+  - maintenance_strategy
+  - priority_actions
+  - confidence_level
+  - uncertainty
+
+numbering:
+  enabled: true
+  style: "sequential number prefixed to each section heading"
+  rationale: "without cards, the number is the only marker of a section boundary"
+
+# Layout ini tanpa kartu, jadi chrome-nya bekerja pada heading dan garis.
+card_chrome:
+  header: >
+    Each section heading is set in the primary colour with its number in a small
+    filled square badge to its left, above a full-width horizontal rule.
+  header_accent: >
+    A section dominated by one severity level takes that severity colour for its
+    number badge and rule.
+  body: "plain page background; no card fill, no border"
+  border: "no card border; sections separated by their heading rule alone"
+  chips: >
+    Status and severity values render as small filled rounded rectangles with
+    white uppercase text, never as plain coloured words.
+  dividers: "thin hairline rules between items within a section"
+  emphasis_treatment: >
+    A dominant section carries a thicker rule and larger heading; a tertiary
+    section carries a hairline rule and the smallest heading.
+
+header_visual:
+  enabled: false
+  content: ""
+  rules:
+    - Not used in this layout.
+
+spacing:
+  outer_margin: "generous margin on all four sides, roughly 5 percent of canvas width"
+  band_gap: "moderate"
+  card_gutter: "no cards; sections separated by thin horizontal rules"
+
+alignment:
+  cards: "no cards; text blocks share a single left axis"
+  text: "left aligned; numbers aligned on the decimal point"
+  status_chips: "right aligned on the title line"
+
+responsive_behavior:
+  overflow_strategy: "tighten spacing between sections before dropping content"
+  min_readable_density: high
+  on_content_overflow: "keep compressing; this layout is built for dense content"
+
+max_sections: 10

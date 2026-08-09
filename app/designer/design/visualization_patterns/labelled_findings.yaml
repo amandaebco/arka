@@ -1,0 +1,44 @@
+id: labelled_findings
+name: Labelled Findings
+category: visualization_pattern
+description: >
+  Temuan berlabel di dalam satu kartu — ikon, label pendek, lalu satu sampai dua
+  kalimat. Berbeda dari bullet biasa karena tiap temuan punya nama, sehingga
+  pembaca bisa merujuknya, dan temuan bertipe ketidakpastian bisa berdiri
+  sejajar dengan temuan bertipe fakta.
+
+metadata:
+  version: 1
+  tags: [findings, named, mixed-certainty]
+
+when_to_use:
+  - one card carries several findings of different kinds
+  - one of the findings is an uncertainty rather than a fact
+  - readers need to refer to a specific finding by name
+
+when_to_avoid:
+  - all findings are the same type; plain bullets are lighter
+  - the labels would have to be invented rather than derived from the finding
+  - more than four findings in one card
+
+preferred_placement: "inside a condition or assessment card"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: false
+  required_fields:
+    - finding_label
+    - finding_text
+  min_items: 2
+  max_items: 4
+
+finding_types:
+  observation: "something seen in the data; neutral marker"
+  uncertainty: "something that cannot be verified yet; question marker"
+  implication: "what it means for the asset's function; information marker"
+
+rules:
+  - Label is short and set in the semantic colour of its type.
+  - Body text is one to two sentences, never a paragraph.
+  - An uncertainty finding is never rewritten into an assertion.
+  - Marker shape differs per finding type, not only its colour.

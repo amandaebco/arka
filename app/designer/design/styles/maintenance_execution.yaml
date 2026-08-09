@@ -1,0 +1,76 @@
+id: maintenance_execution
+name: Maintenance Execution Plan
+category: style
+description: >
+  Rencana eksekusi untuk Maintenance Manager. Beban kerja dan kesiapan sumber
+  daya mendominasi; tindakan tampil dengan horizon dan owner sekaligus.
+
+metadata:
+  version: 2
+  tags: [maintenance-manager, efficiency, planning-scheduling]
+
+supported_audiences:
+  - maintenance_manager
+
+communication_goals:
+  - plan_work
+  - execute
+
+report_types:
+  - maintenance_plan
+  - periodic_review
+
+decision_types:
+  - schedule_intervention
+  - assign_resources
+
+densities:
+  - high
+
+always_sections:
+  - identity
+  - uncertainty
+
+candidate_sections:
+  - focus
+  - work_execution
+  - resource_readiness
+  - readiness_blockers
+  - current_condition
+  - maintenance_activities
+  - business_impact
+  - framework_assessment
+  - unit_context
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - handoff
+  - key_takeaway
+  - summary
+
+presentation:
+  reference: "industrial execution plan one-pager"
+  mood: "practical, orderly, workmanlike"
+  finish: "ultra HD, print quality, crisp flat shapes"
+
+visual:
+  layout: technical_report_grid
+  storytelling: execution_plan
+  typography: modern
+  color_system: maintenance
+  icon_system: filled
+  design_rules:
+    - professional
+    - technical_report
+  visualization_patterns:
+    - identity_band
+    - focus_statement
+    - readiness_checklist
+    - bucket_distribution
+    - kpi_target
+    - comparison
+    - timeline
+    - framework_grid
+    - priority_actions
+    - status_summary_list
+    - confidence_encoding

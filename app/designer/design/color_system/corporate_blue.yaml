@@ -1,0 +1,42 @@
+id: corporate_blue
+name: Corporate Blue
+category: color_system
+description: >
+  Palet default. Navy dan biru korporat di atas latar putih, dengan aksen
+  semantik yang hanya muncul pada status dan angka kritis.
+
+metadata:
+  version: 2
+  tags: [default, neutral, print-safe]
+
+primary:
+  base: "#0F2C4C"
+  on_base: "#FFFFFF"
+  usage: "titles, section headers, dividing rules"
+
+secondary:
+  base: "#2E6DB4"
+  on_base: "#FFFFFF"
+  usage: "icons, card accents, chart elements"
+
+severity:
+  low: "#1E8E5A"
+  medium: "#C8871B"
+  high: "#D1553B"
+  critical: "#9B2C2C"
+  neutral: "#6B7280"
+
+background:
+  page: "#FFFFFF"
+  card: "#FFFFFF"
+  card_alt: "#F5F7FA"
+  border: "#E2E8F0"
+
+accessibility:
+  min_contrast_body: 4.5
+  min_contrast_large_text: 3.0
+  colour_blind_safe: true
+  rules:
+    - Colour is never the only difference; always pair it with a text label.
+    - Red and green never sit adjacent without a label or shape to tell them apart.
+    - Semantic accents are reserved for status and critical figures, never decoration.

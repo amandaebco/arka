@@ -1,0 +1,39 @@
+id: outline
+name: Outline
+category: icon_system
+description: >
+  Ikon garis monokrom dengan ketebalan seragam. Default untuk dokumen konsultan:
+  hadir sebagai penanda, tidak bersaing dengan teks.
+
+metadata:
+  version: 2
+  tags: [default, restrained, consulting]
+
+style: "flat monochrome line icons, geometric, rounded terminals"
+line_weight: "uniform medium stroke, roughly 8 percent of icon height"
+
+usage_policy:
+  placement: "one icon to the left of each section header"
+  max_per_page: 8
+  purpose: "navigational marker, not illustration"
+  forbidden:
+    - human figures
+    - photographs or 3D renders
+    - emoji
+    - icons with gradients or drop shadows
+    - two different icon styles on one page
+
+icon_grid: >
+  Every icon is drawn on the same underlying grid and optical size, so icons
+  of different shapes still read at equal visual weight. Matching stroke
+  weight alone is not enough — a dense glyph beside a sparse one looks
+  heavier even at identical stroke.
+
+spacing:
+  gap_to_label: "half the icon height"
+  optical_alignment: "optical centre aligned with the x-height of the header text"
+
+sizing:
+  section_header: "matching the cap height of the header"
+  kpi_card: "one and a half times the cap height"
+  min_render_size: "large enough that strokes do not merge when printed"

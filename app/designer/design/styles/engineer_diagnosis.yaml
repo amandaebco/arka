@@ -1,0 +1,87 @@
+id: engineer_diagnosis
+name: Engineer Diagnosis Report
+category: style
+description: >
+  Laporan diagnosis kondisi untuk Reliability Engineer. Temuan mendahului
+  kesimpulan, dan penilaian kondisi mendominasi halaman.
+
+  Susunan kartunya tidak tetap: bukti dari dua infografis persona ini
+  menunjukkan bahwa saat data inspeksi lengkap muncul kartu penilaian, timeline,
+  dan keputusan; saat data belum ada, yang muncul justru penghalang kesiapan,
+  konteks unit, dan kerangka lintas domain. Karena itu section di bawah adalah
+  kandidat, bukan daftar wajib.
+
+metadata:
+  version: 2
+  tags: [engineer, diagnosis, high-density]
+
+supported_audiences:
+  - engineer
+
+communication_goals:
+  - diagnose
+  - document
+
+report_types:
+  - condition_assessment
+  - inspection_report
+
+densities:
+  - high
+
+decision_types:
+  - technical_follow_up
+  - schedule_intervention
+
+always_sections:
+  - identity
+  - uncertainty
+
+candidate_sections:
+  - focus
+  - current_condition
+  - reliability_assessment
+  - readiness_status
+  - readiness_blockers
+  # Laporan engineer nyata membahas status work order dan kesiapan spare
+  # sebagai bagian dari diagnosis kesiapan — bukan hanya urusan maintenance.
+  - work_execution
+  - resource_readiness
+  - maintenance_activities
+  - business_impact
+  - main_risks
+  - framework_assessment
+  - unit_context
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - key_takeaway
+  - summary
+
+presentation:
+  reference: "McKinsey-style technical diagnosis report"
+  mood: "corporate, calm, authoritative"
+  finish: "ultra HD, print quality, sharp vector-like edges"
+
+visual:
+  layout: technical_report_grid
+  storytelling: diagnostic_report
+  typography: corporate
+  color_system: corporate_blue
+  icon_system: outline
+  design_rules:
+    - professional
+    - technical_report
+  visualization_patterns:
+    - identity_band
+    - focus_statement
+    - labelled_findings
+    - gauge_rating
+    - donut_status
+    - risk_register
+    - comparison
+    - timeline
+    - framework_grid
+    - priority_actions
+    - status_summary_list
+    - confidence_encoding

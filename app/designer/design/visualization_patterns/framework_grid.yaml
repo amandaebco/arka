@@ -1,0 +1,41 @@
+id: framework_grid
+name: Framework Grid
+category: visualization_pattern
+description: >
+  Kerangka berkardinalitas tetap yang selnya selalu tampil lengkap — kerangka
+  enam domain CMRP, empat pilar People/Process/Technology/Financial, atau
+  serupa. Kekuatannya justru pada kelengkapan: sel yang belum terisi menunjukkan
+  di mana organisasi belum punya jawaban.
+
+metadata:
+  version: 2
+  tags: [fixed-cardinality, framework, tri-state]
+
+when_to_use:
+  - the reference framework has a fixed number of dimensions the reader knows
+  - covering every dimension matters more than highlighting one
+  - some dimensions are factual and others are still open questions
+
+when_to_avoid:
+  - the number of dimensions is actually open-ended; use a plain list
+  - only one or two cells are filled and the rest are empty without explanation
+
+preferred_placement: "full-width band below the assessment cards"
+visual_emphasis: secondary
+
+requires_data:
+  numeric_values: false
+  fixed_cardinality: true
+  min_items: 4
+  max_items: 6
+
+cell_states:
+  factual: "supported by evidence; rendered normally"
+  qualitative: "a judgement without figures; rendered with a lighter marker"
+  open_question: "unanswered; rendered as a question, never as an empty cell"
+
+rules:
+  - Every cell must appear, even when its content is unconfirmed.
+  - Dimension labels come from the source and are never translated or shortened.
+  - Different cell states are distinguished by shape or marker, not by colour alone.
+  - Cells share equal width; this grid states coverage, not ranking.

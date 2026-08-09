@@ -1,0 +1,72 @@
+id: diagnostic_report
+name: Diagnostic Report
+category: storytelling
+description: >
+  Pola Engineer: memetakan kondisi, lalu penghalang kesiapan, lalu risiko
+  operasional, baru tindakan. Pangkal rantai kerja — tidak ada handoff karena
+  di sinilah diagnosis lahir.
+
+metadata:
+  version: 2
+  tags: [engineer, condition-first, diagnosis]
+
+communication_sequence:
+  - step: map_condition
+    intent: "show what is unhealthy, unresolved or uncertain right now"
+  - step: map_blockers
+    intent: "show what could prevent the equipment from being ready to operate"
+  - step: state_risk
+    intent: "state the production, safety and reliability exposure if left unresolved"
+  - step: state_effort
+    intent: "state what to do first and what decision is needed"
+
+reading_flow:
+  - identity
+  - focus
+  - current_condition
+  - reliability_assessment
+  - readiness_status
+  - readiness_blockers
+  - resource_readiness
+  - work_execution
+  - maintenance_activities
+  - business_impact
+  - main_risks
+  - unit_context
+  - framework_assessment
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - key_takeaway
+  - summary
+  - uncertainty
+
+emphasis_order:
+  identity: tertiary
+  focus: tertiary
+  current_condition: dominant
+  reliability_assessment: primary
+  readiness_status: primary
+  readiness_blockers: secondary
+  resource_readiness: secondary
+  work_execution: secondary
+  maintenance_activities: secondary
+  business_impact: secondary
+  main_risks: secondary
+  unit_context: tertiary
+  framework_assessment: tertiary
+  priority_actions: primary
+  management_decision: secondary
+  confidence_level: secondary
+  key_takeaway: secondary
+  summary: secondary
+  uncertainty: secondary
+
+recommended_layouts:
+  - technical_report_grid
+  - one_page
+
+action_dimensions:
+  - horizon
+
+closing_element: summary

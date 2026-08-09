@@ -1,0 +1,38 @@
+id: gauge_rating
+name: Gauge Rating
+category: visualization_pattern
+description: >
+  Skala berjenjang dengan penunjuk pada posisi saat ini — misalnya peringkat
+  kondisi A sampai E. Berguna karena menunjukkan sekaligus posisi dan arah
+  perjalanan menuju jenjang berikutnya.
+
+metadata:
+  version: 2
+  tags: [ordinal, assessment, directional]
+
+when_to_use:
+  - the assessment uses a graded scale the organisation recognises
+  - the next grade carries a consequence the reader should register
+  - every grade label is available in the source
+
+when_to_avoid:
+  - the assessment is binary; use a status chip
+  - the grades or their labels would have to be guessed
+  - a value exists but no reference scale does
+
+preferred_placement: "inside the assessment card, beneath the card title"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: false
+  required_fields:
+    - current_rating
+    - scale_labels
+  min_items: 3
+  max_items: 7
+
+rules:
+  - Show every grade on the scale, not only the one in force.
+  - Write the current grade as text beside the pointer.
+  - If the source notes a trend toward the next grade, state it in words.
+  - Never attach percentages to a scale that is ordinal.

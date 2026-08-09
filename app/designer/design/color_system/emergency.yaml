@@ -1,0 +1,43 @@
+id: emergency
+name: Emergency
+category: color_system
+description: >
+  Untuk insiden dan temuan kritis. Merah dipakai secara terukur pada status dan
+  satu angka kunci — bukan sebagai latar — supaya urgensi terbaca tanpa membuat
+  dokumen sulit dibaca atau terkesan panik.
+
+metadata:
+  version: 2
+  tags: [incident, urgent, high-stakes]
+
+primary:
+  base: "#1F2933"
+  on_base: "#FFFFFF"
+  usage: "titles and structure"
+
+secondary:
+  base: "#52606D"
+  on_base: "#FFFFFF"
+  usage: "supporting text"
+
+severity:
+  low: "#2F855A"
+  medium: "#C05621"
+  high: "#C53030"
+  critical: "#822727"
+  neutral: "#7B8794"
+
+background:
+  page: "#FFFFFF"
+  card: "#FFFFFF"
+  card_alt: "#FDF2F2"
+  border: "#F5D0D0"
+
+accessibility:
+  min_contrast_body: 4.5
+  min_contrast_large_text: 3.0
+  colour_blind_safe: true
+  rules:
+    - Never use a full red background; red is for text, icons and status chips only.
+    - At most two red elements per page so that red keeps its meaning.
+    - Critical severity is always spelled out in words, never signalled by colour alone.

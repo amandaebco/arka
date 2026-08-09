@@ -1,0 +1,285 @@
+# Design Knowledge Base — registry.
+#
+# Registry adalah daftar aset yang diakui sistem. Loader memeriksa dua arah:
+# setiap entri di sini harus punya file YAML, dan setiap file YAML harus
+# terdaftar di sini. Aset yang belum siap dipakai cukup dihapus dari registry
+# tanpa perlu menghapus filenya.
+#
+# CATATAN BAHASA. Field `description:` dan komentar seperti ini ditulis dalam
+# bahasa Indonesia untuk tim yang merawat knowledge base — keduanya tidak
+# pernah masuk ke prompt. Seluruh nilai lain ditulis dalam bahasa Inggris
+# karena dikonsumsi model, bukan manusia. Satu-satunya pengecualian adalah
+# section_titles di bawah, yang memang menjadi teks di atas kanvas.
+
+schema_version: 4
+
+# Bahasa yang didukung untuk teks di atas kanvas. Bahasa ditentukan oleh data
+# sumber, bukan oleh style — laporan berbahasa Indonesia menghasilkan
+# infografis berbahasa Indonesia, dan sebaliknya.
+languages:
+  - id
+  - en
+
+default_language: id
+
+# Kosakata section — gabungan dari seluruh persona. Tiap style menyatakan
+# sendiri mana yang wajib dan mana yang opsional lewat required_sections /
+# optional_sections; daftar di bawah hanya membatasi kunci apa saja yang boleh
+# disebut, bukan apa yang harus muncul.
+section_keys:
+  # Identitas dan pembuka
+  - identity              # plant, RU, functional location, kritikalitas
+  - focus                 # pernyataan fokus utama di header
+  - fact_finding          # tabel fakta terverifikasi + confidence per baris
+  - current_condition
+  # Penilaian
+  - reliability_assessment
+  - readiness_status
+  - readiness_blockers
+  - resource_readiness    # kesiapan sumber daya, mis. 6-Tepat
+  - work_execution        # backlog, work order, disiplin closure
+  - business_impact
+  - main_risks
+  # Rencana
+  - maintenance_activities
+  - maintenance_strategy
+  - priority_actions
+  - management_decision
+  # Kerangka dan konteks
+  - framework_assessment  # kerangka berkardinalitas tetap: CMRP, 4 pilar
+  - unit_context          # gambaran tingkat RU sebagai latar atau target
+  - assurance_questions   # pertanyaan yang wajib terjawab, bukan jawaban
+  # Penutup
+  - uncertainty           # apa yang belum tercatat — wajib, tidak boleh disembunyikan
+  - confidence_level
+  - handoff               # posisi dokumen dalam rantai kerja
+  - key_takeaway
+  - summary
+
+# Judul section sebagaimana tampil di kanvas. Inilah satu-satunya sumber
+# terjemahan judul — Design Agent dilarang menerjemahkan sendiri, karena
+# terjemahan yang berbeda tiap run membuat laporan tidak dapat dibandingkan.
+section_titles:
+  identity:
+    id: "Identitas Aset"
+    en: "Asset Identity"
+  focus:
+    id: "Fokus Utama"
+    en: "Main Focus"
+  fact_finding:
+    id: "Temuan Fakta"
+    en: "Fact Finding"
+  current_condition:
+    id: "Kondisi Saat Ini"
+    en: "Current Condition"
+  reliability_assessment:
+    id: "Penilaian Keandalan"
+    en: "Reliability Assessment"
+  readiness_status:
+    id: "Status Kesiapan"
+    en: "Readiness Status"
+  readiness_blockers:
+    id: "Penghalang Kesiapan"
+    en: "Readiness Blockers"
+  resource_readiness:
+    id: "Kesiapan Sumber Daya"
+    en: "Resource Readiness"
+  work_execution:
+    id: "Eksekusi Pekerjaan"
+    en: "Work Execution"
+  business_impact:
+    id: "Dampak Bisnis"
+    en: "Business Impact"
+  main_risks:
+    id: "Risiko Utama"
+    en: "Main Risks"
+  maintenance_activities:
+    id: "Aktivitas Pemeliharaan"
+    en: "Maintenance Activities"
+  maintenance_strategy:
+    id: "Strategi Pemeliharaan"
+    en: "Maintenance Strategy"
+  priority_actions:
+    id: "Tindakan Prioritas"
+    en: "Priority Actions"
+  management_decision:
+    id: "Keputusan Manajemen"
+    en: "Management Decision"
+  framework_assessment:
+    id: "Penilaian Lintas Domain"
+    en: "Cross-Domain Assessment"
+  unit_context:
+    id: "Konteks Unit"
+    en: "Unit Context"
+  assurance_questions:
+    id: "Pertanyaan Assurance"
+    en: "Assurance Questions"
+  uncertainty:
+    id: "Catatan Ketidakpastian"
+    en: "Uncertainty Notes"
+  confidence_level:
+    id: "Tingkat Keyakinan"
+    en: "Confidence Level"
+  handoff:
+    id: "Tindak Lanjut"
+    en: "Handoff"
+  key_takeaway:
+    id: "Inti Sari"
+    en: "Key Takeaway"
+  summary:
+    id: "Ringkasan"
+    en: "Summary"
+
+# Jenis data yang mungkin tersedia dari Analysis Agent. Section memilih dirinya
+# sendiri berdasarkan daftar ini — bukan berdasarkan persona.
+#
+# Bukti lapangan: dua infografis dari persona engineer yang sama menghasilkan
+# susunan section yang sangat berbeda, karena datanya berbeda. Saat data kaya,
+# muncul kartu penilaian dan keputusan; saat data kosong, yang muncul justru
+# kartu penghalang, konteks, dan ketidakpastian.
+data_keys:
+  - asset_identity
+  - focus_statement
+  - fact_rows
+  - condition_findings
+  - rating_scale
+  - current_rating
+  - readiness_ratio
+  - readiness_blockers
+  - resource_prerequisites
+  - workload_metrics
+  - impact_statements
+  - risk_items
+  - dated_activities
+  - strategy_statements
+  - actions
+  - action_owners
+  - action_horizons
+  - action_tradeoffs
+  - decision_statement
+  - framework_dimensions
+  - unit_level_context
+  - open_questions
+  - confidence_level
+  - diagnosis_status
+  - handoff_statement
+  - takeaway
+  - summary_statement
+  - missing_evidence_notes
+
+# Prasyarat data tiap section. Section hanya dirender bila prasyaratnya
+# terpenuhi; kalau tidak, ia tidak pernah muncul sebagai kartu kosong.
+#
+# requires_all : seluruh kunci harus tersedia
+# requires_any : cukup salah satu
+# always       : dirender apa pun keadaannya — dipakai sangat hemat
+section_requirements:
+  identity:
+    requires_any: [asset_identity]
+  focus:
+    requires_any: [focus_statement]
+  fact_finding:
+    requires_any: [fact_rows]
+  current_condition:
+    requires_any: [condition_findings]
+  reliability_assessment:
+    requires_all: [rating_scale, current_rating]
+  readiness_status:
+    requires_any: [readiness_ratio]
+  readiness_blockers:
+    requires_any: [readiness_blockers]
+  resource_readiness:
+    requires_any: [resource_prerequisites]
+  work_execution:
+    requires_any: [workload_metrics]
+  business_impact:
+    requires_any: [impact_statements]
+  main_risks:
+    requires_any: [risk_items]
+  maintenance_activities:
+    requires_all: [dated_activities]
+  maintenance_strategy:
+    requires_any: [strategy_statements]
+  priority_actions:
+    requires_any: [actions]
+  management_decision:
+    requires_any: [decision_statement]
+  framework_assessment:
+    requires_any: [framework_dimensions]
+  unit_context:
+    requires_any: [unit_level_context]
+  assurance_questions:
+    requires_any: [open_questions]
+  confidence_level:
+    requires_any: [confidence_level, diagnosis_status]
+  handoff:
+    requires_any: [handoff_statement]
+  key_takeaway:
+    requires_any: [takeaway]
+  summary:
+    # Status diagnosis saja tidak cukup — itu sudah tampil di kartu keyakinan.
+    # Kartu ringkasan hanya muncul bila ada baris ringkasan yang sungguh ditulis.
+    requires_any: [summary_statement]
+  uncertainty:
+    always: true
+
+styles:
+  - engineer_diagnosis
+  - reliability_strategy
+  - maintenance_execution
+  - executive_business_case
+
+layouts:
+  - technical_report_grid
+  - dashboard
+  - one_page
+
+storytelling:
+  - diagnostic_report
+  - strategy_recommendation
+  - execution_plan
+  - investment_case
+
+typography:
+  - corporate
+  - modern
+  - minimal
+
+color_system:
+  - corporate_blue
+  - maintenance
+  - emergency
+
+icon_system:
+  - outline
+  - filled
+  - minimal
+
+visualization_patterns:
+  - identity_band
+  - focus_statement
+  - labelled_findings
+  - status_summary_list
+  - kpi_cards
+  - kpi_target
+  - comparison
+  - bucket_distribution
+  - gauge_rating
+  - donut_status
+  - risk_register
+  - framework_grid
+  - readiness_checklist
+  - assurance_questions
+  - confidence_encoding
+  - timeline
+  - priority_actions
+
+audience_profiles:
+  - engineer
+  - reliability_manager
+  - maintenance_manager
+  - vp_reliability
+
+design_rules:
+  - professional
+  - technical_report

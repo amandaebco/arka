@@ -1,0 +1,49 @@
+id: priority_actions
+name: Priority Actions
+category: visualization_pattern
+description: >
+  Tindakan berurutan prioritas, dengan sampai tiga dimensi tambahan yang dipakai
+  hanya bila datanya ada: horizon, owner, dan trade-off. Persona berbeda memakai
+  kombinasi berbeda, jadi bentuknya menyesuaikan data — bukan sebaliknya.
+
+metadata:
+  version: 3
+  tags: [action, closing, multi-dimension]
+
+when_to_use:
+  - executable actions are available
+  - the reader has authority or responsibility to carry them out
+  - the ordering reflects genuine priority
+
+when_to_avoid:
+  - the items are observations rather than actions
+  - the order is arbitrary but would be presented as meaningful
+
+preferred_placement: "full-width band approaching the close of the page"
+visual_emphasis: dominant
+
+requires_data:
+  numeric_values: false
+  min_items: 1
+  max_items: 6
+
+optional_dimensions:
+  horizon:
+    description: >
+      Time grouping. Labels ALWAYS come from the source — P1 to P4, month
+      ranges, 30/60/90 days, or stabilise/corrective/eliminate. Never substitute
+      a default label set.
+    render: "sequential columns or bands left to right, horizon label as the head"
+  owner:
+    description: "the function accountable for each action"
+    render: "rightmost column, one row per group"
+  tradeoff:
+    description: "the trade-off attached to a decision, e.g. speed against assurance"
+    render: "a caption line beneath the related action"
+
+rules:
+  - Each item begins with a verb.
+  - Horizon labels are never translated, shortened or normalised.
+  - A dimension with no data is not rendered at all — not rendered empty.
+  - Deadlines appear only when present in the source.
+  - When horizon is used, left-to-right order follows chronological order.

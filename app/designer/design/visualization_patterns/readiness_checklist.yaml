@@ -1,0 +1,41 @@
+id: readiness_checklist
+name: Readiness Checklist
+category: visualization_pattern
+description: >
+  Daftar prasyarat kesiapan yang harus dipenuhi sebelum pekerjaan dimulai —
+  misalnya 6-Tepat: Material, Alat, Informasi, Waktu, Izin, Orang. Item yang
+  belum terkonfirmasi tetap ditampilkan sebagai hal yang harus dipastikan;
+  menghilangkannya akan membuat pekerjaan tampak lebih siap daripada kenyataannya.
+
+metadata:
+  version: 2
+  tags: [readiness, tri-state, execution]
+
+when_to_use:
+  - the organisation uses a standard list of prerequisites
+  - some prerequisites are confirmed and others are not
+  - the reader is responsible for closing the readiness gaps
+
+when_to_avoid:
+  - the prerequisites would have to be invented rather than taken from a standard
+  - every item is already confirmed; a single sentence suffices
+
+preferred_placement: "right-hand column of the assessment band, or its own card"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: false
+  fixed_cardinality: true
+  min_items: 3
+  max_items: 8
+
+item_states:
+  confirmed: "supported by evidence; check marker"
+  to_verify: "not yet recorded; question marker, paired with a verification step"
+  blocked: "known to be blocked; warning marker, paired with the cause"
+
+rules:
+  - Every item appears, whatever its state.
+  - A "not yet recorded" state is never rendered as either satisfied or failed.
+  - Each to_verify item carries a concrete verification step.
+  - Marker shape differs per state; never rely on colour alone.

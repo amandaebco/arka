@@ -1,0 +1,34 @@
+id: timeline
+name: Timeline
+category: visualization_pattern
+description: >
+  Peristiwa atau tonggak yang ditempatkan pada sumbu waktu. Kekuatannya adalah
+  menunjukkan jarak dan urutan; karena itu ia hanya jujur bila tanggalnya nyata.
+
+metadata:
+  version: 2
+  tags: [chronological, planning, rca]
+
+when_to_use:
+  - explicit dates or periods are available
+  - the distance between events carries meaning
+  - the reader needs to know what happened first
+
+when_to_avoid:
+  - the order is known but the dates are not; use a numbered list
+  - only two events exist
+  - words such as next or soon would stand in for a date
+
+preferred_placement: "full width, beneath the evidence band"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: false
+  required_fields:
+    - date_or_period
+  min_items: 3
+
+rules:
+  - Visual spacing reflects the real interval between events.
+  - Every marker carries a written date label.
+  - Future events are visually distinct from events that already happened.

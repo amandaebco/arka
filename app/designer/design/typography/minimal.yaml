@@ -1,0 +1,43 @@
+id: minimal
+name: Minimal
+category: typography
+description: >
+  Satu keluarga font, tiga tingkat, tanpa ornamen. Dipakai saat isi sangat padat
+  dan tipografi harus menghilang agar data yang bicara.
+
+metadata:
+  version: 2
+  tags: [dense, restrained, technical]
+
+family:
+  title: "neutral grotesque sans-serif, medium weight"
+  body: "same family, regular weight"
+  numeric: "tabular lining figures"
+
+scale:
+  title: "large but restrained"
+  subtitle: "medium, muted colour"
+  section_header: "small, semibold"
+  body: "small, regular"
+  caption: "extra small, grey"
+
+hierarchy:
+  levels: 3
+  min_step_ratio: 1.25
+  rule: >
+    Build hierarchy from spacing and position rather than size. Keep size
+    differences as small as legibility allows.
+
+spacing:
+  line_height_body: 1.6
+  line_height_title: 1.2
+  paragraph_gap: "one full line"
+  letter_spacing_headers: "neutral"
+
+emphasis:
+  primary: "position and the white space around it"
+  secondary: "semibold weight"
+  forbidden:
+    - colour as the only marker of emphasis
+    - more than three size levels
+    - italics on non-Latin text

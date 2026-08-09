@@ -1,0 +1,39 @@
+id: filled
+name: Filled
+category: icon_system
+description: >
+  Ikon solid dengan siluet padat. Lebih kuat secara visual daripada outline,
+  dipakai saat ikon perlu terbaca kecil atau saat status harus menonjol.
+
+metadata:
+  version: 2
+  tags: [strong, status, small-size]
+
+style: "solid monochrome glyph icons, simple silhouettes, no interior detail"
+line_weight: "not applicable — solid fill"
+
+usage_policy:
+  placement: "inside status chips and KPI cards"
+  max_per_page: 6
+  purpose: "status marker that must read at a glance"
+  forbidden:
+    - human figures
+    - photographs or 3D renders
+    - emoji
+    - silhouettes with intricate interior detail
+    - mixing solid and outline icons within one group
+
+icon_grid: >
+  Every icon is drawn on the same underlying grid and optical size, so icons
+  of different shapes still read at equal visual weight. Matching stroke
+  weight alone is not enough — a dense glyph beside a sparse one looks
+  heavier even at identical stroke.
+
+spacing:
+  gap_to_label: "six tenths of the icon height"
+  optical_alignment: "icon centre aligned with the vertical centre of its label"
+
+sizing:
+  section_header: "slightly smaller than the cap height"
+  kpi_card: "one and a quarter times the cap height"
+  min_render_size: "still readable as a shape at the smallest used size"

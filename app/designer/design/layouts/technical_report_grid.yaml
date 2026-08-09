@@ -1,0 +1,106 @@
+id: technical_report_grid
+name: Technical Report Grid
+category: layout
+description: >
+  Kisi tiga kolom bernomor untuk laporan satu halaman yang berdiri sendiri.
+  Layout utama genre ini: pembaca membacanya sampai habis, mencetaknya, dan
+  melampirkannya — sehingga kelengkapan lebih diutamakan daripada keringkasan,
+  selama tiap kartu tetap terbaca mandiri.
+
+metadata:
+  version: 2
+  tags: [primary, dense, standalone-report]
+
+orientation: portrait
+columns: 3
+
+bands:
+  - id: masthead
+    content: "equipment name as the main title, report type as a subtitle beneath it"
+    span: full
+  - id: identity_band
+    content: "plant, refinery unit, functional location and criticality as a row of chips"
+    span: full
+  - id: assessment_row
+    content: "the main assessment cards, three across"
+    span: full
+  - id: detail_grid
+    content: "remaining section cards following the reading flow, two to three columns"
+    span: full
+  - id: actions_band
+    content: "priority actions spanning the full width"
+    span: full
+  - id: closing_row
+    content: "decision, confidence level and status summary"
+    span: full
+  - id: footnote
+    content: "uncertainty notes and references"
+    span: full
+
+section_order:
+  - identity
+  - current_condition
+  - reliability_assessment
+  - readiness_status
+  - maintenance_activities
+  - business_impact
+  - main_risks
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - summary
+  - uncertainty
+
+numbering:
+  enabled: true
+  style: "sequential number prefixed to each card title, starting at 1"
+  rationale: "readers refer to cards by number when discussing the report"
+
+# Bagaimana satu kartu digambar. Tanpa aturan ini model merender kartu putih
+# polos, yang terbaca sepi pada halaman sepadat ini — celah yang baru terlihat
+# setelah membandingkan output dengan deliverable nyata.
+card_chrome:
+  header: >
+    Each card title sits inside a solid filled header bar spanning the full card
+    width, primary colour fill with white text, with a small square badge on the
+    left holding the card number.
+  header_accent: >
+    A card whose content is dominated by one severity level takes that severity
+    colour as its header fill instead of the primary colour.
+  body: "white body area beneath the header bar, generous internal padding"
+  border: "thin border in the border colour, small uniform corner radius"
+  chips: >
+    Status and severity values render as small filled rounded rectangles with
+    white uppercase text, never as plain coloured words.
+  dividers: "thin hairline rules between items inside a card"
+  emphasis_treatment: >
+    A dominant card spans two grid columns and carries a heavier header bar; a
+    tertiary card stays single-column with a lighter, thinner header.
+
+header_visual:
+  enabled: true
+  content: >
+    A single flat line-art illustration of the equipment type, placed in the
+    masthead beside the title, drawn in the secondary colour on the page
+    background.
+  rules:
+    - Generic to the equipment type; never a depiction of this specific asset's condition.
+    - Line art only — no photograph, no 3D render, no scene.
+    - Decorative and subordinate; never larger than the title block.
+
+spacing:
+  outer_margin: "generous margin on all four sides, roughly 4 percent of canvas width"
+  band_gap: "moderate; each band still reads as a separate group"
+  card_gutter: "small to moderate, identical horizontally and vertically"
+
+alignment:
+  cards: "cards in the same row share equal height and aligned title baselines"
+  text: "left aligned; numbers aligned on the decimal point"
+  status_chips: "equal width within the identity band, sharing one baseline"
+
+responsive_behavior:
+  overflow_strategy: "reduce bullets per card before dropping any section"
+  min_readable_density: high
+  on_content_overflow: "merge related sections into one card; never truncate text"
+
+max_sections: 12

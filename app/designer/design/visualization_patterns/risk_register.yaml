@@ -1,0 +1,38 @@
+id: risk_register
+name: Risk Register
+category: visualization_pattern
+description: >
+  Daftar risiko berpasangan dengan tingkatnya, disusun menurun dari yang
+  tertinggi. Menggantikan matriks risiko ketika data hanya memberi tingkat per
+  risiko tanpa koordinat likelihood dan consequence.
+
+metadata:
+  version: 2
+  tags: [risk, ordinal, list-form]
+
+when_to_use:
+  - each risk carries a recorded level
+  - there are enough risks that ordering them helps
+  - the reader needs the spread of levels rather than a position on a grid
+
+when_to_avoid:
+  - both likelihood and consequence exist and the reader expects a matrix
+  - only one risk exists; state it as a sentence
+  - the level would have to be guessed
+
+preferred_placement: "right-hand column card in the assessment band"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: false
+  required_fields:
+    - risk_name
+    - level
+  min_items: 2
+  max_items: 8
+
+rules:
+  - Sorted by descending level, not by the order in the source.
+  - The level is written as a word on a chip, not signalled by colour alone.
+  - The level column is right aligned so the spread reads at a glance.
+  - Risks and their levels are taken verbatim; never raised or lowered.

@@ -1,0 +1,36 @@
+id: focus_statement
+name: Focus Statement
+category: visualization_pattern
+description: >
+  Satu kalimat tujuan di header, di bawah judul — menyatakan apa yang sedang
+  dijaga atau dicapai. Berbeda dari ringkasan: ia menyebut sasaran, bukan
+  temuan, sehingga tetap benar meski datanya belum lengkap.
+
+metadata:
+  version: 1
+  tags: [header, orientation, data-light]
+
+when_to_use:
+  - the source states an objective or focus for the asset
+  - the report is data-light and readers need orienting before the findings
+  - the reader may not know why this asset is being reviewed
+
+when_to_avoid:
+  - the statement would have to be invented rather than taken from the source
+  - it would merely repeat the title
+
+preferred_placement: "header band, directly beneath the title, marked with a target icon"
+visual_emphasis: secondary
+
+requires_data:
+  numeric_values: false
+  required_fields:
+    - focus_statement
+  min_items: 1
+  max_items: 1
+
+rules:
+  - One sentence only; longer text belongs in a section card.
+  - States an objective, never a finding or a conclusion.
+  - Taken from the source verbatim; never composed to fill the space.
+  - Visually lighter than the title so it never competes with it.

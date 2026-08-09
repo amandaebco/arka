@@ -1,0 +1,43 @@
+id: corporate
+name: Corporate
+category: typography
+description: >
+  Preset default untuk deliverable konsultan. Serif tegas pada judul memberi
+  otoritas, sans-serif pada isi menjaga keterbacaan.
+
+metadata:
+  version: 2
+  tags: [consulting, authoritative, safe]
+
+family:
+  title: "modern transitional serif, bold"
+  body: "neutral geometric sans-serif"
+  numeric: "tabular lining figures, aligned on the decimal point"
+
+scale:
+  title: "extra large, roughly 5 percent of canvas height"
+  subtitle: "large, clearly smaller than the title"
+  section_header: "medium, semibold, uppercase"
+  body: "small, regular"
+  caption: "extra small, medium grey"
+
+hierarchy:
+  levels: 4
+  min_step_ratio: 1.35
+  rule: >
+    Each level must read as a different size without side-by-side comparison.
+    When in doubt, widen the gap between levels.
+
+spacing:
+  line_height_body: 1.5
+  line_height_title: 1.15
+  paragraph_gap: "three quarters of a line"
+  letter_spacing_headers: "slightly loose on uppercase text"
+
+emphasis:
+  primary: "font weight, not colour"
+  secondary: "semantic accent colour"
+  forbidden:
+    - underline for emphasis
+    - all caps in body text
+    - italics on non-Latin text

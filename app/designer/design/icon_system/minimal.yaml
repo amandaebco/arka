@@ -1,0 +1,39 @@
+id: minimal
+name: Minimal
+category: icon_system
+description: >
+  Nyaris tanpa ikon. Dipakai bersama tipografi minimal saat halaman sudah padat
+  teks dan setiap grafis tambahan justru mengurangi keterbacaan.
+
+metadata:
+  version: 2
+  tags: [dense, text-first, restrained]
+
+style: "hairline geometric marks, at most a simple shape or rule"
+line_weight: "hairline, visually lighter than body text"
+
+usage_policy:
+  placement: "status chips only; section headers carry no icon"
+  max_per_page: 3
+  purpose: "minimum status differentiation, never decoration"
+  forbidden:
+    - human figures
+    - photographs or 3D renders
+    - emoji
+    - icons on section headers
+    - decorative icons that carry no distinguishing function
+
+icon_grid: >
+  Every icon is drawn on the same underlying grid and optical size, so icons
+  of different shapes still read at equal visual weight. Matching stroke
+  weight alone is not enough — a dense glyph beside a sparse one looks
+  heavier even at identical stroke.
+
+spacing:
+  gap_to_label: "four tenths of the icon height"
+  optical_alignment: "aligned to the text baseline"
+
+sizing:
+  section_header: "not used"
+  kpi_card: "matching the x-height of the text"
+  min_render_size: "strokes still visible after black and white printing"

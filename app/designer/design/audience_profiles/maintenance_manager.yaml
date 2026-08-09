@@ -1,0 +1,43 @@
+id: maintenance_manager
+name: Maintenance Manager
+category: audience_profile
+description: >
+  Berfokus pada efisiensi — mengerjakan hal dengan benar memakai sumber daya
+  seminimal mungkin. Menerjemahkan rekomendasi menjadi planning dan scheduling,
+  dan memastikan kesiapan sumber daya sebelum pekerjaan dimulai.
+
+metadata:
+  version: 2
+  tags: [efficiency, execution, planning-scheduling]
+
+reading_time_seconds: 45
+preferred_density: high
+preferred_storytelling: execution_plan
+preferred_layout: technical_report_grid
+
+terminology:
+  register: execution
+  keep_untranslated:
+    - schedule compliance
+    - wrench time
+    - backlog
+    - work order
+    - planning & scheduling
+  avoid:
+    - data structure or graph vocabulary
+    - wrench time claims with no observation behind them
+  prefer:
+    - resource readiness confirmed before work starts
+    - backlog age and closure discipline
+    - a dated plan with a named owner
+
+visual_emphasis:
+  - work_execution
+  - resource_readiness
+  - priority_actions
+
+action_dimensions:
+  - horizon
+  - owner
+
+max_bullets_per_section: 6

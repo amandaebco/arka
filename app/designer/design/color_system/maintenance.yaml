@@ -1,0 +1,43 @@
+id: maintenance
+name: Maintenance
+category: color_system
+description: >
+  Palet kerja untuk dokumen pemeliharaan. Teal industrial sebagai warna utama,
+  dengan skala keparahan yang lebih lebar karena dokumen ini kerap memuat
+  banyak temuan sekaligus.
+
+metadata:
+  version: 2
+  tags: [workshop, findings, wide-severity]
+
+primary:
+  base: "#14505C"
+  on_base: "#FFFFFF"
+  usage: "section headers, structural rules"
+
+secondary:
+  base: "#2A8A99"
+  on_base: "#FFFFFF"
+  usage: "icons, work category markers"
+
+severity:
+  low: "#2F855A"
+  medium: "#B7791F"
+  high: "#C05621"
+  critical: "#9B2C2C"
+  neutral: "#718096"
+
+background:
+  page: "#FFFFFF"
+  card: "#FFFFFF"
+  card_alt: "#EDF4F5"
+  border: "#D3E2E5"
+
+accessibility:
+  min_contrast_body: 4.5
+  min_contrast_large_text: 3.0
+  colour_blind_safe: true
+  rules:
+    - Every finding carries a written severity label.
+    - Status icons use a different shape per level, not only a different colour.
+    - Semantic accents are reserved for status and critical figures, never decoration.

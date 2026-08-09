@@ -1,0 +1,39 @@
+id: status_summary_list
+name: Status Summary List
+category: visualization_pattern
+description: >
+  Daftar penutup berisi satu baris per dimensi status — kondisi, keandalan,
+  kesiapan, tingkat risiko, tindakan yang direkomendasikan. Mengulang kesimpulan
+  yang sudah tersebar di kartu-kartu sebelumnya agar pembaca bisa mengambil
+  intinya tanpa membaca ulang halaman.
+
+metadata:
+  version: 1
+  tags: [closing, recap, at-a-glance]
+
+when_to_use:
+  - the page carries several separate assessments worth recapping
+  - the reader may only look at the closing band
+  - every line restates a conclusion already shown above
+
+when_to_avoid:
+  - it would introduce a conclusion not stated anywhere else on the page
+  - there are fewer than three dimensions to recap
+  - the page is already short enough to read in full
+
+preferred_placement: "closing band, rightmost card"
+visual_emphasis: secondary
+
+requires_data:
+  numeric_values: false
+  required_fields:
+    - dimension_label
+    - status_value
+  min_items: 3
+  max_items: 6
+
+rules:
+  - Every line restates something already shown; never introduces new content.
+  - Status wording matches the earlier card exactly, word for word.
+  - Each line carries an icon whose shape encodes severity, not only colour.
+  - Dimension label above, status value beneath in the semantic accent.

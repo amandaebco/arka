@@ -1,0 +1,67 @@
+id: strategy_recommendation
+name: Strategy Recommendation
+category: storytelling
+description: >
+  Pola Reliability Manager: menilai apakah strategi pemeliharaan saat ini masih
+  tepat, lalu menetapkan rekomendasi dengan owner yang jelas. Ditutup dengan
+  handoff ke Maintenance, karena rekomendasi tanpa eksekutor tidak menghasilkan
+  apa pun.
+
+metadata:
+  version: 2
+  tags: [reliability-manager, effectiveness, rcm]
+
+communication_sequence:
+  - step: read_signals
+    intent: "read the reliability signals and the leading bad actors"
+  - step: judge_strategy
+    intent: "judge whether the current maintenance strategy fits the failure pattern"
+  - step: prioritise
+    intent: "rank by criticality and consequence"
+  - step: assign
+    intent: "state each recommendation together with its owning function"
+
+reading_flow:
+  - identity
+  - focus
+  - current_condition
+  - reliability_assessment
+  - main_risks
+  - maintenance_strategy
+  - business_impact
+  - unit_context
+  - framework_assessment
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - key_takeaway
+  - summary
+  - uncertainty
+  - handoff
+
+emphasis_order:
+  identity: tertiary
+  focus: tertiary
+  current_condition: secondary
+  reliability_assessment: primary
+  main_risks: primary
+  maintenance_strategy: dominant
+  business_impact: secondary
+  unit_context: tertiary
+  framework_assessment: tertiary
+  priority_actions: primary
+  management_decision: secondary
+  confidence_level: secondary
+  key_takeaway: secondary
+  summary: secondary
+  uncertainty: secondary
+  handoff: tertiary
+
+recommended_layouts:
+  - technical_report_grid
+  - dashboard
+
+action_dimensions:
+  - owner
+
+closing_element: handoff

@@ -1,0 +1,77 @@
+id: reliability_strategy
+name: Reliability Strategy Recommendation
+category: style
+description: >
+  Rekomendasi strategi keandalan untuk Reliability Manager. Kesesuaian strategi
+  pemeliharaan mendominasi, dan tiap rekomendasi membawa owner fungsi. Ditutup
+  dengan handoff ke Maintenance.
+
+metadata:
+  version: 2
+  tags: [reliability-manager, effectiveness, rcm]
+
+supported_audiences:
+  - reliability_manager
+
+communication_goals:
+  - recommend
+  - diagnose
+
+report_types:
+  - condition_assessment
+  - periodic_review
+
+decision_types:
+  - technical_follow_up
+  - schedule_intervention
+  - allocate_budget
+
+densities:
+  - high
+
+always_sections:
+  - identity
+  - uncertainty
+
+candidate_sections:
+  - focus
+  - current_condition
+  - reliability_assessment
+  - main_risks
+  - maintenance_strategy
+  - business_impact
+  - framework_assessment
+  - unit_context
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - handoff
+  - key_takeaway
+  - summary
+
+presentation:
+  reference: "McKinsey-style reliability strategy brief"
+  mood: "corporate, considered, authoritative"
+  finish: "ultra HD, print quality, sharp vector-like edges"
+
+visual:
+  layout: technical_report_grid
+  storytelling: strategy_recommendation
+  typography: corporate
+  color_system: corporate_blue
+  icon_system: outline
+  design_rules:
+    - professional
+    - technical_report
+  visualization_patterns:
+    - identity_band
+    - focus_statement
+    - labelled_findings
+    - gauge_rating
+    - risk_register
+    - comparison
+    - kpi_cards
+    - framework_grid
+    - priority_actions
+    - status_summary_list
+    - confidence_encoding

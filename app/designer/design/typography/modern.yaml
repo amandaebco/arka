@@ -1,0 +1,43 @@
+id: modern
+name: Modern
+category: typography
+description: >
+  Sans-serif menyeluruh dengan kontras berat yang tegas. Cocok untuk dashboard
+  yang didominasi angka, di mana judul harus terbaca dari jarak jauh.
+
+metadata:
+  version: 2
+  tags: [dashboard, numeric, high-contrast]
+
+family:
+  title: "geometric sans-serif, extra bold"
+  body: "same family, regular weight"
+  numeric: "tabular lining figures, extra bold for KPI values"
+
+scale:
+  title: "extra large, dominant on the canvas"
+  subtitle: "medium, regular weight, muted colour"
+  section_header: "medium, bold"
+  body: "small, regular"
+  caption: "extra small, uppercase, letterspaced"
+
+hierarchy:
+  levels: 4
+  min_step_ratio: 1.4
+  rule: >
+    Build contrast from font weight rather than from many different sizes.
+    At most two weights within a single card.
+
+spacing:
+  line_height_body: 1.45
+  line_height_title: 1.1
+  paragraph_gap: "three quarters of a line"
+  letter_spacing_headers: "neutral"
+
+emphasis:
+  primary: "extreme size on KPI numbers"
+  secondary: "semantic accent colour"
+  forbidden:
+    - more than two font weights per card
+    - drop shadows or outlines on text
+    - italics on non-Latin text

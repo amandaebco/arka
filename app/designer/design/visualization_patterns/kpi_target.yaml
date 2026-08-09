@@ -1,0 +1,39 @@
+id: kpi_target
+name: KPI with Target
+category: visualization_pattern
+description: >
+  Nilai KPI berpasangan dengan ambang targetnya dan arah yang diinginkan —
+  misalnya schedule compliance terhadap target di atas sembilan puluh persen.
+  Berbeda dari kartu KPI biasa: di sini yang bermakna adalah jaraknya ke target.
+
+metadata:
+  version: 2
+  tags: [target, execution, directional]
+
+when_to_use:
+  - the KPI has a recorded target threshold
+  - the desired direction is unambiguous, up or down
+  - the reader is accountable for closing the gap
+
+when_to_avoid:
+  - no target is recorded; use a plain KPI card
+  - the current value is not yet available; present it as a KPI to be tracked
+  - target and value use different units
+
+preferred_placement: "in a row inside the execution card, or its own KPI band"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: true
+  required_fields:
+    - current_or_planned
+    - target
+    - direction
+  min_items: 1
+  max_items: 4
+
+rules:
+  - The target is shown next to the value, not merely mentioned in prose.
+  - The desired direction is stated in words, not only by an arrow.
+  - If no current value exists, show the target alone and mark it as tracked.
+  - Never compute a gap or attainment figure that is absent from the source.

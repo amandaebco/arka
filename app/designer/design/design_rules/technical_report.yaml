@@ -1,0 +1,97 @@
+id: technical_report
+name: Technical Report
+category: design_rules
+description: >
+  Aturan untuk laporan satu halaman yang berdiri sendiri: dicetak, dilampirkan,
+  dan dibaca sampai habis. Batasnya jauh lebih longgar daripada poster
+  eksekutif karena tujuannya kelengkapan, bukan tangkapan lima detik — tetapi
+  konsistensi justru diperketat, sebab pada kepadatan setinggi ini
+  ketidakseragaman kecil langsung merusak keterbacaan.
+
+metadata:
+  version: 2
+  tags: [primary, dense, standalone]
+
+whitespace:
+  min_outer_margin_pct: 4
+  min_gap_between_cards_pct: 1.5
+  max_content_coverage_pct: 92
+  rule: >
+    High density is allowed, but every card needs enough internal padding to
+    read as a self-contained unit.
+
+spatial_rhythm:
+  base_unit: "one spacing unit; every gap and padding is a whole multiple of it"
+  grouping_law: >
+    The gap around a card is visibly larger than the gaps between items inside
+    it, even at this density. If the two are equal the grid stops reading as
+    separate cards.
+  nested_radius: >
+    Chips and inner blocks carry a smaller corner radius than the card holding
+    them, reduced by the padding between them.
+  alignment: "card edges and text baselines align across columns"
+
+elevation:
+  max_shadow_opacity_pct: 8
+  light_direction: "a single light source for the whole page, from above"
+  layering: "shadows are soft and layered, never one hard offset"
+  consistency: "every card carries an identical shadow; the dominant card may sit one level higher"
+
+font_hierarchy:
+  min_levels: 4
+  max_levels: 5
+  min_step_ratio: 1.2
+
+limits:
+  max_cards: 12
+  max_sections: 12
+  max_icons: 12
+  max_charts: 3
+  max_accent_colours: 4
+  max_bullets_per_section: 7
+
+readability:
+  min_body_size_rule: "body text legible on an A4 print without magnification"
+  max_line_length_chars: 70
+  text_alignment: "left aligned; numbers aligned on the decimal point"
+  no_text_over_images: true
+
+accessibility:
+  min_contrast_body: 4.5
+  min_contrast_large_text: 3.0
+  colour_not_sole_indicator: true
+  print_safe_greyscale: true
+
+consistency:
+  single_icon_family: true
+  single_card_treatment: true
+  uniform_corner_radius: true
+  aligned_card_baselines: true
+  numbered_section_headers: true
+
+content_integrity:
+  show_unavailable_as_stated: true
+  rule: >
+    Information that is not recorded is shown as not recorded, or as a question
+    that must be answered. It is never silently dropped and never filled with an
+    estimated value.
+
+language:
+  instruction_language: en
+  content_language: source
+  rule: >
+    Design instructions are English; canvas text follows the source report's
+    language. Section headings come from the knowledge base translation table for
+    that language, never from an ad-hoc translation.
+
+forbidden:
+  - human figures
+  - lorem ipsum or placeholder text
+  - numbers or labels absent from the source data
+  - confidence percentages outside the three defined levels
+  - cartoon, gaming or marketing-poster aesthetics
+  - watermarks, logos or signatures
+  - gradients on the background
+  - mixing icon styles on one page
+  - charts without supporting data
+  - translating any text taken from the source report

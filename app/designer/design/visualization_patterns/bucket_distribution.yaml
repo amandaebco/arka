@@ -1,0 +1,38 @@
+id: bucket_distribution
+name: Bucket Distribution
+category: visualization_pattern
+description: >
+  Sebaran jumlah ke dalam ember berbatas — misalnya umur backlog di bawah tiga
+  puluh hari, tiga puluh sampai sembilan puluh hari, dan di atas sembilan puluh
+  hari. Yang bermakna adalah bentuk sebarannya, bukan angka masing-masing ember.
+
+metadata:
+  version: 2
+  tags: [distribution, backlog, aging]
+
+when_to_use:
+  - the bucket boundaries are set by the organisation, not invented
+  - every item falls into exactly one bucket
+  - the far bucket carries particular meaning, such as long-stalled work
+
+when_to_avoid:
+  - the boundaries would have to be chosen to make the shape look tidy
+  - only one or two items exist; state them as text
+  - some items fall outside every bucket
+
+preferred_placement: "inside the workload card"
+visual_emphasis: secondary
+
+requires_data:
+  numeric_values: true
+  required_fields:
+    - bucket_labels
+    - counts
+  min_items: 2
+  max_items: 6
+
+rules:
+  - Bucket labels are written out in full, including their boundaries.
+  - Empty buckets still appear; absence is part of the distribution.
+  - The count axis starts at zero.
+  - Buckets keep their natural order; never re-sort them by value.

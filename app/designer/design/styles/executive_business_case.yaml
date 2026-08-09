@@ -1,0 +1,75 @@
+id: executive_business_case
+name: Executive Business Case
+category: style
+description: >
+  Paparan strategis untuk VP Reliability. Temuan aset menjadi pemicu, lalu naik
+  ke implikasi portfolio. Satu-satunya style yang menuntut kartu pertanyaan
+  assurance begitu datanya ada — karena di sinilah ROI, RoNA, dan OEE dituntut,
+  dan justru di sini angka karangan paling berbahaya.
+
+metadata:
+  version: 2
+  tags: [vp, business-case, portfolio]
+
+supported_audiences:
+  - vp_reliability
+
+communication_goals:
+  - decide
+  - approve_budget
+
+report_types:
+  - condition_assessment
+  - periodic_review
+
+decision_types:
+  - allocate_budget
+  - accept_risk
+  - schedule_intervention
+
+densities:
+  - medium
+
+always_sections:
+  - identity
+  - uncertainty
+
+candidate_sections:
+  - focus
+  - business_impact
+  - main_risks
+  - unit_context
+  - framework_assessment
+  - assurance_questions
+  - current_condition
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - key_takeaway
+  - summary
+
+presentation:
+  reference: "boardroom business case one-pager"
+  mood: "corporate, measured, confident"
+  finish: "ultra HD, print quality, sharp vector-like edges"
+
+visual:
+  layout: technical_report_grid
+  storytelling: investment_case
+  typography: modern
+  color_system: corporate_blue
+  icon_system: filled
+  design_rules:
+    - professional
+    - technical_report
+  visualization_patterns:
+    - identity_band
+    - focus_statement
+    - kpi_cards
+    - risk_register
+    - framework_grid
+    - assurance_questions
+    - comparison
+    - priority_actions
+    - status_summary_list
+    - confidence_encoding

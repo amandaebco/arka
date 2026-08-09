@@ -1,0 +1,34 @@
+id: assurance_questions
+name: Assurance Questions
+category: visualization_pattern
+description: >
+  Kartu berisi pertanyaan yang belum terjawab — ROI, RoNA, OEE, profitabilitas —
+  yang harus dijawab sebelum risiko dinyatakan terkendali. Satu-satunya pattern
+  di pustaka ini yang isinya sengaja berupa pertanyaan, bukan jawaban.
+
+metadata:
+  version: 2
+  tags: [uncertainty, governance, never-fabricate]
+
+when_to_use:
+  - a metric the decision depends on exists but its value is not yet available
+  - the reader has authority to commission the data
+  - honesty about the unknown matters more than apparent completeness
+
+when_to_avoid:
+  - the value is in fact available; show it as a KPI rather than a question
+  - the question is rhetorical and nobody will answer it
+
+preferred_placement: "its own card, adjacent to the priority actions"
+visual_emphasis: primary
+
+requires_data:
+  numeric_values: false
+  min_items: 1
+  max_items: 5
+
+rules:
+  - Each item is written as a complete question.
+  - Never show a number, range or estimate as a provisional answer.
+  - Mark the card visually differently from finding cards so it never reads as fact.
+  - Name who must answer, when the source states it.

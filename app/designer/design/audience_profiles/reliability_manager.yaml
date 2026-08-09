@@ -1,0 +1,46 @@
+id: reliability_manager
+name: Reliability Manager
+category: audience_profile
+description: >
+  Berfokus pada efektivitas — memastikan hal yang benar dikerjakan. Menilai
+  kesesuaian strategi lewat kerangka RCM dan menetapkan rekomendasi beserta
+  owner. Titik tengah rantai: menerima diagnosis, meneruskan pekerjaan ke
+  Maintenance.
+
+metadata:
+  version: 3
+  tags: [effectiveness, strategy, rcm]
+
+reading_time_seconds: 45
+preferred_density: high
+preferred_storytelling: strategy_recommendation
+preferred_layout: technical_report_grid
+
+terminology:
+  register: reliability
+  keep_untranslated:
+    - RCM
+    - FMECA
+    - bad actor
+    - root cause / RCA
+    - preventive / predictive maintenance
+    - P-F interval
+    - criticality
+    - asset integrity
+  avoid:
+    - data structure or graph vocabulary
+    - qualitative claims with no condition evidence behind them
+  prefer:
+    - how well the strategy fits the observed failure pattern
+    - ranking by safety, environmental and production consequence
+    - an explicit owning function per recommendation
+
+visual_emphasis:
+  - maintenance_strategy
+  - main_risks
+  - priority_actions
+
+action_dimensions:
+  - owner
+
+max_bullets_per_section: 6

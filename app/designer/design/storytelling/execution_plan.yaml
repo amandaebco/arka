@@ -1,0 +1,70 @@
+id: execution_plan
+name: Execution Plan
+category: storytelling
+description: >
+  Pola Maintenance Manager: beban kerja, kesiapan sumber daya, lalu rencana
+  bertanggal dengan owner dan KPI yang dipantau. Kesiapan sumber daya tampil
+  utuh sebagai checklist — item yang belum terkonfirmasi tetap ditampilkan
+  sebagai hal yang harus dipastikan, bukan dihilangkan.
+
+metadata:
+  version: 2
+  tags: [maintenance-manager, efficiency, planning-scheduling]
+
+communication_sequence:
+  - step: read_workload
+    intent: "read the workload, backlog age and closure discipline"
+  - step: check_readiness
+    intent: "confirm resource readiness before work can start"
+  - step: plan
+    intent: "lay out a dated plan with a named owner per item"
+  - step: commit_kpi
+    intent: "state the execution KPIs that will be tracked"
+
+reading_flow:
+  - identity
+  - focus
+  - work_execution
+  - resource_readiness
+  - readiness_blockers
+  - current_condition
+  - maintenance_activities
+  - business_impact
+  - unit_context
+  - framework_assessment
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - key_takeaway
+  - summary
+  - uncertainty
+  - handoff
+
+emphasis_order:
+  identity: tertiary
+  focus: tertiary
+  work_execution: dominant
+  resource_readiness: primary
+  readiness_blockers: primary
+  current_condition: secondary
+  maintenance_activities: secondary
+  business_impact: tertiary
+  unit_context: tertiary
+  framework_assessment: tertiary
+  priority_actions: primary
+  management_decision: secondary
+  confidence_level: secondary
+  key_takeaway: secondary
+  summary: secondary
+  uncertainty: secondary
+  handoff: tertiary
+
+recommended_layouts:
+  - technical_report_grid
+  - dashboard
+
+action_dimensions:
+  - horizon
+  - owner
+
+closing_element: handoff

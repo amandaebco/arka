@@ -1,0 +1,35 @@
+id: kpi_cards
+name: KPI Cards
+category: visualization_pattern
+description: >
+  Beberapa angka tunggal ditampilkan besar, masing-masing dengan label. Bentuk
+  paling efisien untuk nilai skalar — dan pengganti yang tepat untuk chart yang
+  sebenarnya hanya memuat satu angka.
+
+metadata:
+  version: 2
+  tags: [scalar, headline, always-safe]
+
+when_to_use:
+  - two to four scalar figures deserve headline treatment
+  - the reader must grasp magnitude without reading a sentence
+  - the figures carry a clear unit or percentage
+
+when_to_avoid:
+  - only one figure exists; fold it into the title instead
+  - more than four figures; readers stop comparing
+  - the values are qualitative rather than numeric
+
+preferred_placement: "directly beneath the header, spanning the full width"
+visual_emphasis: dominant
+
+requires_data:
+  numeric_values: true
+  min_items: 2
+  max_items: 4
+
+rules:
+  - The figure stands at least twice the height of its label; a smaller ratio reads as a list, not a headline.
+  - Units stay attached to the figure, never broken onto another line.
+  - Without a period-on-period comparison, show no up or down arrow.
+  - Figures sit on a shared baseline and align on the decimal point.

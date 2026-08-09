@@ -1,0 +1,63 @@
+id: investment_case
+name: Investment Case
+category: storytelling
+description: >
+  Pola VP: temuan satu aset sebagai pemicu, lalu naik ke implikasi portfolio dan
+  keputusan investasi. Satu-satunya pola yang menempatkan unit_context sebagai
+  tujuan, bukan latar — dan satu-satunya yang mewajibkan pertanyaan assurance
+  tampil sebagai kartu tersendiri.
+
+metadata:
+  version: 2
+  tags: [vp, business-case, portfolio]
+
+communication_sequence:
+  - step: trigger
+    intent: "present the asset finding as the trigger, not as the conclusion"
+  - step: elevate
+    intent: "raise it to unit and portfolio implications"
+  - step: frame_case
+    intent: "frame cost and risk exposure as a business case"
+  - step: ask_assurance
+    intent: "state the questions that must be answered before risk can be called controlled"
+
+reading_flow:
+  - identity
+  - focus
+  - business_impact
+  - main_risks
+  - current_condition
+  - unit_context
+  - framework_assessment
+  - assurance_questions
+  - priority_actions
+  - management_decision
+  - confidence_level
+  - key_takeaway
+  - summary
+  - uncertainty
+
+emphasis_order:
+  identity: tertiary
+  focus: tertiary
+  business_impact: dominant
+  main_risks: primary
+  current_condition: tertiary
+  unit_context: primary
+  framework_assessment: secondary
+  assurance_questions: primary
+  priority_actions: primary
+  management_decision: secondary
+  confidence_level: secondary
+  key_takeaway: secondary
+  summary: secondary
+  uncertainty: secondary
+
+recommended_layouts:
+  - technical_report_grid
+  - dashboard
+
+action_dimensions:
+  - tradeoff
+
+closing_element: key_takeaway

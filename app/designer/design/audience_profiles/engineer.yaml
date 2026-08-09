@@ -1,0 +1,48 @@
+id: engineer
+name: Reliability Engineer (CMRP)
+category: audience_profile
+description: >
+  Engineer bersertifikat CMRP yang menulis catatan kondisi untuk rekan teknis
+  dan atasannya. Pangkal rantai: ia mendiagnosis, bukan memutuskan investasi.
+  Toleran terhadap kepadatan tinggi dan curiga pada ringkasan yang menyembunyikan
+  angka.
+
+metadata:
+  version: 3
+  tags: [diagnosis, function-preservation, high-density]
+
+reading_time_seconds: 60
+preferred_density: high
+preferred_storytelling: diagnostic_report
+preferred_layout: technical_report_grid
+
+terminology:
+  register: technical
+  keep_untranslated:
+    - MTBF
+    - MTTR
+    - P-F interval
+    - bad actor
+    - root cause / RCA
+    - FRACAS
+    - condition monitoring
+    - criticality
+    - work order
+  avoid:
+    - data structure or graph vocabulary
+    - raw figures outside the fact finding table
+    - rounding that destroys precision
+  prefer:
+    - functional failure and redundancy
+    - position on the P-F curve
+    - measured values shown against their design limits
+
+visual_emphasis:
+  - current_condition
+  - reliability_assessment
+  - readiness_status
+
+action_dimensions:
+  - horizon
+
+max_bullets_per_section: 7
