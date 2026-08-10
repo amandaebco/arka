@@ -204,6 +204,51 @@ yang menyentuh penyimpanan; semua di atasnya bekerja pada dataclass.
 Hackathon tetap memakai PostgreSQL + AGE: sudah terbukti, dan memindahkannya di
 hari submission bukan risiko yang sepadan.
 
+### Dua penyimpanan, satu lapisan penalaran (11 Agt)
+
+`ARKA_STORE` memilih backend; bawaannya `postgres`. Nilai tak dikenal jatuh ke
+PostgreSQL, **bukan** ke cloud — salah ketik tidak boleh diam-diam memindahkan
+sumber data produksi.
+
+```bash
+python scripts/run_chain.py                       # PostgreSQL + AGE
+ARKA_STORE=bigquery python scripts/run_chain.py   # BigQuery property graph
+```
+
+**Paritas terukur, bukan diklaim:** rantai yang sama atas data yang sama
+menghasilkan `0.9071` / `0.8819`, eskalasi pada margin `0.0252`, 5 preseden,
+4 sitasi — identik dari kedua penyimpanan.
+
+Yang **bisa** dialihkan: scout, investigator, `scripts/pindai_terjadwal.py`.
+Yang **selalu BigQuery**: GraphRAG, `VECTOR_SEARCH`, agent tanya-jawab — embedding
+hanya ada di sana.
+Yang **selalu PostgreSQL**: generator sintetis (sumber kebenaran) dan tes.
+
+⚠️ **Data BigQuery adalah salinan**, diisi `scripts/uji_bigquery_graph.py` dari
+PostgreSQL. Kalau jalur emas berubah dan sinkronisasi tidak dijalankan, salinan
+itu basi tanpa peringatan — mode kegagalan yang sama yang dulu membuat kita
+memilih tabel kanonik ketimbang proyeksi AGE. Di produksi, BigQuery jadi sumber
+langsung dan langkah ini hilang.
+
+### Lapisan retrieval — GraphRAG dan tanya-jawab (11 Agt)
+
+| Modul | Peran |
+|---|---|
+| `app/retrieval/embedding.py` | Embedding `gemini-embedding-001`, 3072 dimensi |
+| `app/retrieval/vector_store.py` | `VECTOR_SEARCH` di BigQuery |
+| `app/retrieval/graphrag.py` | Menggabungkan traversal graph + potongan dokumen |
+| `app/agents/tanya_jawab.py` | `retriever` (apa yang diambil) + `answerer` (apa yang didukung bukti) |
+
+**Embedding dibuat di luar BigQuery**, bukan lewat `ML.GENERATE_EMBEDDING`: fungsi
+itu menuntut koneksi remote model yang service account-nya harus diberi akses
+Vertex, dan akun ini tidak boleh `setIamPolicy`. `VECTOR_SEARCH` sendiri tidak
+butuh koneksi apa pun.
+
+⚠️ **Ambang kemiripan 0,60 adalah properti korpus, bukan properti model.** Diukur
+atas empat dokumen: pertanyaan dalam kata-kata berbeda mencapai 0,61–0,72,
+pertanyaan di luar domain masih 0,56. **Wajib diukur ulang** begitu dokumennya
+banyak.
+
 ### Deploy Agent Engine — sudah terbukti jalan (7 Agt)
 
 Project pindah ke **`ebco-aihack-amanda`** (peran `editor`, jadi bisa bikin bucket).
