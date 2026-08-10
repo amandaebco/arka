@@ -435,3 +435,32 @@ async def _plants_by_component_type(session: AsyncSession) -> dict[str, list[str
     for component_type, plant in rows:
         reach.setdefault(component_type, []).append(plant)
     return reach
+
+
+async def find_next_maintenance(
+    session: AsyncSession, equipment_tag: str
+) -> date | None:
+    """When this equipment is next scheduled for planned maintenance.
+
+    Returns the earliest scheduled start still ahead of it, or None when nothing
+    is planned. A missing schedule is common and must not be read as "no
+    constraint" — it means the comparison cannot be made, which is why the
+    caller omits the warning rather than assuming there is room.
+    """
+    from app.models.maintenance import WorkOrder
+
+    row = (
+        await session.execute(
+            select(WorkOrder.scheduled_start_at)
+            .join(Equipment, Equipment.id == WorkOrder.equipment_id)
+            .where(
+                Equipment.tag_number == equipment_tag,
+                WorkOrder.work_order_type == "preventive",
+                WorkOrder.status.in_(("created", "approved")),
+                WorkOrder.scheduled_start_at.is_not(None),
+            )
+            .order_by(WorkOrder.scheduled_start_at)
+            .limit(1)
+        )
+    ).first()
+    return row[0].date() if row and row[0] else None

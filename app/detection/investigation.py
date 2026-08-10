@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
-from app.detection.criticality import dynamic_criticality
+from app.detection.criticality import dynamic_criticality, procurement_shortfall
 from app.detection.repository import (
     CandidateEvidence,
     DocumentRef,
@@ -232,6 +232,37 @@ def _spare_parts(
     ]
 
 
+def _procurement_warnings(
+    spare_parts: list[SparepartKritis], days_until_window: int | None
+) -> list[Rekomendasi]:
+    """Flag parts that cannot arrive before the next maintenance window.
+
+    This is the one conflict ARKA can see that neither system sees alone: the
+    maintenance planner knows the window, the material planner knows the lead
+    time, and nobody compares them until the window is missed.
+    """
+    warnings: list[Rekomendasi] = []
+    for part in spare_parts:
+        shortfall = procurement_shortfall(part.lead_time_minggu, days_until_window)
+        if shortfall is None or shortfall <= 0:
+            continue
+        warnings.append(
+            Rekomendasi(
+                tindakan=(
+                    f"Mulai pengadaan {part.nama} sekarang, jangan menunggu "
+                    "jendela perawatan dibuka."
+                ),
+                prioritas="segera",
+                dasar=(
+                    "Lead time material melampaui sisa waktu menuju perawatan "
+                    "terjadwal berikutnya, sehingga jendela itu akan terlewat "
+                    "bila pengadaan baru dimulai saat pekerjaan dijadwalkan."
+                ),
+            )
+        )
+    return warnings
+
+
 def _recommendations(
     leader: ScoredCandidate | None, verdict: Verdict, spare_parts: list[SparepartKritis]
 ) -> list[Rekomendasi]:
@@ -286,6 +317,7 @@ def build_finding(
     *,
     spare_parts: list[SparePartFacts] | None = None,
     trail: list[LangkahPenalaran] | None = None,
+    days_until_maintenance: int | None = None,
     today: date | None = None,
 ) -> tuple[Finding, Verdict]:
     """Assemble the handover object, and the verdict that justifies it."""
@@ -334,7 +366,10 @@ def build_finding(
         rantai_kausal=_causal_chain(open_case, leader),
         sparepart=parts,
         jejak_penalaran=trail or [],
-        rekomendasi=_recommendations(leader, verdict, parts),
+        rekomendasi=(
+            _procurement_warnings(parts, days_until_maintenance)
+            + _recommendations(leader, verdict, parts)
+        ),
     )
     return finding, verdict
 

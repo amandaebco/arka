@@ -53,8 +53,10 @@ from app.synthetic.jalur_emas import (
     MODEL_FILLER,
     PABRIK_ARMADA,
     PENYEBAB,
+    PERAWATAN_TERJADWAL,
     SEAL_KRITIS,
     SEED_BAWAAN,
+    SEKARANG,
     SEMUA_KASUS,
     SPAREPART_LAIN,
     TIPE_EQUIPMENT,
@@ -339,6 +341,38 @@ async def tulis_kasus(
     await sesi.flush()
 
 
+async def tulis_perawatan_terjadwal(
+    sesi: AsyncSession, seed: int, armada: dict[str, dict]
+) -> None:
+    """Perintah kerja preventif yang belum dikerjakan, lengkap dengan jadwalnya.
+
+    Inilah pembanding yang membuat konflik waktu bisa dihitung: tanpa satu
+    tanggal yang mengikat, lead time sparepart hanyalah angka.
+    """
+    for kode_pabrik, nomor, hari in PERAWATAN_TERJADWAL:
+        mesin = armada["equipment"].get(kode_pabrik)
+        if mesin is None:
+            continue
+        kunci = f"perawatan-{kode_pabrik}-{nomor}"
+        sesi.add(
+            WorkOrder(
+                id=id_stabil(seed, f"wo:{kunci}"),
+                equipment_id=mesin.id,
+                canonical_id=f"WO-{kunci.upper()}",
+                work_order_number=f"WO-{kunci.upper()}",
+                work_order_type="preventive",
+                priority="medium",
+                status="approved",
+                description="Perawatan berkala kepala pengisi sesuai standar.",
+                opened_at=SEKARANG,
+                scheduled_start_at=SEKARANG + timedelta(days=hari),
+                source_system="sintetis",
+                source_record_id=kunci,
+            )
+        )
+    await sesi.flush()
+
+
 async def tulis_dokumen(sesi: AsyncSession, seed: int) -> None:
     """Laporan inspeksi yang bisa dikutip.
 
@@ -394,6 +428,7 @@ async def bangun(seed: int = SEED_BAWAAN, reset: bool = False) -> dict[str, int]
         armada = await tulis_armada(sesi, seed)
         await tulis_sparepart(sesi, seed)
         await tulis_kasus(sesi, seed, kosakata, armada)
+        await tulis_perawatan_terjadwal(sesi, seed, armada)
         await tulis_dokumen(sesi, seed)
         await sesi.commit()
 

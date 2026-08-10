@@ -99,3 +99,26 @@ def dynamic_criticality(
         + consequence(total_downtime_minutes) * WEIGHT_CONSEQUENCE
         + supply_risk(lead_time_weeks, vendor_count) * WEIGHT_SUPPLY_RISK
     ).quantize(_QUANTUM)
+
+
+DAYS_PER_WEEK = 7
+
+
+def procurement_shortfall(
+    lead_time_weeks: int | None, days_until_window: int | None
+) -> int | None:
+    """Days by which procurement misses the next maintenance window.
+
+    Returns a positive number when the part cannot arrive in time, zero or a
+    negative number when it can, and None when the comparison cannot be made at
+    all — no lead time recorded, or no maintenance scheduled.
+
+    None is deliberately distinct from "no problem". Maintenance schedules and
+    material lead times usually live in two systems that never speak, so the
+    absence of a schedule is the normal case, not evidence of headroom. Reading
+    it as safety is exactly how this conflict stays invisible until the window
+    is missed.
+    """
+    if not lead_time_weeks or days_until_window is None:
+        return None
+    return lead_time_weeks * DAYS_PER_WEEK - days_until_window

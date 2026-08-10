@@ -291,3 +291,66 @@ class TestGoldenPathCalibration:
         finding, _ = chain
         assert finding.sparepart
         assert finding.sparepart[0].selisih > Decimal("0.2")
+
+
+class TestProcurementConflict:
+    """The conflict neither planner sees: lead time against the next window."""
+
+    def test_lead_time_beyond_the_window_is_flagged(self):
+        from app.detection.criticality import procurement_shortfall
+
+        assert procurement_shortfall(6, 28) == 14
+
+    def test_lead_time_inside_the_window_is_not_flagged(self):
+        from app.detection.criticality import procurement_shortfall
+
+        assert procurement_shortfall(2, 28) < 0
+
+    def test_missing_schedule_is_not_read_as_headroom(self):
+        """None is distinct from "no problem" on purpose.
+
+        Maintenance schedules and material lead times usually live in systems
+        that never speak, so an absent schedule is the normal case. Treating it
+        as safety is exactly how the conflict stays invisible.
+        """
+        from app.detection.criticality import procurement_shortfall
+
+        assert procurement_shortfall(6, None) is None
+        assert procurement_shortfall(None, 28) is None
+
+    def test_warning_reaches_the_recommendations(self):
+        part = SparePartFacts(
+            part_number="SP-SEAL-8801",
+            name="Seal kepala pengisi RF-8000",
+            component_type="seal",
+            static_criticality=0.30,
+            lead_time_weeks=6,
+            vendor_count=1,
+            primary_vendor="Vendor Tunggal A",
+        )
+        scored = score_candidates(
+            _open_case(), [_candidate("A", [_historical("Pabrik Barat", "A")])], today=TODAY
+        )
+        finding, _ = build_finding(
+            _open_case(), scored, spare_parts=[part], days_until_maintenance=28, today=TODAY
+        )
+        assert finding.rekomendasi[0].prioritas == "segera"
+        assert "pengadaan" in finding.rekomendasi[0].tindakan.lower()
+
+    def test_no_warning_when_there_is_time(self):
+        part = SparePartFacts(
+            part_number="SP-SEAL-8801",
+            name="Seal kepala pengisi RF-8000",
+            component_type="seal",
+            static_criticality=0.30,
+            lead_time_weeks=1,
+            vendor_count=1,
+            primary_vendor="Vendor Tunggal A",
+        )
+        scored = score_candidates(
+            _open_case(), [_candidate("A", [_historical("Pabrik Barat", "A")])], today=TODAY
+        )
+        finding, _ = build_finding(
+            _open_case(), scored, spare_parts=[part], days_until_maintenance=90, today=TODAY
+        )
+        assert not any("pengadaan" in r.tindakan.lower() for r in finding.rekomendasi)

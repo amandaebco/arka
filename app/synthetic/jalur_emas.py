@@ -341,6 +341,24 @@ SEMUA_KASUS: tuple[KasusJalurEmas, ...] = (
 
 
 # ---------------------------------------------------------------------------
+# Perawatan terjadwal — dasar deteksi konflik waktu
+# ---------------------------------------------------------------------------
+
+# Jendela perawatan berikutnya untuk mesin yang sedang bermasalah. Sengaja
+# ditaruh lebih dekat daripada lead time seal (enam minggu): kalau pengadaan
+# baru dimulai saat jendela dibuka, barangnya belum datang dan jendela itu
+# terlewat. Konflik semacam ini nyata di lapangan dan nyaris tidak pernah
+# terlihat, karena jadwal perawatan dan lead time material hidup di dua sistem
+# yang berbeda dan tidak pernah dibandingkan.
+JENDELA_PERAWATAN_HARI = 28
+
+PERAWATAN_TERJADWAL: tuple[tuple[str, int, int], ...] = (
+    # (kode pabrik, nomor equipment, hari dari SEKARANG)
+    ("PLT-U", 207, JENDELA_PERAWATAN_HARI),
+)
+
+
+# ---------------------------------------------------------------------------
 # Dokumen yang bisa dikutip
 # ---------------------------------------------------------------------------
 

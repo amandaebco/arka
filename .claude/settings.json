@@ -86,7 +86,8 @@
       "Bash(.venv/bin/alembic upgrade *)",
       "Bash(.venv/bin/python scripts/pindai_terjadwal.py)",
       "Bash(echo \"exit=$?\")",
-      "Bash(git commit -q -m 'feat\\(detection\\): make three submission claims true instead of softening them *)"
+      "Bash(git commit -q -m 'feat\\(detection\\): make three submission claims true instead of softening them *)",
+      "Bash(git commit -q -m 'feat\\(detection\\): flag procurement that cannot meet the maintenance window *)"
     ],
     "additionalDirectories": [
       "/Users/amanda/demo/arka"

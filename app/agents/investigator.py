@@ -16,6 +16,7 @@ reader is Indonesian: the audience is an Indonesian reliability engineer.
 from __future__ import annotations
 
 import logging
+from datetime import date
 
 from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext
@@ -25,6 +26,7 @@ from app.detection.investigation import build_finding, score_candidates
 from app.detection.repository import (
     find_documents,
     find_historical_cases,
+    find_next_maintenance,
     find_open_cases,
     find_spare_parts,
     group_by_cause,
@@ -91,6 +93,7 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
     Returns:
         A summary of what was found, including whether a human must decide.
     """
+    today = None
     factory = await _session()
     async with factory as session:
         cases = await find_open_cases(session)
@@ -149,7 +152,29 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
         )
 
         parts = await find_spare_parts(session)
-        finding, verdict = build_finding(case, scored, spare_parts=parts, trail=trail)
+
+        # Compare the material lead time against the next maintenance window.
+        # Neither planner sees both numbers; this is the one conflict ARKA can
+        # see that neither system sees alone.
+        jendela = await find_next_maintenance(session, case.equipment_tag)
+        sisa_hari = (jendela - (today or date.today())).days if jendela else None
+        if jendela:
+            trail.append(
+                LangkahPenalaran(
+                    urutan=5,
+                    aksi="Membandingkan lead time material dengan perawatan terjadwal",
+                    hasil=f"Perawatan berikutnya dijadwalkan {jendela}",
+                    jumlah_simpul=1,
+                )
+            )
+
+        finding, verdict = build_finding(
+            case,
+            scored,
+            spare_parts=parts,
+            trail=trail,
+            days_until_maintenance=sisa_hari,
+        )
 
     tool_context.state[KUNCI_TEMUAN] = finding.model_dump(mode="json")
     logger.info(
