@@ -6,6 +6,7 @@ scheduled run costs nothing but a database query and cannot drift.
 
     uv run python scripts/pindai_terjadwal.py            # human-readable
     uv run python scripts/pindai_terjadwal.py --json     # for a scheduler
+    ARKA_STORE=bigquery uv run python scripts/pindai_terjadwal.py
 
 Exit codes are meaningful, so a scheduler can act on them without parsing text:
 
@@ -24,35 +25,27 @@ import asyncio
 import json
 import sys
 
+from app.detection import store
 from app.detection.investigation import rank_screened, screen_case
-from app.detection.repository import (
-    find_documents,
-    find_historical_cases,
-    find_open_cases,
-    group_by_cause,
-    load_subsystem_map,
-)
 
 
 async def scan() -> list[dict]:
-    from app.db.session import session_factory
-
-    async with session_factory() as session:
-        open_cases = await find_open_cases(session)
+    async with store.session() as session:
+        open_cases = await store.find_open_cases(session)
         if not open_cases:
             return []
 
-        documents = await find_documents(session)
-        subsystems = load_subsystem_map()
+        documents = await store.find_documents(session)
+        subsystems = store.load_subsystem_map()
         screened = []
         for case in open_cases:
-            historical = await find_historical_cases(
+            historical = await store.find_historical_cases(
                 session,
                 equipment_model=case.equipment_model,
                 exclude_event_id=case.failure_event_id,
             )
             screened.append(
-                screen_case(case, group_by_cause(historical, documents), subsystems)
+                screen_case(case, store.group_by_cause(historical, documents), subsystems)
             )
 
     return [
