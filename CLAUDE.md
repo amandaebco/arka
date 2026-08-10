@@ -26,7 +26,7 @@ untuk membangun, bukan memutuskan.
 | Pain point | Kegagalan sama berulang di pabrik berbeda, tiap kali dibayar dari nol |
 | Framework agent | **Google ADK** — deploy ke Vertex AI Agent Engine |
 | Database | PostgreSQL 16 + **Apache AGE** + pgvector |
-| BigQuery Graph | ❌ Ditolak — GQL butuh reservation Enterprise; sandbox on-demand |
+| BigQuery Graph | ⚠️ **Direvisi 11 Agt** — lihat catatan di bawah |
 | Data | **Sintetis seluruhnya**, ditulis langsung ke tabel kanonik. **Tidak ada ETL** |
 | Metode | Spec-Driven Development (GitHub Spec Kit) |
 
@@ -180,6 +180,29 @@ dibantah, dan tes `test_something_is_actually_ignored` akan merah.
 
 **Belum:** deploy ulang ke Cloud Run (image masih versi 7 Agt, belum memuat
 scout/investigator), `curator`, volume latar, proyeksi graph.
+
+### BigQuery Graph — keputusan lama direvisi (11 Agt)
+
+Penolakan semula ("GQL butuh reservation Enterprise") **benar separuh**. Diuji
+langsung di `ebco-aihack-amanda`, on-demand, tanpa reservation:
+
+| | On-demand |
+|---|---|
+| `CREATE PROPERTY GRAPH` | ✅ berhasil |
+| `GRAPH_EXPAND(...)` — traversal lewat SQL | ✅ **berhasil** |
+| `GRAPH … MATCH …` — sintaks GQL penuh | ❌ menuntut Enterprise |
+
+Jadi yang berbayar adalah **sintaks GQL**, bukan kemampuan menelusuri graph.
+`scripts/uji_bigquery_graph.py` memuat jalur emas ke BigQuery, membangun property
+graph, lalu menemukan preseden lintas pabrik dengan **angka overlap identik**
+dengan rantai lokal (1,0000 dan 0,6667).
+
+Konsekuensinya untuk produksi: jalur BigQuery **tidak terhalang lisensi**. Yang
+perlu ditulis ulang hanya `app/detection/repository.py` — satu-satunya berkas
+yang menyentuh penyimpanan; semua di atasnya bekerja pada dataclass.
+
+Hackathon tetap memakai PostgreSQL + AGE: sudah terbukti, dan memindahkannya di
+hari submission bukan risiko yang sepadan.
 
 ### Deploy Agent Engine — sudah terbukti jalan (7 Agt)
 
