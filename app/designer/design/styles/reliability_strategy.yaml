@@ -52,6 +52,9 @@ candidate_sections:
 presentation:
   reference: "McKinsey-style reliability strategy brief"
   mood: "corporate, considered, authoritative"
+  subtitle:
+    id: "Laporan Strategi Keandalan"
+    en: "Reliability Strategy Report"
   finish: "ultra HD, print quality, sharp vector-like edges"
 
 visual:

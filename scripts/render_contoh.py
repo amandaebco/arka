@@ -26,18 +26,17 @@ from app.synthetic.finding_contoh import finding_contoh
 DIR_KELUARAN = Path(__file__).resolve().parent.parent / "out"
 
 KONTEKS = KonteksDokumen(
-    nomor="001/ARKA/VIII/2026",
+    nomor="001/ING/VIII/2026",
     kepada="Manajer Keandalan — Pabrik Utara",
     dari="ARKA (Asset Reliability Knowledge Agent)",
     perihal="Preseden kegagalan berulang lintas pabrik",
-    penanda_tangan="Kepala Unit Keandalan",
-    jabatan_penanda_tangan="Reliability Lead",
+    penanda_tangan="Brigitte Schwartz",
+    jabatan_penanda_tangan="Head of Reliability",
     periode="Agustus 2026",
-    # Unit fiktif. Tidak ada merek organisasi nyata yang tersimpan di repo —
-    # lencananya dibangkitkan dari inisial saat render.
-    unit_penerbit="Unit Keandalan Aset",
-    logo=lencana_data_uri("UKA"),
+    unit_penerbit="INGOUDE COMPANY",
+    logo=lencana_data_uri("ING"),
 )
+
 
 
 async def render_semua(dengan_pdf: bool, dir_arsip: Path | None) -> None:
@@ -48,8 +47,9 @@ async def render_semua(dengan_pdf: bool, dir_arsip: Path | None) -> None:
         html = render_dokumen_html(temuan, jenis=id_jenis, konteks=KONTEKS)
         _simpan(f"{id_jenis}.html", html.encode("utf-8"), dir_arsip)
 
-        if not dengan_pdf:
+        if not dengan_pdf or id_jenis == "dashboard":
             continue
+
         try:
             pdf = await render_dokumen_pdf(temuan, jenis=id_jenis, konteks=KONTEKS)
         except Exception as exc:  # noqa: BLE001 — peramban belum terpasang bukan kegagalan

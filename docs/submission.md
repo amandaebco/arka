@@ -186,16 +186,21 @@ Keluaran yang paling berguna bukan skornya, melainkan **selisihnya terhadap labe
 
 ### Sistem multi-agent
 
-Empat agent, masing-masing dengan satu keputusan yang jelas miliknya dan titik serah-terima yang eksplisit:
+Lima agent, masing-masing dengan satu keputusan yang jelas miliknya dan titik serah-terima yang eksplisit:
 
 | Agent | Keputusan | Serah-terima |
 |---|---|---|
 | **Scout** | Berjalan terjadwal. Memindai notifikasi terbuka, menghitung skor, memutuskan mana yang layak diselidiki | → Investigator |
 | **Investigator** | Menyusun rencana penelusuran, menentukan langkah berikutnya dari hasil sebelumnya, memutuskan kapan mengeskalasi ke manusia | → Reporter |
-| **Reporter** | Memutuskan isi dokumen dan urutan prioritasnya | → memo / laporan |
+| **Reporter** | Memutuskan isi dokumen dan urutan prioritasnya | → memo / laporan, Designer |
+| **Designer** | Memutuskan penekanan visual dan bentuk visual tiap blok | → infografis |
 | **Curator** | Loop terpisah. Memutuskan pemetaan mana yang aman disetujui otomatis | → proyeksi ulang graph |
 
-`Scout → Investigator → Reporter` membentuk rantai; `Curator` berjalan ortogonal.
+`Scout → Investigator → Reporter → Designer` membentuk rantai; `Curator` berjalan ortogonal.
+
+Batas antara Reporter dan Designer dijaga ketat: pemilihan blok tetap milik Reporter, dan Designer menerimanya sebagai masukan. Spesifikasi penyajian yang mencoba menambah blok di luar pilihan Reporter ditolak validator sebelum sempat dikompilasi — dua modul tidak boleh memiliki keputusan yang sama.
+
+Dua di antaranya berpasangan dengan penilai dalam `LoopAgent` berbatas tiga putaran: Reporter dengan penilai dokumen, Designer dengan penilai visual. Penilai tidak pernah menyunting; ia menuliskan masukan, dan yang menerbitkan yang memperbaiki.
 
 Sistem dibangun di atas **Google ADK**, yang menyediakan komposisi multi-agent hierarkis sebagai primitif bawaan — sehingga pemisahan peran di atas didukung framework, bukan konvensi penamaan.
 
@@ -209,9 +214,23 @@ Reporter menghasilkan objek `Finding` terstruktur; renderer mengubahnya menjadi 
 | Infografis | PNG | Manajemen — ringkasan visual |
 | Rekap bulanan | PPTX | Rapat berkala |
 
-Infografis memuat diagram sub-graph yang menggambarkan jalur penelusuran yang ditempuh agent, perbandingan kekritisan terhadap master data, dan garis waktu yang menunjukkan hubungan antara lead time pengadaan dan jendela inspeksi.
+**Untuk dokumen bukti — memo, nota dinas, laporan — seluruh angka, grafik, dan diagram di-render secara deterministik dari data.** Model bahasa hanya menyusun kalimat narasinya. Ini konsisten dengan mekanisme deteksi: model tidak ditempatkan di jalur yang menuntut akurasi angka.
 
-**Seluruh angka, grafik, dan diagram di-render secara deterministik dari data.** Model bahasa hanya menyusun kalimat narasinya. Ini konsisten dengan prinsip yang sama di mekanisme deteksi: model tidak ditempatkan di jalur yang menuntut akurasi angka.
+**Infografis adalah satu-satunya pengecualian, dan cakupannya sempit.** Halamannya digambar model gambar, karena tata letak poster yang enak dibaca sulit dicapai dengan renderer deterministik dalam waktu yang tersedia. Yang dikecualikan hanya penggambarannya:
+
+| Tetap deterministik | Boleh dari model |
+|---|---|
+| Seluruh teks, angka, label, dan sitasi — disusun kode dari `Finding`, dikirim verbatim | Tata letak, bentuk visual, ilustrasi |
+
+Pengecualian ini dicatat di Constitution proyek dan disertai tiga imbangan yang wajib, bukan pilihan:
+
+1. **Tidak ada nilai yang hanya dibawa oleh bentuk.** Setiap angka juga tertulis di sebelah grafiknya, sehingga kesalahan penggambaran tidak pernah menjadi kesalahan angka.
+2. **Penilai membaca halaman yang sudah tergambar.** Bukan promptnya — gambarnya. Setiap string yang terlihat dicocokkan ke isi kanvas; yang tidak ditemukan memicu penggambaran ulang.
+3. **Memo tetap catatan resmi.** Angka yang dipakai mengambil keputusan dirujuk dari memo, bukan dari infografis.
+
+Imbangan kedua bukan formalitas. Pada satu run, penggambar menambahkan chip identitas "Lokasi Fungsional" yang diambilnya dari judul dokumen sitasi lalu disajikan sebagai fakta tentang aset. Pemeriksaan yang membandingkan isi kanvas terhadap temuan meloloskannya — string itu memang ada di temuan. Hanya membaca halamannya yang menangkapnya.
+
+Setiap penerbitan meninggalkan jejak audit tersendiri: temuan, isi kanvas, spesifikasi penyajian, prompt, halaman, dan hasil pemeriksaan tiap putaran. Penggambaran tidak dapat direproduksi persis; jejak inilah yang menggantikan reproduktifitas sebagai dasar pertanggungjawaban.
 
 ### Antarmuka percakapan
 
@@ -255,7 +274,10 @@ Prinsip ini mengikuti praktik yang berlaku di lingkungan industri: knowledge gra
 | Pencarian semantik | pgvector |
 | Database | PostgreSQL 16 |
 | Backend | FastAPI, SQLAlchemy (async), Alembic |
-| Renderer laporan | python-pptx |
+| Renderer dokumen | Jinja2 + SVG inline, dicetak Chromium via Playwright |
+| Penggambar infografis | Model gambar OpenAI, dipagari gerbang mutu berbasis vision |
+| Pembaca halaman | Gemini vision — mentranskripsi halaman, kode yang menilai |
+| Pustaka desain | 44 aset YAML tervalidasi saat startup |
 | Kontainerisasi | Docker, Docker Compose |
 | Kualitas kode | pytest, ruff |
 | Infrastruktur | Google Cloud `[Compute Engine / Cloud SQL]` |
@@ -312,19 +334,22 @@ ruff check .
 
 ```
 app/
-├── agents/        Investigator & Curator
+├── agents/        Scout, Investigator, Reporter, Designer, Curator, penilai
 ├── api/           Endpoint FastAPI
 ├── core/          Konfigurasi
 ├── db/            Sesi & health check
+├── designer/      Pustaka desain, penyusun isi, komposer, penggambar, pembaca halaman
 ├── graph/         Retrieval core, proyeksi graph, validator Cypher, planner
 ├── models/        Model SQLAlchemy
 ├── ontology/      Definisi ontologi (YAML) — dapat ditukar per domain
-├── reporting/     Renderer PPTX & chart
+├── reporting/     Blok dokumen, grafik SVG deterministik, renderer PDF
 ├── static/        Graph viewer
 └── synthetic/     Generator data
+adk_agents/        Pembungkus tipis per agent — dituntut ADK
 migrations/        Migrasi Alembic
+scripts/           Perkakas pengembangan & resep deploy
+specs/             Spesifikasi (Spec Kit)
 tests/             Test suite
-docs/              Spesifikasi (Spec Kit)
 ```
 
 ---

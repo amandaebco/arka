@@ -1,6 +1,6 @@
 """Penulis data sintetis — langsung ke tabel kanonik, tanpa ETL.
 
-Menggantikan generator lama yang menulis CSV untuk dataset kilang. Domain,
+Menggantikan generator lama yang menulis CSV untuk dataset pabrik. Domain,
 skala, bahasa, dan bentuk keluarannya semua berbeda; tidak ada yang bisa
 diselamatkan selain gagasan id deterministik.
 

@@ -109,7 +109,7 @@ def validate(spec: PresentationSpec, kb: Any, selected_blocks: list[str]) -> lis
     dominant = [b for b, t in spec.emphasis.items() if t == "dominant" and b in spec.order]
     if len(dominant) > 1:
         problems.append(
-            f"ada {len(dominant)} blok dominant ({', '.join(sorted(dominant))}); hanya boleh satu"
+            f"ada {len(dominant)} blok dominan ({', '.join(sorted(dominant))}); hanya boleh satu"
         )
 
     capacity = kb.page_capacity(spec.style)

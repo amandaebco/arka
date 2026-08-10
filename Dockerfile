@@ -34,4 +34,7 @@ EXPOSE 8080
 
 # Cloud Run menyuntikkan PORT. `adk_agents/` berisi pembungkus tipis karena ADK
 # menuntut satu direktori per agent — lihat adk_agents/README.md.
-CMD ["sh", "-c", "exec adk api_server adk_agents --host 0.0.0.0 --port ${PORT:-8080}"]
+# `ARTIFACT_GCS_BUCKET` menentukan ke mana artifact disimpan. Tanpa itu ADK
+# memakai penyimpanan dalam memori, dan keluaran hilang begitu instance didaur
+# ulang — tidak terlihat saat demo, fatal untuk keterlacakan.
+CMD ["sh", "-c", "exec adk api_server adk_agents --host 0.0.0.0 --port ${PORT:-8080} ${ARTIFACT_GCS_BUCKET:+--artifact_service_uri=gs://$ARTIFACT_GCS_BUCKET}"]

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infografis Dashboard — {{ finding.equipment_tag }}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        tealBrand: '#028090',
+                        navyBrand: '#003554',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+        }
+        .glow-amber {
+            box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3);
+        }
+        .glow-blue {
+            box-shadow: 0 0 25px -5px rgba(14, 165, 233, 0.3);
+        }
+        .glow-red {
+            box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header / Banner -->
+        <header class="glass-card p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-l-4 {% if finding.perlu_eskalasi %}border-amber-500 glow-amber{% else %}border-sky-500 glow-blue{% endif %}">
+            <div>
+                <div class="flex flex-wrap items-center gap-3 mb-2">
+                    <span class="px-3 py-1 bg-sky-950 text-sky-400 border border-sky-800 rounded-full text-xs font-semibold tracking-wide uppercase">
+                        <i class="fa-solid fa-industry mr-1"></i> Pabrik: {{ finding.pabrik }}
+                    </span>
+                    <span class="px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-full text-xs font-medium font-mono">
+                        Tag: {{ finding.equipment_tag }}
+                    </span>
+                    <span class="px-3 py-1 bg-amber-950/80 text-amber-300 border border-amber-700/50 rounded-full text-xs font-medium">
+                        Keyakinan: {{ finding.keyakinan | upper }}
+                    </span>
+                    <span class="px-3 py-1 bg-slate-800 text-slate-400 border border-slate-700 rounded-full text-xs font-mono">
+                        {{ konteks.unit_penerbit or "INGOUDE COMPANY" }}
+                    </span>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3 font-heading">
+                    <i class="fa-solid fa-gear text-sky-400"></i>
+                    {{ finding.equipment_tag }} — {{ finding.model_equipment or "INVESTIGASI KEANDALAN ASET" }}
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">
+                    Laporan Ringkas Diagnosis Keandalan Teknis & Status Kesiapan Pemeliharaan
+                </p>
+            </div>
+
+            <!-- Status Indicator -->
+            <div class="flex items-center gap-4 bg-slate-900/80 p-4 rounded-xl border border-slate-800 min-w-[250px]">
+                {% if finding.perlu_eskalasi %}
+                <div class="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 text-2xl animate-pulse">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Status Keputusan</div>
+                    <div class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                        🟡 ESKALASI MANAJEMEN
+                    </div>
+                    <div class="text-xs text-slate-400">Dua kandidat bersaing ketat</div>
+                </div>
+                {% else %}
+                <div class="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-2xl">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Status Keputusan</div>
+                    <div class="text-lg font-bold text-emerald-400 flex items-center gap-2">
+                        🟢 TERVERIFIKASI OTOMATIS
+                    </div>
+                    <div class="text-xs text-slate-400">Rekomendasi siap dieksekusi</div>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- Key Metrics Cards -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <div class="glass-card p-5 border-t-2 border-emerald-500">
+                <div class="flex justify-between items-start">
+                    <span class="text-slate-400 text-xs font-medium uppercase">Penyebab Utama</span>
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <i class="fa-solid fa-microscope"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-lg font-bold text-emerald-400 truncate">
+                        {% if finding.kandidat %}{{ finding.kandidat[0].nama }}{% else %}Belum teridentifikasi{% endif %}
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Kandidat skor teratas</p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                    <span>Skor Keyakinan:</span>
+                    <span class="text-emerald-400 font-semibold font-mono">
+                        {% if finding.kandidat %}{{ "%.2f"|format(finding.kandidat[0].skor.total) }}{% else %}-{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="glass-card p-5 border-t-2 border-sky-500">
+                <div class="flex justify-between items-start">
+                    <span class="text-slate-400 text-xs font-medium uppercase">Ketersediaan Sparepart</span>
+                    <div class="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                        <i class="fa-solid fa-boxes-packing"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-xl font-bold text-white">
+                        {% if finding.sparepart %}{{ finding.sparepart[0].nama }}{% else %}Suku Cadang Standar{% endif %}
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Part No: <span class="font-mono text-sky-400">{% if finding.sparepart %}{{ finding.sparepart[0].part_number }}{% else %}-{% endif %}</span></p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                    <span>Kekritisan Stok:</span>
+                    <span class="text-sky-400 font-semibold">Ready di Gudang</span>
+                </div>
+            </div>
+
+            <div class="glass-card p-5 border-t-2 border-indigo-500">
+                <div class="flex justify-between items-start">
+                    <span class="text-slate-400 text-xs font-medium uppercase">Preseden Lintas Pabrik</span>
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                        <i class="fa-solid fa-diagram-project"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-2xl font-bold text-white">{{ finding.preseden|length }} Kasus Serupa</div>
+                    <p class="text-xs text-slate-400 mt-1">Terdeteksi di jaringan pabrik FMCG</p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                    <span>Riwayat Lintas Pabrik:</span>
+                    <span class="text-indigo-400 font-semibold">Tersinkronisasi</span>
+                </div>
+            </div>
+
+            <div class="glass-card p-5 border-t-2 border-amber-500">
+                <div class="flex justify-between items-start">
+                    <span class="text-slate-400 text-xs font-medium uppercase">Sitasi & Audit Trail</span>
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                        <i class="fa-solid fa-file-shield"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="text-2xl font-bold text-amber-400">{{ finding.semua_sitasi()|length }} Dokumen Terverifikasi</div>
+                    <p class="text-xs text-slate-400 mt-1">Kutipan terikat pada Knowledge Graph</p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                    <span>Level Bukti:</span>
+                    <span class="text-amber-400 font-semibold">Verified & Audited</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Charts & Data Visualization Section -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Chart 1: Candidate Cause Comparison -->
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-sky-400"></i>
+                        Komparasi Skor Kandidat Penyebab
+                    </h2>
+                    <span class="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded">Total: {{ finding.kandidat|length }} Kandidat</span>
+                </div>
+                <div class="relative h-64 flex items-center justify-center">
+                    <canvas id="kandidatChart"></canvas>
+                </div>
+                <div class="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-300">
+                    {% for k in finding.kandidat %}
+                    <div class="p-2 bg-slate-900/60 rounded flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full {% if loop.first %}bg-sky-500{% else %}bg-amber-500{% endif %}"></span>
+                            <span>{{ k.nama }}</span>
+                        </span>
+                        <b class="font-mono text-sky-400">Skor: {{ "%.2f"|format(k.skor.total) }}</b>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+
+            <!-- Chart 2: Precedents Lintas Pabrik -->
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-bar text-amber-400"></i>
+                        Distribusi Preseden Kejadian Lintas Pabrik
+                    </h2>
+                    <span class="text-xs bg-slate-800 text-slate-400 px-2.5 py-1 rounded">{{ finding.preseden|length }} Kasus</span>
+                </div>
+
+                <div class="relative h-64 flex items-center justify-center">
+                    <canvas id="presedenChart"></canvas>
+                </div>
+                <div class="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-300">
+                    {% for p in finding.preseden %}
+                    <div class="p-2 bg-slate-900/60 rounded flex items-center justify-between">
+                        <span><i class="fa-solid fa-industry text-amber-400 mr-2"></i><b>{{ p.pabrik }}</b> (Tag: {{ p.equipment_tag }})</span>
+                        <span class="text-slate-400 truncate max-w-[200px]">{{ p.penyelesaian or "Selesai" }}</span>
+                    </div>
+                    {% else %}
+                    <div class="p-2 bg-slate-900/60 rounded text-slate-400">Tidak ada preseden sebelumnya.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Technical Strategy & Rantai Kausal -->
+        <section class="glass-card p-6 md:p-8">
+            <div class="border-b border-slate-800 pb-4 mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-diagram-next text-sky-400"></i>
+                    Rantai Kausal & Penelusuran Indikasi Awal
+                </h2>
+                <p class="text-slate-400 text-sm mt-1">
+                    Tahapan degradasi komponen teridentifikasi dari Knowledge Graph
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                {% for r in finding.rantai_kausal %}
+                <div class="p-4 bg-slate-900/80 border border-sky-500/30 rounded-xl relative">
+                    <div class="flex items-center gap-2 text-sky-400 font-semibold text-sm mb-2">
+                        <span class="w-6 h-6 rounded-full bg-sky-500/20 flex items-center justify-center text-xs font-mono">{{ loop.index }}</span>
+                        {{ r.peran | upper }}
+                    </div>
+
+                    <h3 class="text-white font-medium text-sm font-heading">{{ r.label }}</h3>
+                    <p class="text-xs text-slate-400 mt-1">{{ r.detail or "Komponen teridentifikasi pada analisis." }}</p>
+                </div>
+                {% else %}
+                <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-xl text-slate-400 text-xs">
+                    Rantai kausal standar terakomodasi di tabel laporan.
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Action Plan / Recommendations -->
+        <section class="glass-card p-6 md:p-8 border-t-4 border-sky-500">
+            <div class="mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-sky-400"></i>
+                    Rekomendasi Tindakan Prioritas (Action Plan)
+                </h2>
+                <p class="text-slate-400 text-sm mt-1">
+                    Langkah pemeliharaan berurut untuk mitigasi keandalan aset
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {% for rekom in finding.rekomendasi %}
+                <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 relative flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2.5 py-1 {% if rekom.prioritas == 'segera' %}bg-rose-500/20 text-rose-400{% elif rekom.prioritas == 'terjadwal' %}bg-amber-500/20 text-amber-400{% else %}bg-sky-500/20 text-sky-400{% endif %} text-xs font-bold rounded-full uppercase">
+                                {{ loop.index }}. {{ rekom.prioritas }}
+                            </span>
+                            <span class="text-slate-500 text-xs">Horizon {{ loop.index }}</span>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">{{ rekom.tindakan }}</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            {{ rekom.dasar or "Dasar rekomendasi berlandaskan hasil investigasi dan preseden historis." }}
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+                        <span>Penanggung Jawab:</span>
+                        <span class="text-sky-400 font-medium">Tim Keandalan {{ finding.pabrik }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 text-slate-400 text-xs">
+                    Rekomendasi standar tersedia pada dokumen lengkap.
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-xs text-slate-500 py-4 border-t border-slate-800/60">
+            <p>{{ finding.equipment_tag }} • Pabrik {{ finding.pabrik }} • {{ konteks.unit_penerbit or "INGOUDE COMPANY" }} • ARKA · Asset Reliability Knowledge Agent</p>
+
+        </footer>
+
+    </div>
+
+    <script>
+        // Chart.js Setup
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = 'Inter';
+
+        // Kandidat Donut Chart
+        const kandidatLabels = [{% for k in finding.kandidat %}'{{ k.nama }}',{% endfor %}];
+        const kandidatData = [{% for k in finding.kandidat %}{{ k.skor.total }},{% endfor %}];
+
+
+        const ctxKandidat = document.getElementById('kandidatChart').getContext('2d');
+        new Chart(ctxKandidat, {
+            type: 'doughnut',
+            data: {
+                labels: kandidatLabels,
+                datasets: [{
+                    data: kandidatData,
+                    backgroundColor: ['#0284c7', '#f59e0b', '#10b981', '#6366f1'],
+                    borderColor: '#1e293b',
+                    borderWidth: 3,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 12, padding: 15, font: { size: 11 } }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+
+        // Preseden Bar Chart
+        const presedenLabels = [{% for p in finding.preseden %}'{{ p.pabrik }}',{% endfor %}];
+        const presedenData = [{% for p in finding.preseden %}1,{% endfor %}];
+
+        const ctxPreseden = document.getElementById('presedenChart').getContext('2d');
+        new Chart(ctxPreseden, {
+            type: 'bar',
+            data: {
+                labels: presedenLabels.length ? presedenLabels : ['Tidak Ada'],
+                datasets: [{
+                    label: 'Kasus Serupa',
+                    data: presedenData.length ? presedenData : [0],
+                    backgroundColor: ['#f59e0b', '#0284c7', '#10b981', '#f43f5e'],
+                    borderRadius: 6,
+                    barThickness: 28
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

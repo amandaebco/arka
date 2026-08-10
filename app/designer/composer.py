@@ -18,6 +18,10 @@ from app.designer.presentation import PresentationSpec
 
 LANGUAGE_NAMES = {"id": "Indonesian", "en": "English"}
 
+# The label the drawing model most often paraphrases. Naming it explicitly in
+# the prompt is cheaper than catching the paraphrase after every run.
+CONFIDENCE_LABEL = {"id": "Keyakinan", "en": "Confidence"}
+
 EMPHASIS_INSTRUCTION = {
     "dominant": "the single largest and most prominent card on the canvas",
     "primary": "high emphasis, larger type and stronger contrast than surrounding cards",
@@ -95,8 +99,23 @@ def _template_blocks(
         "cards": _cards(spec, isi, block_titles, kb),
         "confidence_block": _confidence_block(isi, kb, warna),
         "language_name": LANGUAGE_NAMES.get(spec.language, spec.language),
+        "subtitle": _subtitle(presentasi, spec.language),
+        "confidence_label": CONFIDENCE_LABEL.get(spec.language, "Keyakinan"),
         "constraints": _constraints(spec, style),
     }
+
+
+def _subtitle(presentation: dict[str, Any], language: str) -> str:
+    """The line printed under the title.
+
+    Deliberately separate from `reference`, which is a direction to the drawing
+    model ("draw it like a consulting brief") and must never reach the canvas.
+    Conflating the two put an English style note on an Indonesian page.
+    """
+    subtitle = presentation.get("subtitle") or {}
+    if isinstance(subtitle, dict):
+        return subtitle.get(language) or subtitle.get("id") or ""
+    return str(subtitle)
 
 
 def _structure(layout: dict[str, Any]) -> str:

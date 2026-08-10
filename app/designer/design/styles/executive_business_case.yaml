@@ -51,6 +51,9 @@ candidate_sections:
 presentation:
   reference: "boardroom business case one-pager"
   mood: "corporate, measured, confident"
+  subtitle:
+    id: "Paparan Keputusan Investasi"
+    en: "Investment Decision Brief"
   finish: "ultra HD, print quality, sharp vector-like edges"
 
 visual:

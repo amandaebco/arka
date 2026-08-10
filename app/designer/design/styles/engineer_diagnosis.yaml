@@ -61,6 +61,9 @@ candidate_sections:
 presentation:
   reference: "McKinsey-style technical diagnosis report"
   mood: "corporate, calm, authoritative"
+  subtitle:
+    id: "Laporan Diagnosis Teknis"
+    en: "Technical Diagnosis Report"
   finish: "ultra HD, print quality, sharp vector-like edges"
 
 visual:

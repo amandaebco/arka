@@ -29,6 +29,7 @@ dependencies = [
     "svglib>=1.5",
     "reportlab>=4.0",
     "openai>=2.53.0",
+    "google-cloud-storage>=3.13.0",
 ]
 
 [project.optional-dependencies]
@@ -48,6 +49,10 @@ packages = ["app"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
 
 [tool.ruff]
 line-length = 100

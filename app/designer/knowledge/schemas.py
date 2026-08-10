@@ -50,6 +50,7 @@ CATEGORIES: dict[str, CategorySchema] = {
             "presentation",
             "presentation.reference",
             "presentation.mood",
+            "presentation.subtitle",
             "presentation.finish",
             "visual",
             "visual.layout",

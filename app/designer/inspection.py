@@ -113,6 +113,17 @@ STANDING_TEXT = (
 )
 
 
+# A severity chip is drawn as a word, but the content carries the key. Only the
+# wording for levels the content actually holds is authorised — allowing every
+# severity word globally would let a page label a low finding "TINGGI" unnoticed.
+SEVERITY_WORDS = {
+    "high": ("HIGH", "TINGGI"),
+    "medium": ("MEDIUM", "SEDANG"),
+    "low": ("LOW", "RENDAH"),
+    "critical": ("CRITICAL", "KRITIS"),
+}
+
+
 def authorised_strings(content: Any, block_titles: list[str], subtitle: str = "") -> list[str]:
     """Every string a page is allowed to show.
 
@@ -134,6 +145,7 @@ def authorised_strings(content: Any, block_titles: list[str], subtitle: str = ""
                 item.text, item.label, item.value,
                 item.horizon, item.date, item.level, item.owner,
             ]
+            allowed += SEVERITY_WORDS.get(item.level, ())
     return [a for a in allowed if a]
 
 

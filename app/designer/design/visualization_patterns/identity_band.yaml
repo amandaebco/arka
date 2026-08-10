@@ -2,7 +2,7 @@ id: identity_band
 name: Identity Band
 category: visualization_pattern
 description: >
-  Deretan chip identitas aset di bawah judul — plant, unit kilang, functional
+  Deretan chip identitas aset di bawah judul — plant, unit pabrik, functional
   location, kritikalitas. Menjawab "peralatan yang mana persisnya" sebelum
   pembaca masuk ke temuan, dan mencegah laporan tertukar antar-aset serupa.
 

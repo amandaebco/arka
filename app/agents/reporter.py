@@ -22,9 +22,10 @@ from google.genai import types
 
 from app.core.config import get_settings
 from app.reporting.blocks import URUTAN_BAKU, susun_blok
+from app.reporting.cloud_storage import unggah_dashboard_ke_cloud_storage
 from app.reporting.dokumen import JENIS, KonteksDokumen, ambil_jenis
 from app.reporting.finding import Finding
-from app.reporting.memo import render_dokumen_pdf
+from app.reporting.memo import render_dokumen_html, render_dokumen_pdf
 from app.reporting.narasi import bersihkan_peta_narasi
 
 logger = logging.getLogger(__name__)
@@ -173,10 +174,54 @@ async def terbitkan_dokumen(
     # dipakai `scripts/render_contoh.py` saat menyetel template, tidak pernah
     # menjadi dokumen resmi. Karena itu kegagalan render tidak mundur diam-diam
     # ke HTML: dokumen setengah jadi yang terlihat resmi lebih berbahaya daripada
-    # kegagalan yang terang-terangan.
+    if jenis.id == "dashboard":
+        import os
+        import re
+        from datetime import datetime
+
+
+        tag_bersih = re.sub(
+            r"[^a-zA-Z0-9_-]", "_", finding.equipment_tag or finding.finding_id
+        )
+        waktu = datetime.now().strftime("%Y%m%d-%H%M%S")
+        nama = f"dashboard-{tag_bersih}-{waktu}.html"
+
+        bucket_name = os.getenv("GCS_BUCKET_NAME", "ebco-aihack-amanda-arka-staging")
+        url_prediksi = f"https://storage.googleapis.com/{bucket_name}/dashboards/{nama}"
+
+        konteks_obj = konteks if isinstance(konteks, KonteksDokumen) else KonteksDokumen()
+        konteks_obj = konteks_obj.model_copy(update={"url_dashboard": url_prediksi})
+
+        isi_html = render_dokumen_html(finding, jenis, urutan_blok, narasi, konteks_obj)
+
+
+
+        try:
+            await tool_context.save_artifact(
+                filename=nama,
+                artifact=types.Part.from_bytes(
+                    data=isi_html.encode("utf-8"), mime_type="text/html"
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Penyimpanan artifact dashboard gagal: %s", exc)
+            return "Dashboard HTML berhasil dirender, tetapi gagal disimpan sebagai artifact."
+
+        url_dashboard = await unggah_dashboard_ke_cloud_storage(nama, isi_html)
+        logger.info("%s %s tersimpan -> %s", jenis.label, nama, url_dashboard)
+        status_eskalasi = "⚠️ Perlu Eskalasi" if finding.perlu_eskalasi else "✅ Terverifikasi"
+
+        pesan = (
+            f"🖥️ **Executive Dashboard `{finding.equipment_tag}`** ({finding.pabrik} · {status_eskalasi})\n"
+            f"🌐 [Buka Dashboard Interaktif di Peramban]({url_dashboard})"
+        )
+        return pesan
+
+
     dasar = f"{jenis.id}-{finding.finding_id}"
     try:
         isi = await render_dokumen_pdf(finding, jenis, urutan_blok, narasi, konteks)
+
     except Exception as exc:  # noqa: BLE001 — dilaporkan ke model, bukan dilempar
         logger.error("Render PDF gagal: %s", exc)
         return (
@@ -196,17 +241,34 @@ async def terbitkan_dokumen(
         return "Dokumen berhasil dirender, tetapi gagal disimpan sebagai artifact."
 
     nama = f"{dasar}.pdf"
+
     logger.info("%s %s tersimpan (%d bita)", jenis.label, nama, len(isi))
-    pesan = f"{jenis.label} tersimpan sebagai {nama} ({len(isi):,} bita)."
+    kandidat_teratas = (
+        finding.kandidat[0].nama if finding.kandidat else "Tidak teridentifikasi"
+    )
+    status_eskalasi = (
+        "⚠️ MEMERLUKAN ESKALASI MANAJEMEN"
+        if finding.perlu_eskalasi
+        else "✅ TERVERIFIKASI OTOMATIS"
+    )
+    summary_md = (
+        f"\n\n### 📄 Ringkasan Dokumen ({jenis.label})\n"
+        f"- **Aset / Tag**: {finding.pabrik} · `{finding.equipment_tag}`\n"
+        f"- **Penyebab Utama**: {kandidat_teratas} (Keyakinan: {finding.keyakinan.upper()})\n"
+        f"- **Status Eskalasi**: {status_eskalasi}\n"
+        f"- **Sitasi Terlampir**: {len(finding.semua_sitasi())} dokumen terverifikasi\n"
+    )
+    pesan = f"{jenis.label} tersimpan sebagai {nama} ({len(isi):,} bita).{summary_md}"
     if narasi_ditolak:
         # Model diberi tahu agar tidak mengulanginya, bukan agar mencoba lagi.
         pesan += (
-            " Catatan: kalimat bermuatan angka pada narasi blok "
-            f"{', '.join(narasi_ditolak)} dibuang otomatis — angka hanya boleh "
-            "berasal dari tabel. Jangan menerbitkan ulang; cukup hindari pada "
-            "dokumen berikutnya."
+            "\n*Catatan: kalimat bermuatan angka pada narasi blok "
+            f"{', '.join(narasi_ditolak)} dibuang otomatis — angka hanya berasal "
+            "dari tabel. Jangan menerbitkan ulang; cukup hindari pada dokumen berikutnya.*"
         )
+
     return pesan
+
 
 
 reporter_agent = LlmAgent(
@@ -224,10 +286,9 @@ Kamu adalah Reporter pada ARKA, agent keandalan aset untuk manufaktur FMCG multi
 Satu keputusan menjadi milikmu sepenuhnya: **blok mana yang masuk memo dan dalam urutan apa**.
 
 # BATAS YANG TIDAK BOLEH DILANGGAR
-Kamu tidak pernah menyebutkan angka. Bukan skor, bukan tanggal, bukan jam downtime,
-bukan jumlah pabrik. Semua nilai itu dirender langsung dari knowledge graph ke dalam
-tabel memo. Menuliskannya ulang di narasi berisiko salah ketik, dan satu angka salah
-menghancurkan kredibilitas seluruh laporan.
+1. **Dilarang menggunakan karakter em-dash ("—") atau double dash ("--")** dalam seluruh narasi, perihal, atau judul laporan. Gunakan koma, titik dua (:), atau tanda hubung biasa (-) jika diperlukan.
+2. Kamu tidak pernah menyebutkan angka. Bukan skor, bukan tanggal, bukan jam downtime, bukan jumlah pabrik. Semua nilai itu dirender langsung dari knowledge graph ke dalam tabel memo. Menuliskannya ulang di narasi berisiko salah ketik, dan satu angka salah menghancurkan kredibilitas seluruh laporan.
+
 
 Larangan ini mencakup angka yang ditulis sebagai kata. "dua kandidat" sama
 terlarangnya dengan "2 kandidat".
@@ -278,6 +339,10 @@ Isi ketiganya sama — yang berbeda hanya bentuk dan derajat formalitas.
   **tanyakan lebih dulu** — jangan mengarang nama, jabatan, atau nomor surat.
 - `{JENIS["laporan"].id}` — rekap lengkap termasuk jejak penalaran, untuk
   pembaca yang ingin mengaudit cara ARKA sampai pada kesimpulan.
+- `{JENIS["dashboard"].id}` — dashboard eksekutif interaktif web (Dark Glassmorphism).
+  Pilih ini bila pengguna meminta dashboard, monitor eksekutif, atau tampilan web interaktif.
+
+
 
 # PERTIMBANGAN URUTAN
 - `ringkasan` selalu membuka, `sitasi` selalu menutup. Keduanya wajib dan otomatis.

@@ -1,19 +1,38 @@
 {% import "_blok.html.j2" as blok_makro %}
-{# Memo internal — bentuk paling ringkas. Tanpa penomoran surat, tanpa tanda tangan. #}
+{# Memo internal — Executive Enterprise Kop #}
 <article class="memo dok-memo">
+  {% if konteks.logo %}
+  <div class="watermark-bg" style="background-image: url('{{ konteks.logo }}');"></div>
+  {% endif %}
+
+
   <header class="kop">
-    {% if konteks.unit_penerbit or konteks.logo %}
-    <div class="penerbit">
-      {% if konteks.logo %}<img class="lencana" src="{{ konteks.logo }}" alt="">{% endif %}
-      {% if konteks.unit_penerbit %}<span class="unit">{{ konteks.unit_penerbit }}</span>{% endif %}
+    <div class="kop-header-row">
+      <div class="penerbit-container">
+        {% if konteks.logo %}
+        <img class="lencana" src="{{ konteks.logo }}" alt="">
+        {% endif %}
+        <div class="penerbit-info">
+          <span class="unit-nama">{{ konteks.unit_penerbit or "INGOUDE COMPANY" }}</span>
+
+          <span class="dok-sub">MEMO INVESTIGASI KEANDALAN ASET</span>
+        </div>
+      </div>
+
+      <div class="doc-control-card">
+        <span class="badge-status">CONFIDENTIAL · INTERNAL</span>
+        <div class="doc-meta-item"><span class="lbl">No:</span> <span class="val">{{ konteks.nomor or finding.finding_id }}</span></div>
+        <div class="doc-meta-item"><span class="lbl">Tgl:</span> <span class="val">{{ finding.dibuat_pada | tanggal }}</span></div>
+      </div>
     </div>
-    {% endif %}
-    <h1>Memo Investigasi Keandalan Aset</h1>
-    <dl class="meta">
-      <div><dt>Nomor</dt><dd>{{ finding.finding_id }}</dd></div>
-      <div><dt>Tanggal</dt><dd>{{ finding.dibuat_pada | tanggal }}</dd></div>
-      <div><dt>Aset</dt><dd>{{ finding.equipment_tag }}</dd></div>
-      <div><dt>Pabrik</dt><dd>{{ finding.pabrik }}</dd></div>
+
+    <div class="divider-double"></div>
+
+    <dl class="identitas-memo">
+      <div class="row"><dt>Kepada</dt><span class="colon">:</span><dd>{{ konteks.kepada or "Tim Keandalan Aset / Reliability Team" }}</dd></div>
+      <div class="row"><dt>Dari</dt><span class="colon">:</span><dd>{{ konteks.dari or "Reliability Lead / Asset Investigator" }}</dd></div>
+      <div class="row"><dt>Aset / Pabrik</dt><span class="colon">:</span><dd>{{ finding.equipment_tag }} · {{ finding.pabrik }}</dd></div>
+      <div class="row"><dt>Perihal</dt><span class="colon">:</span><dd>{{ konteks.perihal or ("Hasil Investigasi Keandalan Aset " ~ finding.equipment_tag) }}</dd></div>
     </dl>
   </header>
 
@@ -26,5 +45,20 @@
 
   {% for blok in blok_terpilih %}{{ blok_makro.render_blok(blok) }}{% endfor %}
 
+  {% if konteks.penanda_tangan %}
+  <div class="ttd-container">
+    <div class="ttd-box">
+      <div class="regards">Hormat kami,</div>
+      <div class="ruang-ttd"></div>
+      <div class="nama">{{ konteks.penanda_tangan }}</div>
+      {% if konteks.jabatan_penanda_tangan %}
+      <div class="jabatan">{{ konteks.jabatan_penanda_tangan }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   {{ blok_makro.jejak_asal(finding) }}
 </article>
+
+

@@ -1,7 +1,7 @@
 """Agent `penilai` — pemeriksa mutu dokumen sebelum diserahkan ke manusia.
 
 Dipasang sebagai `LoopAgent`: reporter menerbitkan, penilai memeriksa, dan bila
-ada defects, reporter menerbitkan ulang dengan masukan itu. **Maksimum tiga
+ada cacat, reporter menerbitkan ulang dengan masukan itu. **Maksimum tiga
 putaran** — batas keras, bukan saran. Dokumen yang belum sempurna tetap lebih
 berguna daripada agent yang berputar tanpa henti menjelang demo.
 
@@ -15,7 +15,7 @@ Pembagian tugas mengikuti prinsip yang sama seperti di tempat lain:
   mengulang tabel, apakah dokumen ini layak dikirim.
 
 Penilai tidak pernah menyunting dokumen. Ia menuliskan masukan ke state, dan
-reporter yang memperbaiki — supaya keputusan blok tetap milik one agent.
+reporter yang memperbaiki — supaya keputusan blok tetap milik satu agent.
 
 Catatan: `LoopAgent` sudah ditandai usang di ADK 2.x demi `google.adk.workflow`.
 Ia tetap dipakai di sini karena API penggantinya jauh lebih berat untuk kebutuhan
@@ -55,17 +55,10 @@ logger = logging.getLogger(__name__)
 # Masukan penilai untuk putaran berikutnya. Reporter membacanya lewat prompt.
 KUNCI_MASUKAN = "masukan_qa"
 
-# Batas putaran. Tiga sudah cukup: one untuk terbit, one untuk perbaikan,
-# one cadangan. Lebih dari itu biasanya pertanda cacatnya bukan di dokumen.
+# Batas putaran. Tiga sudah cukup: satu untuk terbit, satu untuk perbaikan,
+# satu cadangan. Lebih dari itu biasanya pertanda cacatnya bukan di dokumen.
 MAKS_PUTARAN = 3
 
-
-# Teks yang selalu boleh tampil meski bukan isi temuan: penanda baku halaman.
-TEKS_BAKU_HALAMAN = (
-    "Keyakinan", "Eskalasi", "Gejala", "Penyebab teratas",
-    "Perlu putusan manusia", "Langkah", "indikasi awal", "sudah cukup kuat",
-    "masih perlu dipastikan", "Pabrik", "Model", "jam", "HIGH", "TINGGI",
-)
 
 
 def _temuan(tool_context: ToolContext) -> Finding | None:
@@ -90,7 +83,7 @@ async def periksa_dokumen(tool_context: ToolContext) -> str:
         tool_context: Disuntikkan ADK.
 
     Returns:
-        Daftar defects yang ditemukan, atau pernyataan bahwa semuanya lulus.
+        Daftar cacat yang ditemukan, atau pernyataan bahwa semuanya lulus.
     """
     finding = _temuan(tool_context)
     if finding is None:
@@ -114,7 +107,7 @@ async def periksa_dokumen(tool_context: ToolContext) -> str:
     # 3. Blok yang diminta padahal kosong, atau id yang tidak dikenal.
     # `BLOK_WAJIB` tidak diperiksa di sini: `pilih_blok` menyisipkannya paksa,
     # jadi reporter yang tidak menyebutnya bukan sedang berbuat salah. Memeriksanya
-    # justru memicu putaran perbaikan untuk defects yang tidak pernah ada.
+    # justru memicu putaran perbaikan untuk cacat yang tidak pernah ada.
     blok = susun_blok(finding)
     urutan = tool_context.state.get("urutan_terakhir") or []
     if urutan:
@@ -144,7 +137,7 @@ async def periksa_dokumen(tool_context: ToolContext) -> str:
     if not defects:
         return "LULUS — tidak ada cacat objektif pada dokumen terakhir."
 
-    logger.info("Pemeriksaan menemukan %d defects", len(defects))
+    logger.info("Pemeriksaan menemukan %d cacat", len(defects))
     return "Cacat yang ditemukan:\n" + "\n".join(f"- {c}" for c in defects)
 
 
@@ -152,7 +145,7 @@ async def periksa_infografis(tool_context: ToolContext) -> str:
     """Memeriksa infografis terakhir terhadap syarat mutu yang objektif.
 
     Panggil ini ketika yang sedang dinilai adalah infografis, bukan dokumen.
-    Pemeriksaan terberatnya adalah kesetiaan text: setiap string yang dikirim ke
+    Pemeriksaan terberatnya adalah kesetiaan teks: setiap string yang dikirim ke
     penggambar harus dapat ditemukan pada temuan. Ini imbangan kedua dari
     pengecualian Prinsip I (Constitution 1.2.0) — tanpa pemeriksaan ini,
     pengecualian itu tidak punya penjaga.
@@ -161,7 +154,7 @@ async def periksa_infografis(tool_context: ToolContext) -> str:
         tool_context: Disuntikkan ADK.
 
     Returns:
-        Daftar defects yang ditemukan, atau pernyataan bahwa semuanya lulus.
+        Daftar cacat yang ditemukan, atau pernyataan bahwa semuanya lulus.
     """
     finding = _temuan(tool_context)
     if finding is None:
@@ -173,7 +166,7 @@ async def periksa_infografis(tool_context: ToolContext) -> str:
 
     defects: list[str] = []
 
-    # 1. Kesetiaan text. Yang dibandingkan adalah isi kanvas outcome penyusunan
+    # 1. Kesetiaan teks. Yang dibandingkan adalah isi kanvas hasil penyusunan
     #    deterministik terhadap temuan — bukan gambar terhadap kanvas. Kalau ada
     #    string yang tidak berasal dari temuan, ia lahir di lapisan penyusun, dan
     #    di situlah cacatnya harus diperbaiki.
@@ -290,7 +283,13 @@ async def periksa_teks_tergambar(tool_context: ToolContext) -> str:
 
     nama = tool_context.state.get(KUNCI_BERKAS_INFOGRAFIS)
     if not nama:
-        return "Belum ada infografis yang tergambar pada sesi ini."
+        # Bukan "tidak ada cacat": tidak adanya sesuatu untuk diperiksa adalah
+        # cacat tersendiri. Penilai yang meluluskan halaman tanpa pemeriksaan ini
+        # sedang menjamin sesuatu yang tidak pernah ia lihat.
+        return (
+            "GAGAL PERIKSA — tidak ada infografis tergambar yang dapat dibaca pada "
+            "sesi ini. Jangan menyatakan halaman layak kirim."
+        )
 
     try:
         parts = await tool_context.load_artifact(filename=nama)
@@ -307,7 +306,10 @@ async def periksa_teks_tergambar(tool_context: ToolContext) -> str:
     spec_style = (tool_context.state.get(KUNCI_SPESIFIKASI) or {}).get("style")
     if spec_style:
         try:
-            subtitle = knowledge_base().get_style(spec_style)["presentation"]["reference"]
+            presentation = knowledge_base().get_style(spec_style)["presentation"]
+            # `reference` mengarahkan gaya penggambaran dan tidak pernah dicetak;
+            # yang tampil di bawah judul adalah `subtitle`.
+            subtitle = (presentation.get("subtitle") or {}).get("id", "")
         except Exception:  # noqa: BLE001 — subtitle opsional, bukan syarat periksa
             subtitle = ""
     allowed = authorised_strings(isi, [b.judul for b in blok], subtitle)
@@ -433,8 +435,12 @@ dikirim ke manusia, atau harus disusun ulang dulu.
      daripada temuannya? Itu defects, bukan gaya.
    - Apakah bentuk visual yang dipilih menolong, atau justru menambah beban baca?
 4. Putuskan:
-   - Kedua pemeriksaan lulus dan pertimbanganmu tidak menemukan masalah berarti
-     → panggil `selesai`.
+   - Kedua pemeriksaan **benar-benar berjalan** dan keduanya lulus, dan
+     pertimbanganmu tidak menemukan masalah berarti → panggil `selesai`.
+   - Salah satu pemeriksaan menjawab bahwa ia tidak punya apa pun untuk diperiksa
+     → **jangan panggil `selesai`**. Panggil `minta_perbaikan` dan sebutkan bahwa
+     halaman belum dapat diverifikasi. Pemeriksaan yang tidak berjalan bukan
+     pemeriksaan yang lulus.
    - Ada yang perlu diperbaiki → panggil `minta_perbaikan` dengan perbaikan yang
      konkret: sebut blok dan penekanan atau bentuk yang seharusnya. Untuk text
      karangan, minta batasan eksplisit yang melarang elemen itu.

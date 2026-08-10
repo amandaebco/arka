@@ -50,6 +50,11 @@ class KonteksDokumen(BaseModel):
             "dirender Chromium di konteks terpisah yang tidak memuat sumber luar."
         ),
     )
+    url_dashboard: str | None = Field(
+        default=None,
+        description="URL publik GCS tempat dashboard disimpan untuk QR code",
+    )
+
 
     @field_validator("logo")
     @classmethod
@@ -115,7 +120,27 @@ _LAPORAN = JenisDokumen(
     urutan_bawaan=URUTAN_BAKU,
 )
 
-JENIS: dict[str, JenisDokumen] = {j.id: j for j in (_MEMO, _NOTA_DINAS, _LAPORAN)}
+# Infografis — Ringkasan visual 1 halaman dari Designer Agent.
+_INFOGRAFIS = JenisDokumen(
+    id="infografis",
+    label="Infografis Ringkas",
+    berkas_template="infografis.html.j2",
+    urutan_bawaan=URUTAN_BAKU,
+)
+
+# Dashboard Executive — Dark Glassmorphism Interactive Web Dashboard.
+_DASHBOARD = JenisDokumen(
+    id="dashboard",
+    label="Dashboard Executive",
+    berkas_template="dashboard.html.j2",
+    urutan_bawaan=URUTAN_BAKU,
+)
+
+JENIS: dict[str, JenisDokumen] = {
+    j.id: j for j in (_MEMO, _NOTA_DINAS, _LAPORAN, _INFOGRAFIS, _DASHBOARD)
+}
+
+
 
 JENIS_BAWAAN = "memo"
 

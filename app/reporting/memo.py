@@ -117,9 +117,13 @@ def render_dokumen_html(
         blok_terpilih=terpilih,
         konteks=konteks or KonteksDokumen(),
         jenis=jenis_dok,
+        urutan_blok=urutan,
+        narasi=narasi or {},
     )
-    if not sematkan_gaya:
+
+    if jenis_dok.id == "dashboard" or not sematkan_gaya:
         return isi
+
 
     gaya = (_DIR_TEMPLATE / "memo.css").read_text(encoding="utf-8")
     return (
@@ -146,36 +150,35 @@ def render_memo_html(
 
 
 _GAYA_TEPI = (
-    "font-size:7.5px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;"
-    "color:#8e95a0;width:100%;padding:0 14mm;display:flex;"
-    "justify-content:space-between;"
+    "font-size:7.5pt;font-family:Inter,-apple-system,BlinkMacSystemFont,"
+    "'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#475569;width:100%;"
+    "padding:0 14mm;display:flex;justify-content:space-between;align-items:center;"
+    "font-weight:600;"
 )
 
 
 def _kepala_halaman(jenis: JenisDokumen, finding: Finding) -> str:
-    """Kepala halaman berulang: identitas dokumen, bukan merek.
-
-    Sengaja tanpa `<span class="date">` bawaan Chromium — itu jam pencetakan,
-    yang membuat dokumen sama menghasilkan berkas berbeda tiap render dan
-    bertabrakan dengan tanggal resmi dokumen.
-    """
-    return (
-        f'<div style="{_GAYA_TEPI}align-items:flex-end;'
-        'border-bottom:1px solid #eef1f5;padding-bottom:4px;">'
-        f"<span>{jenis.label}</span>"
-        f"<span>{finding.equipment_tag} · {finding.pabrik}</span></div>"
-    )
+    """Kepala halaman kosong — header utama ada di HTML Kop."""
+    return '<div style="font-size:0px;"></div>'
 
 
 def _kaki_halaman(finding: Finding) -> str:
-    """Kaki halaman berulang: acuan temuan dan penomoran halaman."""
+    """Kaki halaman berulang di margin bawah PDF: nomor halaman resmi."""
+    fid = finding.finding_id
     return (
-        f'<div style="{_GAYA_TEPI}align-items:flex-start;'
-        'border-top:1px solid #eef1f5;padding-top:4px;">'
-        f"<span>Acuan temuan: {finding.finding_id}</span>"
-        '<span>Halaman <span class="pageNumber"></span> '
+        f'<div style="{_GAYA_TEPI}border-top:1px solid #cbd5e1;'
+        'padding-top:4px;width:100%;">'
+        '<span style="font-size:7pt;color:#64748b;letter-spacing:0.04em;">'
+        'CONFIDENTIAL · INTERNAL USE ONLY</span>'
+        '<span style="font-size:7.5pt;color:#028090;font-weight:700;">'
+        f'INGOUDE COMPANY · {fid}</span>'
+        '<span style="font-size:7.5pt;color:#003554;font-weight:700;">'
+        'Halaman <span class="pageNumber"></span> '
         'dari <span class="totalPages"></span></span></div>'
     )
+
+
+
 
 
 async def render_dokumen_pdf(
@@ -202,13 +205,14 @@ async def render_dokumen_pdf(
             return await halaman.pdf(
                 format="A4",
                 print_background=True,
-                margin={"top": "25mm", "bottom": "25mm", "left": "14mm", "right": "14mm"},
+                margin={"top": "12mm", "bottom": "18mm", "left": "12mm", "right": "12mm"},
                 display_header_footer=True,
                 header_template=_kepala_halaman(jenis_dok, finding),
                 footer_template=_kaki_halaman(finding),
             )
         finally:
             await peramban.close()
+
 
 
 async def render_memo_pdf(

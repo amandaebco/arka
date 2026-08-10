@@ -1,22 +1,37 @@
 {% import "_blok.html.j2" as blok_makro %}
-{# Laporan investigasi — bentuk terlengkap, termasuk jejak penalaran agar
-   pembaca yang skeptis dapat mengaudit cara ARKA sampai pada kesimpulan. #}
+{# Laporan investigasi — Executive Report Style #}
 <article class="memo dok-laporan">
-  <header class="kop">
-    {% if konteks.unit_penerbit or konteks.logo %}
-    <div class="penerbit">
-      {% if konteks.logo %}<img class="lencana" src="{{ konteks.logo }}" alt="">{% endif %}
-      {% if konteks.unit_penerbit %}<span class="unit">{{ konteks.unit_penerbit }}</span>{% endif %}
+  {% if konteks.logo %}
+  <div class="watermark-bg" style="background-image: url('{{ konteks.logo }}');"></div>
+  {% endif %}
+
+  <header class="laporan-hero-header">
+    <div class="laporan-hero-top">
+      <div class="penerbit-container">
+        {% if konteks.logo %}
+        <img class="lencana" src="{{ konteks.logo }}" alt="">
+        {% endif %}
+        <div class="penerbit-info">
+          <span class="unit-nama">{{ konteks.unit_penerbit or "INGOUDE COMPANY" }}</span>
+          <span class="dok-sub">EXECUTIVE ASSET RELIABILITY REPORT</span>
+        </div>
+      </div>
+      <div class="laporan-badge-tag">OFFICIAL AUDIT REPORT</div>
     </div>
-    {% endif %}
-    <h1>Laporan Investigasi Keandalan Aset</h1>
-    <dl class="meta">
-      <div><dt>Nomor</dt><dd>{{ konteks.nomor or finding.finding_id }}</dd></div>
-      <div><dt>Tanggal</dt><dd>{{ finding.dibuat_pada | tanggal }}</dd></div>
-      <div><dt>Aset</dt><dd>{{ finding.equipment_tag }}</dd></div>
-      <div><dt>Pabrik</dt><dd>{{ finding.pabrik }}</dd></div>
-    </dl>
-    {% if konteks.periode %}<div class="periode">Periode: {{ konteks.periode }}</div>{% endif %}
+
+    <div class="laporan-title-block">
+      <h1>Laporan Investigasi Keandalan Aset</h1>
+      <p class="laporan-subtitle">Analisis Akar Penyebab, Preseden Kejadian, dan Mitigasi Keandalan Aset</p>
+    </div>
+
+    <div class="laporan-meta-pills">
+      <div class="pill-item"><span class="lbl">ASET / TAG</span> <span class="val">{{ finding.equipment_tag }}</span></div>
+      <div class="pill-item"><span class="lbl">LOKASI PABRIK</span> <span class="val">{{ finding.pabrik }}</span></div>
+      <div class="pill-item"><span class="lbl">NO. DOKUMEN</span> <span class="val">{{ konteks.nomor or finding.finding_id }}</span></div>
+      <div class="pill-item"><span class="lbl">TANGGAL</span> <span class="val">{{ finding.dibuat_pada | tanggal }}</span></div>
+      {% if konteks.periode %}<div class="pill-item"><span class="lbl">PERIODE</span> <span class="val">{{ konteks.periode }}</span></div>{% endif %}
+      <div class="pill-item"><span class="lbl">KEYAKINAN</span> <span class="val keyakinan-badge">{{ finding.keyakinan | upper }}</span></div>
+    </div>
   </header>
 
   {% if finding.perlu_eskalasi %}
@@ -29,14 +44,20 @@
   {% for blok in blok_terpilih %}{{ blok_makro.render_blok(blok) }}{% endfor %}
 
   {% if konteks.penanda_tangan %}
-  <div class="ttd">
-    {% if konteks.jabatan_penanda_tangan %}
-    <div class="jabatan">{{ konteks.jabatan_penanda_tangan }}</div>
-    {% endif %}
-    <div class="ruang-ttd"></div>
-    <div class="nama">{{ konteks.penanda_tangan }}</div>
+  <div class="ttd-container">
+    <div class="ttd-box">
+      <div class="regards">Hormat kami,</div>
+      <div class="ruang-ttd"></div>
+      <div class="nama">{{ konteks.penanda_tangan }}</div>
+      {% if konteks.jabatan_penanda_tangan %}
+      <div class="jabatan">{{ konteks.jabatan_penanda_tangan }}</div>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 
   {{ blok_makro.jejak_asal(finding) }}
 </article>
+
+
+

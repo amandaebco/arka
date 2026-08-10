@@ -1,27 +1,40 @@
 {% import "_blok.html.j2" as blok_makro %}
-{# Nota dinas — korespondensi resmi antar unit. Struktur mengikuti tata
-   persuratan Indonesia pada umumnya: kop, identitas surat, pembuka, isi,
-   penutup, tanda tangan, tembusan. Tidak terikat organisasi mana pun. #}
+{# Nota dinas — Executive Enterprise Kop #}
 <article class="memo dok-nota-dinas">
-  <header class="kop kop-surat">
-    {% if konteks.unit_penerbit or konteks.logo %}
-    <div class="penerbit">
-      {% if konteks.logo %}<img class="lencana" src="{{ konteks.logo }}" alt="">{% endif %}
-      {% if konteks.unit_penerbit %}<span class="unit">{{ konteks.unit_penerbit }}</span>{% endif %}
-    </div>
-    {% endif %}
-    <h1>Nota Dinas</h1>
-    {% if konteks.nomor %}<div class="nomor">Nomor: {{ konteks.nomor }}</div>{% endif %}
-  </header>
+  {% if konteks.logo %}
+  <div class="watermark-bg" style="background-image: url('{{ konteks.logo }}');"></div>
+  {% endif %}
 
-  <dl class="identitas">
-    {% if konteks.kepada %}<div><dt>Kepada</dt><dd>{{ konteks.kepada }}</dd></div>{% endif %}
-    {% if konteks.dari %}<div><dt>Dari</dt><dd>{{ konteks.dari }}</dd></div>{% endif %}
-    <div><dt>Tanggal</dt><dd>{{ finding.dibuat_pada | tanggal }}</dd></div>
-    <div><dt>Perihal</dt>
-      <dd>{{ konteks.perihal or "Hasil Investigasi Keandalan Aset " ~ finding.equipment_tag }}</dd>
+
+  <header class="kop kop-surat">
+    <div class="kop-header-row">
+      <div class="penerbit-container">
+        {% if konteks.logo %}
+        <img class="lencana" src="{{ konteks.logo }}" alt="">
+        {% endif %}
+        <div class="penerbit-info">
+          <span class="unit-nama">{{ konteks.unit_penerbit or "INGOUDE COMPANY" }}</span>
+
+          <span class="dok-sub">NOTA DINAS RESMI</span>
+        </div>
+      </div>
+
+      <div class="doc-control-card">
+        <span class="badge-status">RESTRICTED · OFFICIAL</span>
+        <div class="doc-meta-item"><span class="lbl">No:</span> <span class="val">{{ konteks.nomor or "001/ARKA/VIII/2026" }}</span></div>
+        <div class="doc-meta-item"><span class="lbl">Tgl:</span> <span class="val">{{ finding.dibuat_pada | tanggal }}</span></div>
+      </div>
     </div>
-  </dl>
+
+    <div class="divider-double"></div>
+
+    <dl class="identitas-memo">
+      {% if konteks.kepada %}<div class="row"><dt>Kepada</dt><span class="colon">:</span><dd>{{ konteks.kepada }}</dd></div>{% endif %}
+      {% if konteks.dari %}<div class="row"><dt>Dari</dt><span class="colon">:</span><dd>{{ konteks.dari }}</dd></div>{% endif %}
+      <div class="row"><dt>Aset / Pabrik</dt><span class="colon">:</span><dd>{{ finding.equipment_tag }} · {{ finding.pabrik }}</dd></div>
+      <div class="row"><dt>Perihal</dt><span class="colon">:</span><dd>{{ konteks.perihal or "Hasil Investigasi Keandalan Aset " ~ finding.equipment_tag }}</dd></div>
+    </dl>
+  </header>
 
   <p class="pembuka">
     Bersama ini kami sampaikan hasil investigasi keandalan aset
@@ -44,12 +57,15 @@
     kami ucapkan terima kasih.
   </p>
 
-  <div class="ttd">
-    {% if konteks.jabatan_penanda_tangan %}
-    <div class="jabatan">{{ konteks.jabatan_penanda_tangan }}</div>
-    {% endif %}
-    <div class="ruang-ttd"></div>
-    <div class="nama">{{ konteks.penanda_tangan or "( .......................... )" }}</div>
+  <div class="ttd-container">
+    <div class="ttd-box">
+      <div class="regards">Hormat kami,</div>
+      <div class="ruang-ttd"></div>
+      <div class="nama">{{ konteks.penanda_tangan or "( .......................... )" }}</div>
+      {% if konteks.jabatan_penanda_tangan %}
+      <div class="jabatan">{{ konteks.jabatan_penanda_tangan }}</div>
+      {% endif %}
+    </div>
   </div>
 
   {% if konteks.tembusan %}
@@ -61,3 +77,5 @@
 
   {{ blok_makro.jejak_asal(finding) }}
 </article>
+
+

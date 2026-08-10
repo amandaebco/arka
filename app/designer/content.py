@@ -70,11 +70,11 @@ class CanvasContent:
     perlu_eskalasi: bool = False
     sections: dict[str, list[CanvasItem]] = field(default_factory=dict)
 
-    def items(self, blok: str) -> list[CanvasItem]:
-        return self.sections.get(blok, [])
+    def items(self, block: str) -> list[CanvasItem]:
+        return self.sections.get(block, [])
 
-    def has(self, blok: str) -> bool:
-        return bool(self.sections.get(blok))
+    def has(self, block: str) -> bool:
+        return bool(self.sections.get(block))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -87,20 +87,20 @@ class CanvasContent:
         }
 
 
-def as_number(nilai: Decimal | float | int | None, decimals: int = 2) -> str:
+def as_number(value: Decimal | float | int | None, decimals: int = 2) -> str:
     """Format a number once, here, so every surface shows it identically.
 
     Indonesian convention: dot for thousands, comma for the decimal mark.
     """
-    if nilai is None:
+    if value is None:
         return ""
-    teks = f"{Decimal(str(nilai)):,.{decimals}f}"
-    return teks.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+    text = f"{Decimal(str(value)):,.{decimals}f}"
+    return text.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
 
 
-def as_percent(nilai: Decimal | float | None) -> str:
+def as_percent(value: Decimal | float | None) -> str:
     """A score in 0–1 shown as a percentage. Never used for confidence."""
-    return "" if nilai is None else f"{as_number(Decimal(str(nilai)) * 100, 1)}%"
+    return "" if value is None else f"{as_number(Decimal(str(value)) * 100, 1)}%"
 
 
 def build_content(selected_blocks: list[Blok]) -> CanvasContent:
@@ -109,11 +109,11 @@ def build_content(selected_blocks: list[Blok]) -> CanvasContent:
     Blocks marked unavailable are skipped here rather than rendered empty — the
     single place where that filtering happens for the visual surface.
     """
-    peta = {b.id: b for b in selected_blocks}
-    ringkasan = peta.get("ringkasan")
-    summary_data = ringkasan.data if ringkasan else {}
+    by_id = {b.id: b for b in selected_blocks}
+    summary_block = by_id.get("ringkasan")
+    summary_data = summary_block.data if summary_block else {}
 
-    isi = CanvasContent(
+    content = CanvasContent(
         equipment_tag=str(summary_data.get("equipment_tag", "")),
         pabrik=str(summary_data.get("pabrik", "")),
         model_equipment=str(summary_data.get("model_equipment") or ""),
@@ -121,24 +121,24 @@ def build_content(selected_blocks: list[Blok]) -> CanvasContent:
         perlu_eskalasi=bool(summary_data.get("perlu_eskalasi")),
     )
 
-    for blok in selected_blocks:
-        if not blok.tersedia:
+    for block in selected_blocks:
+        if not block.tersedia:
             continue
-        bangun = BUILDERS.get(blok.id)
-        if not bangun:
+        builder = BUILDERS.get(block.id)
+        if not builder:
             continue
-        item = [i for i in bangun(blok.data) if i.text or i.value or i.label]
-        if item:
-            isi.sections[blok.id] = item
+        items = [i for i in builder(block.data) if i.text or i.value or i.label]
+        if items:
+            content.sections[block.id] = items
 
-    return isi
+    return content
 
 
 def _summary(data: dict) -> list[CanvasItem]:
-    item = [CanvasItem(label="Gejala", text=g) for g in data.get("gejala") or []]
+    items = [CanvasItem(label="Gejala", text=g) for g in data.get("gejala") or []]
     top = data.get("penyebab_teratas")
     if top is not None:
-        item.append(
+        items.append(
             CanvasItem(
                 label="Penyebab teratas",
                 text=top.nama,
@@ -147,14 +147,14 @@ def _summary(data: dict) -> list[CanvasItem]:
             )
         )
     if data.get("perlu_eskalasi"):
-        item.append(
+        items.append(
             CanvasItem(
                 label="Perlu putusan manusia",
-                text=str(data.get("alasan_eskalasi") or "Dua kandidat top berdekatan"),
+                text=str(data.get("alasan_eskalasi") or "Dua kandidat teratas berdekatan"),
                 level="high",
             )
         )
-    return item
+    return items
 
 
 def _candidates(data: dict) -> list[CanvasItem]:
@@ -190,14 +190,14 @@ def _causal_chain(data: dict) -> list[CanvasItem]:
 
 
 def _spare_parts(data: dict) -> list[CanvasItem]:
-    item = []
+    items = []
     for s in data.get("sparepart") or []:
         details = [f"{s.part_number}"]
         if s.lead_time_minggu is not None:
             details.append(f"lead time {s.lead_time_minggu} minggu")
         if s.jumlah_vendor is not None:
             details.append(f"{s.jumlah_vendor} vendor")
-        item.append(
+        items.append(
             CanvasItem(
                 label=s.nama,
                 text=" · ".join(details),
@@ -206,7 +206,7 @@ def _spare_parts(data: dict) -> list[CanvasItem]:
                 level="high" if s.selisih > 0 else "",
             )
         )
-    return item
+    return items
 
 
 def _reasoning_trail(data: dict) -> list[CanvasItem]:

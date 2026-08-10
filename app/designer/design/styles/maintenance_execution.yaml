@@ -51,6 +51,9 @@ candidate_sections:
 presentation:
   reference: "industrial execution plan one-pager"
   mood: "practical, orderly, workmanlike"
+  subtitle:
+    id: "Rencana Eksekusi Pemeliharaan"
+    en: "Maintenance Execution Plan"
   finish: "ultra HD, print quality, crisp flat shapes"
 
 visual:

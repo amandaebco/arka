@@ -144,12 +144,23 @@
    asal-usul — bagian dari keterlacakan, bukan identitas dokumen. #}
 {% macro jejak_asal(finding) %}
 <footer class="jejak-asal">
-  <span class="alat">ARKA · Asset Reliability Knowledge Agent</span>
-  <span class="keterangan">
-    Disusun otomatis dari basis pengetahuan keandalan. Seluruh angka, skor, dan
-    rujukan dirender langsung dari data; narasi disusun agent dan wajib ditinjau
-    manusia sebelum ditindaklanjuti.
-  </span>
-  <span class="acuan">Acuan temuan: {{ finding.finding_id }}</span>
+  <div class="jejak-col jejak-kiri">
+    <span class="badge-klasifikasi">CONFIDENTIAL · INTERNAL USE ONLY</span>
+    <span class="keterangan">
+      Disusun otomatis dari basis pengetahuan keandalan ARKA. Seluruh data, angka, dan
+      sitasi dirender deterministik dari data terverifikasi.
+    </span>
+  </div>
+  <div class="jejak-col jejak-tengah">
+    <span class="brand-system">ARKA</span>
+    <span class="sub-system">Asset Reliability Knowledge Agent</span>
+  </div>
+
+  <div class="jejak-col jejak-kanan">
+    <span class="lbl-acuan">Acuan Temuan</span>
+    <span class="id-acuan">{{ finding.finding_id }}</span>
+  </div>
 </footer>
 {% endmacro %}
+
+

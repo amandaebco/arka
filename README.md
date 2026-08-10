@@ -22,7 +22,8 @@ menyusunnya menjadi dokumen yang setiap klaimnya bisa ditelusuri ke sumber aslin
 ```
         ┌──────────────────────────────────────────────┐
         │              Google ADK                      │
-        │  Scout → Investigator → Reporter             │
+        │  Scout → Investigator → Reporter → Designer  │
+        │  Penilai + Penilai Visual (gerbang mutu)     │
         │  Curator (ortogonal)                         │
         └───────────────────┬──────────────────────────┘
                             │
@@ -47,6 +48,36 @@ python -m app.synthetic.generator --scale 1x
 python -m app.graph.project   # proyeksi graph
 uvicorn app.main:app --reload
 ```
+
+## Infografis
+
+Designer menerbitkan satu halaman infografis dari temuan yang sudah diselesaikan Reporter.
+Ia tidak memilih isi: urutan blok datang dari Reporter lewat state sesi, dan seluruh teks
+kanvas disusun verbatim dari `Finding`. Yang ditentukan Designer hanya penyajiannya — gaya,
+penekanan, dan bentuk.
+
+Dua persona tersedia: `engineer` (diagnosis teknis) dan `reliability_manager` (bawaan,
+ringkas untuk keputusan).
+
+```bash
+uv run python scripts/render_infografis.py --persona engineer   # gambar satu halaman
+uv run python scripts/render_infografis.py --prompt-saja        # lihat prompt, tanpa biaya
+uv run python scripts/jalankan_penerbitan.py                    # rantai penuh, sesi ADK hidup
+uv run python scripts/jalankan_penerbitan.py --hanya-designer   # lewati Reporter
+```
+
+Menggambar butuh `IMAGE_API_KEY`; pemeriksaan halaman butuh `GOOGLE_CLOUD_PROJECT`.
+
+**Gerbang mutu.** Konstitusi mengecualikan tahap menggambar dari Prinsip I, dengan tiga
+imbangan — dan yang menegakkannya di sini adalah pemeriksaan berbasis vision: Gemini
+mentranskripsi halaman yang sudah jadi, lalu kode memutuskan teks mana yang berwenang tampil
+(`app/designer/inspection.py`). Pemeriksaan yang tidak berjalan diperlakukan sebagai gagal,
+bukan lulus.
+
+**Jejak audit.** Satu folder per penerbitan di `out/infografis/<stempel>-<temuan>/`, berisi
+temuan, isi kanvas, spesifikasi, prompt, halaman, dan hasil tiap putaran. Karena gambar tidak
+bisa direproduksi byte demi byte, jejak inilah catatannya. Bila `ARTIFACT_GCS_BUCKET` disetel,
+jejak dicerminkan ke GCS agar tidak ikut hilang bersama instance Cloud Run.
 
 ## Data
 

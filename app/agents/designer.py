@@ -28,6 +28,7 @@ from app.designer.content import build_content
 from app.designer.image import DrawingUnavailable, draw_page
 from app.designer.knowledge import DesignKnowledgeBase, DesignKnowledgeBaseError
 from app.designer.presentation import PresentationSpec, normalise, validate
+from app.designer.trail import RunTrail
 from app.reporting.blocks import URUTAN_BAKU, susun_blok
 from app.reporting.finding import Finding
 
@@ -39,6 +40,8 @@ KUNCI_SPESIFIKASI = "spesifikasi_penyajian"
 KUNCI_MASUKAN_VISUAL = "masukan_penilai_visual"
 # Nama berkas artifact terakhir, supaya penilai dapat membuka gambarnya.
 KUNCI_BERKAS_INFOGRAFIS = "berkas_infografis"
+# Folder jejak audit run terakhir, supaya hasilnya dapat ditelusuri di luar sesi.
+KUNCI_JEJAK = "jejak_infografis"
 
 # Reader profiles carried over from the design library. One is chosen per run;
 # the library holds more, but only these two have been exercised against ARKA data.
@@ -198,6 +201,11 @@ async def terbitkan_infografis(
 
     prompt = compose_prompt(spec, isi, judul, kb)
 
+    # Jejak ditulis sebelum penggambaran, bukan sesudah: run yang gagal digambar
+    # sama perlunya untuk ditelusuri dengan run yang berhasil.
+    trail = RunTrail(finding.finding_id)
+    trail.record_input(finding, isi, persona, style)
+
     # Recorded before drawing, so the reviewer inspects what was actually asked for
     # rather than inferring it from the conversation.
     tool_context.state[KUNCI_SPESIFIKASI] = spec.to_dict()
@@ -206,6 +214,8 @@ async def terbitkan_infografis(
     try:
         halaman = draw_page(prompt)
     except DrawingUnavailable as exc:
+        trail.record_round(1, spec, prompt, review={"drawing_error": str(exc)})
+        trail.finish("DRAWING_FAILED", str(exc))
         logger.error("Penggambaran gagal: %s", exc)
         return (
             "Infografis gagal diterbitkan: penggambar tidak tersedia "
@@ -224,10 +234,17 @@ async def terbitkan_infografis(
         logger.error("Penyimpanan artifact gagal: %s", exc)
         return "Infografis berhasil digambar, tetapi gagal disimpan sebagai artifact."
 
+    trail.record_round(1, spec, prompt, page=halaman)
+    jejak = trail.finish("PUBLISHED")
+    tool_context.state[KUNCI_JEJAK] = str(jejak.parent)
+    # Penilai membuka artifact lewat nama ini. Tanpa baris ini pemeriksaan teks
+    # tergambar tidak punya apa pun untuk dibaca, dan diam-diam tidak berjalan.
+    tool_context.state[KUNCI_BERKAS_INFOGRAFIS] = nama
+
     logger.info("Infografis %s tersimpan (%d bita)", nama, len(halaman))
     return (
         f"Infografis tersimpan sebagai {nama} ({len(halaman):,} bita), "
-        f"{len(terpilih)} kartu, style {style}."
+        f"{len(terpilih)} kartu, style {style}. Jejak audit: {jejak.parent}."
     )
 
 
@@ -255,27 +272,30 @@ designer_agent = LlmAgent(
 # PERAN
 Kamu penyaji visual pada ARKA. Reporter sudah memutuskan blok mana yang masuk
 dokumen dan urutannya — **itu bukan wilayahmu dan tidak boleh kamu ubah**.
-Keputusanmu satu: blok mana yang mendominasi halaman, dan form visual apa yang
+Keputusanmu satu: blok mana yang mendominasi halaman, dan bentuk visual apa yang
 dipakai masing-masing.
 
 # LANGKAH
-1. Panggil `ringkas_penyajian` lebih dulu. Jangan menebak isi atau form yang tersedia.
+1. Panggil `ringkas_penyajian` lebih dulu. Jangan menebak isi atau bentuk visual yang tersedia.
 2. Timbang penekanannya berdasarkan temuan ini, bukan kebiasaan:
-   - Temuan yang perlu eskalasi → `kandidat_penyebab` dominant, supaya pembaca
+   - Temuan yang perlu eskalasi → `kandidat_penyebab` dominan, supaya pembaca
      segera melihat dua kandidat yang bersaing.
-   - Kekuatannya pada pengulangan lintas pabrik → `preseden_lintas_pabrik` dominant.
+   - Kekuatannya pada pengulangan lintas pabrik → `preseden_lintas_pabrik` dominan.
    - Selisih kekritisan sparepart yang jadi inti → `sparepart_kritis` naik.
    - Keyakinan rendah → jangan membuat halaman seen lebih yakin daripada
      temuannya. Turunkan emphasis kesimpulan, naikkan yang menunjukkan keterbatasan.
-3. Pilih form visual hanya bila datanya memenuhi syarat form itu. Ragu →
+3. Pilih bentuk visual hanya bila datanya memenuhi syarat bentuk itu. Ragu →
    kosongkan; teks biasa selalu aman dan tidak pernah menyesatkan.
 4. Panggil `terbitkan_infografis`.
 
 # BATAS
-- Tepat satu blok boleh dominant. Kalau semua penting, tidak ada yang penting.
+- Dilarang memakai em-dash ("—") atau double dash ("--") dalam penjelasan
+  maupun argumen. Pakai titik dua, koma, atau tanda hubung biasa.
+- Tepat satu blok boleh dominan. Kalau semua penting, tidak ada yang penting.
+
 - Kamu tidak menulis satu pun teks yang tampil di halaman. Seluruhnya disusun kode
   dari temuan. Kamu hanya menyebut pengenal.
-- Kamu tidak pernah menyebut, menghitung, membulatkan, atau menerjemahkan as_number.
+- Kamu tidak pernah menyebut, menghitung, membulatkan, atau menerjemahkan angka.
 - Spesifikasi yang ditolak bukan kegagalan — baca alasannya, perbaiki, panggil ulang.
 
 # LANGUAGE_NAMES

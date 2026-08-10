@@ -12,7 +12,13 @@ import pytest
 from app.agents.designer import KUNCI_SPESIFIKASI
 from app.agents.qa import _comes_from, _finding_text, periksa_infografis
 from app.agents.reporter import KUNCI_TEMUAN
-from app.designer.content import build_content, is_composed_label
+from app.designer.content import (
+    CanvasContent,
+    CanvasItem,
+    build_content,
+    is_composed_label,
+)
+from app.designer.inspection import authorised_strings, unauthorised_text
 from app.reporting.blocks import susun_blok
 from app.synthetic.finding_contoh import finding_contoh
 
@@ -87,6 +93,30 @@ def test_label_struktural_dikenali_sebagai_susunan(finding):
     assert is_composed_label("Langkah 2")
     assert is_composed_label("Gejala")
     assert not is_composed_label("Degradasi seal kepala pengisi")
+
+
+# --- Authorised page text -------------------------------------------------
+
+def kanvas_dengan_level(level: str) -> CanvasContent:
+    return CanvasContent(
+        equipment_tag="APH-101",
+        pabrik="Pabrik A",
+        sections={"tindakan": [CanvasItem(text="Ganti seal", level=level)]},
+    )
+
+
+def test_kata_tingkat_ikut_disetujui_bersama_levelnya():
+    """A severity chip is drawn as a word while the content carries the key. The
+    word has to be authorised, or a faithful page is flagged for its own data."""
+    allowed = authorised_strings(kanvas_dengan_level("high"), ["Tindakan"])
+    assert not unauthorised_text(["TINGGI", "HIGH"], allowed)
+
+
+def test_kata_tingkat_yang_tidak_dimiliki_tetap_ditolak():
+    """Authorising every severity word globally would let a low finding print
+    “TINGGI” unnoticed — the exemption follows the data, not the vocabulary."""
+    allowed = authorised_strings(kanvas_dengan_level("low"), ["Tindakan"])
+    assert unauthorised_text(["TINGGI"], allowed) == ["TINGGI"]
 
 
 # --- Objective checks -----------------------------------------------------

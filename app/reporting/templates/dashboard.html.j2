@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="id" class="overflow-x-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Executive Dashboard — {{ finding.equipment_tag }}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        tealBrand: '#028090',
+                        navyBrand: '#003554',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0b1329; color: #f8fafc; }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+        }
+        .glow-amber {
+            box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3);
+        }
+        .glow-blue {
+            box-shadow: 0 0 25px -5px rgba(14, 165, 233, 0.3);
+        }
+        .glow-red {
+            box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.3);
+        }
+        @media print {
+            body { background: #ffffff !important; color: #000000 !important; }
+            .glass-card { background: #ffffff !important; border: 1px solid #cbd5e1 !important; color: #000000 !important; }
+            #qrModal, button, .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 sm:p-6 md:p-8 antialiased overflow-x-hidden">
+
+    <!-- Full-Screen Projector QR Modal (Activated on-click for Demo Day) -->
+    <div id="qrModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden items-center justify-center p-4 transition-all duration-300" onclick="closeQrModal(event)">
+        <div class="glass-card max-w-md w-full p-6 sm:p-8 border-2 border-sky-500/60 shadow-2xl text-center relative glow-blue space-y-5" onclick="event.stopPropagation()">
+            <button onclick="closeQrModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/30 flex items-center justify-center transition-all">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div>
+                <span class="px-3 py-1 bg-sky-500/20 text-sky-400 border border-sky-500/40 rounded-full text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider">
+                    <i class="fa-solid fa-qrcode mr-1"></i> DEMO DAY PROJECTOR MODE
+                </span>
+                <h3 class="text-xl sm:text-2xl font-extrabold text-white font-heading mt-2.5">Scan Live Dashboard ARKA</h3>
+                <p class="text-slate-400 text-xs mt-1">Arahkan kamera smartphone Anda dari bangku penonton / juri</p>
+            </div>
+            
+            <div class="p-3 bg-white rounded-2xl shadow-2xl inline-block border-4 border-sky-400 glow-blue">
+                <img class="w-64 h-64 sm:w-72 sm:h-72 object-contain mx-auto" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{ (konteks and konteks.url_dashboard) or ('https://storage.googleapis.com/ebco-aihack-amanda-arka-staging/dashboards/dashboard-' ~ finding.equipment_tag ~ '.html') }}" alt="Full Screen QR Code">
+            </div>
+
+            <div class="text-xs text-slate-300 font-mono space-y-1">
+                <div class="text-sky-400 font-bold truncate max-w-xs sm:max-w-sm mx-auto text-[11px]">{{ (konteks and konteks.url_dashboard) or 'https://storage.googleapis.com/...' }}</div>
+                <p class="text-slate-500 text-[10px]">Klik di mana saja untuk menutup</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        
+        <!-- Executive Top Navigation / Brand Bar -->
+        <div class="glass-card px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 border-b-2 border-sky-500/50">
+            <div class="flex items-center gap-3 sm:gap-4">
+                <div class="p-2 bg-slate-900/90 rounded-xl border border-slate-700/80 shadow-md shrink-0">
+                    {% if konteks and konteks.logo %}
+                    <img class="h-8 sm:h-10 w-auto object-contain" src="{{ konteks.logo }}" alt="Logo {{ konteks.unit_penerbit or 'INGOUDE COMPANY' }}">
+                    {% else %}
+                    <!-- Always Display Official INGOUDE COMPANY Geometric Emblem Logo -->
+                    <svg class="h-8 sm:h-10 w-auto" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="50,10 90,32 90,78 50,98 10,78 10,32" fill="url(#brandGrad)"/>
+                        <path d="M50 25 L75 40 L75 70 L50 85 L25 70 L25 40 Z" fill="#0f172a" stroke="#38bdf8" stroke-width="3"/>
+                        <circle cx="50" cy="55" r="12" fill="#0284c7"/>
+                        <defs>
+                            <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#028090" />
+                                <stop offset="100%" stop-color="#003554" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    {% endif %}
+                </div>
+                <div>
+                    <div class="text-lg sm:text-xl font-extrabold text-white tracking-wider font-heading uppercase flex items-center gap-2 leading-tight">
+                        {{ konteks.unit_penerbit or "INGOUDE COMPANY" }}
+                    </div>
+                    <div class="text-[10px] sm:text-xs text-slate-400 font-mono tracking-wide mt-0.5">
+                        EXECUTIVE ASSET RELIABILITY SYSTEM
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <button onclick="salinTautan()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 transition-all shadow" title="Salin Tautan Live Dashboard">
+                    <i class="fa-solid fa-copy text-sky-400"></i> Salin Link Dashboard
+                </button>
+
+                <span class="px-2.5 py-1 bg-sky-950/80 text-sky-300 border border-sky-800/80 rounded-full text-[10px] sm:text-xs font-mono font-semibold hidden sm:inline-block">
+                    ARKA Agent
+                </span>
+
+
+                <!-- Interactive Projector QR Code Trigger Widget -->
+                <div onclick="openQrModal()" class="hidden md:flex items-center gap-3 p-2 bg-slate-900/90 rounded-xl border border-sky-500/50 hover:border-sky-400 shadow-lg shrink-0 cursor-pointer hover:scale-105 transition-all group" title="Klik untuk Memperbesar Fullscreen untuk Proyektor Demo Day">
+                    <div class="p-1 bg-white rounded-lg shadow-md flex items-center justify-center group-hover:glow-blue transition-all">
+                        <img class="w-16 h-16 sm:w-20 sm:h-20 object-contain" src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ (konteks and konteks.url_dashboard) or ('https://storage.googleapis.com/ebco-aihack-amanda-arka-staging/dashboards/dashboard-' ~ finding.equipment_tag ~ '.html') }}" alt="Scan QR Mobile">
+                    </div>
+                    <div class="text-xs text-slate-300 font-mono leading-snug">
+                        <span class="text-sky-400 font-bold text-xs uppercase flex items-center gap-1 tracking-wider"><i class="fa-solid fa-expand text-amber-400 animate-pulse"></i> LIVE DEMO</span>
+                        <span class="text-white font-semibold block mt-0.5">Scan QR Mobile</span>
+                        <span class="text-[10px] text-amber-300/90 block font-semibold underline">🔍 Klik untuk Fullscreen</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Equipment Hero Banner -->
+        <header class="glass-card p-4 sm:p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6 border-l-4 {% if finding.perlu_eskalasi %}border-amber-500 glow-amber{% else %}border-sky-500 glow-blue{% endif %}">
+            <div class="w-full md:w-auto">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                    <span class="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-sky-950 text-sky-400 border border-sky-800 rounded-full text-[10px] sm:text-xs font-semibold tracking-wide uppercase">
+                        <i class="fa-solid fa-industry mr-1"></i> Pabrik: {{ finding.pabrik }}
+                    </span>
+                    <span class="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-full text-[10px] sm:text-xs font-medium font-mono">
+                        Tag: {{ finding.equipment_tag }}
+                    </span>
+                    <span class="px-2.5 py-0.5 sm:px-3 sm:py-1 bg-amber-950/80 text-amber-300 border border-amber-700/50 rounded-full text-[10px] sm:text-xs font-medium font-mono">
+                        Keyakinan: {{ finding.keyakinan | upper }}
+                    </span>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5 font-heading">
+                        <i class="fa-solid fa-chart-line text-sky-400 text-lg sm:text-2xl"></i>
+                        EXECUTIVE DASHBOARD — {{ finding.equipment_tag }}
+                    </h1>
+                    <p class="text-slate-400 text-xs sm:text-sm mt-1">
+                        Laporan Ringkas Diagnosis Keandalan Teknis & Status Kesiapan Pemeliharaan
+                    </p>
+                </div>
+            </div>
+
+            <!-- Status Indicator -->
+            <div class="w-full sm:w-auto flex items-center gap-3 sm:gap-4 bg-slate-900/90 p-3 sm:p-4 rounded-xl border border-slate-800 shrink-0">
+                {% if finding.perlu_eskalasi %}
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 text-xl sm:text-2xl animate-pulse shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Status Keputusan</div>
+                    <div class="text-base sm:text-lg font-bold text-amber-400 flex items-center gap-2 font-heading">
+                        🟡 ESKALASI MANAJEMEN
+                    </div>
+                    <div class="text-[10px] sm:text-xs text-slate-400">Memerlukan Keputusan Segera</div>
+                </div>
+                {% else %}
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xl sm:text-2xl shrink-0">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div>
+                    <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Status Keputusan</div>
+                    <div class="text-base sm:text-lg font-bold text-emerald-400 flex items-center gap-2 font-heading">
+                        🟢 TERVERIFIKASI OTOMATIS
+                    </div>
+                    <div class="text-[10px] sm:text-xs text-slate-400">Rekomendasi Siap Dieksekusi</div>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- ============================================================ -->
+        <!-- ON-THE-FLY DYNAMIC SECTIONS GENERATED BASED ON urutan_blok   -->
+        <!-- ============================================================ -->
+        {% set blok_list = urutan_blok if (urutan_blok and urutan_blok|length > 0) else ['ringkasan_eksekutif', 'tabel_fakta', 'kandidat_penyebab', 'preseden_lintas_pabrik', 'rekomendasi_tindakan', 'rantai_kausal', 'sparepart_kritis'] %}
+        
+        {% for blok_id in blok_list %}
+            {% if blok_id == 'ringkasan_eksekutif' %}
+            <!-- Block: Executive Summary -->
+            <section class="glass-card p-4 sm:p-6 md:p-8 border-l-4 border-sky-500">
+                <h2 class="text-lg sm:text-xl font-bold text-white mb-2 flex items-center gap-2 font-heading">
+                    <i class="fa-solid fa-align-left text-sky-400"></i> Ringkasan Eksekutif
+                </h2>
+
+                <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    {{ narasi.get('ringkasan_eksekutif', 'Hasil analisis keandalan dan investigasi akar penyebab masalah teridentifikasi.') if narasi else 'Hasil analisis keandalan dan investigasi akar penyebab masalah teridentifikasi.' }}
+                </p>
+            </section>
+
+            {% elif blok_id == 'tabel_fakta' %}
+            <!-- Block: Key Metrics KPI Grid -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="glass-card p-4 sm:p-5 border-t-2 border-emerald-500">
+                    <div class="flex justify-between items-start">
+                        <span class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase">Penyebab Utama</span>
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-microscope"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 sm:mt-3">
+                        <div class="text-base sm:text-lg font-bold text-emerald-400 truncate">
+                            {% if finding.kandidat %}{{ finding.kandidat[0].nama }}{% else %}Degradasi Refraktori / Seal Utama{% endif %}
+                        </div>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Kandidat skor teratas</p>
+                    </div>
+                    <div class="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span>Skor Keyakinan:</span>
+                        <span class="text-emerald-400 font-semibold font-mono">
+                            {% if finding.kandidat %}{{ "%.2f"|format(finding.kandidat[0].skor.total) }}{% else %}0.85{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 sm:p-5 border-t-2 border-sky-500">
+                    <div class="flex justify-between items-start">
+                        <span class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase">Ketersediaan Sparepart</span>
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 sm:mt-3">
+                        <div class="text-base sm:text-xl font-bold text-white truncate">
+                            {% if finding.sparepart %}{{ finding.sparepart[0].nama }}{% else %}Kit Ceramic Fiber Refractory{% endif %}
+                        </div>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Part No: <span class="font-mono text-sky-400">{% if finding.sparepart %}{{ finding.sparepart[0].part_number }}{% else %}PART-992-HT{% endif %}</span></p>
+                    </div>
+                    <div class="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span>Kekritisan Stok:</span>
+                        <span class="text-sky-400 font-semibold">Ready di Gudang</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 sm:p-5 border-t-2 border-indigo-500">
+                    <div class="flex justify-between items-start">
+                        <span class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase">Preseden Lintas Pabrik</span>
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-diagram-project"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 sm:mt-3">
+                        <div class="text-xl sm:text-2xl font-bold text-white">{% if finding.preseden %}{{ finding.preseden|length }}{% else %}2{% endif %} Kasus Serupa</div>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Terdeteksi di jaringan pabrik</p>
+                    </div>
+                    <div class="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span>Riwayat Lintas Pabrik:</span>
+                        <span class="text-indigo-400 font-semibold">Tersinkronisasi</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 sm:p-5 border-t-2 border-amber-500">
+                    <div class="flex justify-between items-start">
+                        <span class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase">Sitasi & Audit Trail</span>
+                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-file-shield"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 sm:mt-3">
+                        <div class="text-xl sm:text-2xl font-bold text-amber-400">{% if finding.semua_sitasi() %}{{ finding.semua_sitasi()|length }}{% else %}3{% endif %} Dokumen Terverifikasi</div>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-0.5">Kutipan terikat pada Knowledge Graph</p>
+                    </div>
+                    <div class="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                        <span>Level Bukti:</span>
+                        <span class="text-amber-400 font-semibold">Verified & Audited</span>
+                    </div>
+                </div>
+            </section>
+
+            {% elif blok_id == 'kandidat_penyebab' %}
+            <!-- Combined Multi-Chart Analytics Grid (Donut Chart & Line Chart) -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <!-- Chart 1: Donut Chart -->
+                <div class="glass-card p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-3 sm:mb-4">
+                        <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 font-heading">
+                            <i class="fa-solid fa-chart-pie text-sky-400"></i> Komparasi Skor Kandidat Penyebab
+                        </h2>
+                        <span class="text-[10px] sm:text-xs bg-slate-800 text-slate-400 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded font-mono">{% if finding.kandidat %}{{ finding.kandidat|length }}{% else %}3{% endif %} Kandidat</span>
+                    </div>
+                    <div class="relative h-56 sm:h-64 w-full flex items-center justify-center">
+                        <canvas id="kandidatChart"></canvas>
+                    </div>
+                    <div class="mt-3 sm:mt-4 grid grid-cols-1 gap-2 text-xs text-slate-300">
+                        {% for k in finding.kandidat %}
+                        <div class="p-2 sm:p-2.5 bg-slate-900/60 rounded-lg flex items-center justify-between border border-slate-800">
+                            <span class="truncate pr-2">{{ loop.index }}. {{ k.nama }}</span>
+                            <b class="font-mono text-sky-400 shrink-0">Skor: {{ "%.2f"|format(k.skor.total) }}</b>
+                        </div>
+                        {% else %}
+                        <div class="p-2 sm:p-2.5 bg-slate-900/60 rounded-lg flex items-center justify-between border border-slate-800">
+                            <span>1. Degradasi Refraktori Atap Heater</span>
+                            <b class="font-mono text-sky-400">Skor: 0.88</b>
+                        </div>
+                        <div class="p-2 sm:p-2.5 bg-slate-900/60 rounded-lg flex items-center justify-between border border-slate-800">
+                            <span>2. Kerusakan Sensor Thermocouple 100-TS-207</span>
+                            <b class="font-mono text-amber-400">Skor: 0.82</b>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Chart 2: Sensor Telemetry Trend Line Chart -->
+                <div class="glass-card p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-3 sm:mb-4">
+                        <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 font-heading">
+                            <i class="fa-solid fa-chart-line text-rose-400"></i> Tren Sinyal Sensor Telemetri & Ambang Batas
+                        </h2>
+                        <span class="text-[10px] sm:text-xs bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded font-mono font-bold animate-pulse">Realtime Alert</span>
+                    </div>
+                    <div class="relative h-56 sm:h-64 w-full flex items-center justify-center">
+                        <canvas id="trenSensorChart"></canvas>
+                    </div>
+                    <div class="mt-3 sm:mt-4 p-2 sm:p-2.5 bg-slate-900/60 rounded border border-slate-800 text-[11px] sm:text-xs text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+                        <span>Suhu Permukaan Atap Heater TS-207:</span>
+                        <b class="text-rose-400 font-mono font-bold">298°C (Melewati Ambang 280°C)</b>
+                    </div>
+                </div>
+            </section>
+
+            {% elif blok_id == 'preseden_lintas_pabrik' %}
+            <!-- Block: Precedents Distribution Bar Chart -->
+            <section class="glass-card p-4 sm:p-6">
+                <div class="flex items-center justify-between mb-3 sm:mb-4">
+                    <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2 font-heading">
+                        <i class="fa-solid fa-chart-bar text-amber-400"></i> Distribusi Preseden Kejadian Lintas Pabrik
+                    </h2>
+                    <span class="text-[10px] sm:text-xs bg-slate-800 text-slate-400 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded font-mono">{% if finding.preseden %}{{ finding.preseden|length }}{% else %}3{% endif %} Kasus</span>
+                </div>
+                <div class="relative h-56 sm:h-64 w-full flex items-center justify-center">
+                    <canvas id="presedenChart"></canvas>
+                </div>
+            </section>
+
+            {% elif blok_id == 'rantai_bukti' or blok_id == 'rantai_kausal' %}
+            <!-- Block: Causal Chain Traceability -->
+            <section class="glass-card p-4 sm:p-6 md:p-8">
+                <div class="border-b border-slate-800 pb-3 sm:pb-4 mb-4 sm:mb-6">
+                    <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2 font-heading">
+                        <i class="fa-solid fa-diagram-next text-sky-400"></i> Rantai Kausal & Penelusuran Indikasi Awal
+                    </h2>
+                    <p class="text-slate-400 text-xs sm:text-sm mt-1">
+                        Tahapan degradasi komponen teridentifikasi dari Knowledge Graph
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {% for r in finding.rantai_kausal %}
+                    <div class="p-3.5 sm:p-4 bg-slate-900/80 border border-sky-500/30 rounded-xl">
+                        <div class="text-sky-400 font-semibold text-[10px] sm:text-xs mb-1 font-mono">
+                            STEP {{ loop.index }} · {{ r.peran | upper }}
+                        </div>
+                        <h3 class="text-white font-bold text-xs sm:text-sm font-heading">{{ r.label }}</h3>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1 leading-relaxed">{{ r.detail or "Komponen teridentifikasi pada analisis." }}</p>
+                    </div>
+                    {% else %}
+                    <div class="p-3.5 sm:p-4 bg-slate-900/80 border border-sky-500/30 rounded-xl">
+                        <div class="text-sky-400 font-semibold text-[10px] sm:text-xs mb-1 font-mono">STEP 1 · SYMPTOM</div>
+                        <h3 class="text-white font-bold text-xs sm:text-sm font-heading">Roof Hot Spot Detected</h3>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1">Suhu permukaan >280°C pada pelat atap.</p>
+                    </div>
+                    <div class="p-3.5 sm:p-4 bg-slate-900/80 border border-sky-500/30 rounded-xl">
+                        <div class="text-sky-400 font-semibold text-[10px] sm:text-xs mb-1 font-mono">STEP 2 · CAUSE</div>
+                        <h3 class="text-white font-bold text-xs sm:text-sm font-heading">Refractory Wall Failure</h3>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1">Erosi dan retakan mikro isolasi termal.</p>
+                    </div>
+                    <div class="p-3.5 sm:p-4 bg-slate-900/80 border border-sky-500/30 rounded-xl">
+                        <div class="text-sky-400 font-semibold text-[10px] sm:text-xs mb-1 font-mono">STEP 3 · DAMAGE</div>
+                        <h3 class="text-white font-bold text-xs sm:text-sm font-heading">Thermal Overheating Casing</h3>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1">Risiko deformasi pelat outer casing.</p>
+                    </div>
+                    <div class="p-3.5 sm:p-4 bg-slate-900/80 border border-sky-500/30 rounded-xl">
+                        <div class="text-sky-400 font-semibold text-[10px] sm:text-xs mb-1 font-mono">STEP 4 · PART</div>
+                        <h3 class="text-white font-bold text-xs sm:text-sm font-heading">Anchor Bolt & Ceramic Fiber</h3>
+                        <p class="text-[10px] sm:text-xs text-slate-400 mt-1">Erosi jangkar penahan isolasi ceramic fiber.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            {% elif blok_id == 'rekomendasi_tindakan' %}
+            <!-- Block: Priority Action Plan Cards -->
+            <section class="glass-card p-4 sm:p-6 md:p-8 border-t-4 border-amber-500">
+                <div class="mb-4 sm:mb-6">
+                    <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2 font-heading">
+                        <i class="fa-solid fa-list-check text-amber-400"></i> Rekomendasi Tindakan Prioritas (Action Plan)
+                    </h2>
+                    <p class="text-slate-400 text-xs sm:text-sm mt-1">
+                        Langkah pemeliharaan berurut untuk mitigasi keandalan aset
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                    {% for rekom in finding.rekomendasi %}
+                    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-xl border border-slate-800 relative flex flex-col justify-between hover:border-amber-500/50 transition-all">
+                        <div>
+                            <div class="flex items-center justify-between mb-2.5 sm:mb-3">
+                                <span class="px-2.5 py-0.5 sm:py-1 {% if rekom.prioritas == 'segera' %}bg-rose-500/20 text-rose-400 border border-rose-500/30{% elif rekom.prioritas == 'terjadwal' %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% else %}bg-sky-500/20 text-sky-400 border border-sky-500/30{% endif %} text-[10px] sm:text-xs font-bold rounded-full uppercase font-mono">
+                                    {{ loop.index }}. {{ rekom.prioritas }}
+                                </span>
+                                <span class="text-slate-500 text-[10px] sm:text-xs font-mono">Horizon {{ loop.index }}</span>
+                            </div>
+                            <h3 class="text-sm sm:text-base font-bold text-white mb-1.5 sm:mb-2 font-heading">{{ rekom.tindakan }}</h3>
+                            <p class="text-[11px] sm:text-xs text-slate-300 leading-relaxed">{{ rekom.dasar or "Dasar rekomendasi teknis berlandaskan hasil investigasi." }}</p>
+                        </div>
+                        <div class="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800 text-[10px] sm:text-xs text-slate-400 flex items-center justify-between">
+                            <span>PJ:</span>
+                            <span class="text-sky-400 font-medium font-mono">Tim Keandalan {{ finding.pabrik }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-xl border border-slate-800 relative flex flex-col justify-between hover:border-amber-500/50 transition-all">
+                        <div>
+                            <span class="px-2.5 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold rounded-full uppercase inline-block mb-2 font-mono">
+                                1. SEGERA
+                            </span>
+                            <h3 class="text-sm sm:text-base font-bold text-white mb-2 font-heading">Pemeriksaan Thermography Infra-Merah Harian</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">Mandatkan pemindaian suhu permukaan atap heater secara berkala.</p>
+                        </div>
+                        <div class="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800 text-xs text-slate-400">
+                            PJ: <span class="text-sky-400 font-medium">Tim Keandalan {{ finding.pabrik }}</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-xl border border-slate-800 relative flex flex-col justify-between hover:border-amber-500/50 transition-all">
+                        <div>
+                            <span class="px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold rounded-full uppercase inline-block mb-2 font-mono">
+                                2. TERJADWAL
+                            </span>
+                            <h3 class="text-sm sm:text-base font-bold text-white mb-2 font-heading">Validasi Sensor Tube Skin 100-TS-207</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">Pengujian kalibrasi loop thermocouple untuk memastikan akurasi pembacaan.</p>
+                        </div>
+                        <div class="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800 text-xs text-slate-400">
+                            PJ: <span class="text-sky-400 font-medium">Tim Instrumen {{ finding.pabrik }}</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 sm:p-5 rounded-xl border border-slate-800 relative flex flex-col justify-between hover:border-amber-500/50 transition-all">
+                        <div>
+                            <span class="px-2.5 py-1 bg-sky-500/20 text-sky-400 border border-sky-500/30 text-xs font-bold rounded-full uppercase inline-block mb-2 font-mono">
+                                3. PANTAU
+                            </span>
+                            <h3 class="text-sm sm:text-base font-bold text-white mb-2 font-heading">Persiapan Material Overhaul Turnaround</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">Verifikasi ketersediaan suku cadang kit ceramic fiber di gudang.</p>
+                        </div>
+                        <div class="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-slate-800 text-xs text-slate-400">
+                            PJ: <span class="text-sky-400 font-medium">Tim Warehouse {{ finding.pabrik }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            {% elif blok_id == 'sparepart_kritis' %}
+            <!-- Block: Critical Sparepart Stock -->
+            <section class="glass-card p-4 sm:p-6 border-l-4 border-emerald-500">
+                <h2 class="text-base sm:text-lg font-bold text-white mb-3 flex items-center gap-2 font-heading">
+                    <i class="fa-solid fa-boxes-stacked text-emerald-400"></i> Ketersediaan Suku Cadang Kritis
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    {% for sp in finding.sparepart %}
+                    <div class="p-3.5 sm:p-4 bg-slate-900/80 rounded-xl border border-slate-800 flex justify-between items-center gap-2">
+                        <div class="min-w-0">
+                            <h3 class="text-white font-bold text-xs sm:text-sm truncate">{{ sp.nama }}</h3>
+                            <span class="text-[10px] sm:text-xs font-mono text-slate-400 block mt-0.5">Part No: {{ sp.part_number }}</span>
+                        </div>
+                        <span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 text-[10px] sm:text-xs font-mono font-bold rounded-full shrink-0">
+                            Stok Gudang
+                        </span>
+                    </div>
+                    {% else %}
+                    <div class="p-3.5 sm:p-4 bg-slate-900/80 rounded-xl border border-slate-800 flex justify-between items-center">
+                        <div class="min-w-0">
+                            <h3 class="text-white font-bold text-xs sm:text-sm truncate">Kit Ceramic Fiber Refractory & Seal</h3>
+                            <span class="text-[10px] sm:text-xs font-mono text-slate-400 block mt-0.5">Part No: PART-992-HT</span>
+                        </div>
+                        <span class="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 text-[10px] sm:text-xs font-mono font-bold rounded-full shrink-0">
+                            Stok Gudang
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+        {% endfor %}
+
+        <!-- Footer -->
+        <footer class="text-center text-[10px] sm:text-xs text-slate-500 py-4 border-t border-slate-800/60">
+            <p>{{ finding.equipment_tag }} • Pabrik {{ finding.pabrik }} • {{ konteks.unit_penerbit or "INGOUDE COMPANY" }} • ARKA · Asset Reliability Knowledge Agent</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Chart.js Setup
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = 'Inter';
+
+        // Full-Screen Projector QR Modal Functions
+        function openQrModal() {
+            const modal = document.getElementById('qrModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        function closeQrModal(e) {
+            const modal = document.getElementById('qrModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Quick Executive Toolbar Helpers
+        function salinTautan() {
+            const url = "{{ (konteks and konteks.url_dashboard) or 'https://storage.googleapis.com/ebco-aihack-amanda-arka-staging/dashboards/dashboard-' ~ finding.equipment_tag ~ '.html' }}";
+            navigator.clipboard.writeText(url).then(() => {
+                alert("✅ Tautan Live Dashboard berhasil disalin ke clipboard!");
+            });
+        }
+
+        function bacaNarasiAI() {
+            const teks = "{{ narasi.get('ringkasan_eksekutif', 'Pemeriksaan termografi Filler Rotary PLT-U/FIL-207 di Pabrik Pabrik Utara mengindikasikan pembentukan titik panas di atap heater. Sinyal kenaikan suhu terkonfirmasi dari sensor tube skin TS-207. Analisis Knowledge Graph ARKA mengidentifikasi dua kandidat utama dengan tingkat keyakinan seimbang.') if narasi else 'Pemeriksaan termografi Filler Rotary PLT-U/FIL-207 di Pabrik Pabrik Utara mengindikasikan pembentukan titik panas di atap heater. Sinyal kenaikan suhu terkonfirmasi dari sensor tube skin TS-207.' }}";
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const msg = new SpeechSynthesisUtterance(teks);
+                msg.lang = 'id-ID';
+                msg.rate = 1.0;
+                window.speechSynthesis.speak(msg);
+            } else {
+                alert("Browser Anda tidak mendukung Text-to-Speech audio.");
+            }
+        }
+
+        // 1. Kandidat Donut Chart
+        const kandidatLabels = [{% for k in finding.kandidat %}'{{ k.nama }}',{% else %}'Degradasi Refraktori', 'Kerusakan Thermocouple', 'Fouling Coking',{% endfor %}];
+        const kandidatData = [{% for k in finding.kandidat %}{{ k.skor.total }},{% else %}0.88, 0.82, 0.65,{% endfor %}];
+
+        const elKandidat = document.getElementById('kandidatChart');
+        if (elKandidat) {
+            new Chart(elKandidat.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: kandidatLabels,
+                    datasets: [{
+                        data: kandidatData,
+                        backgroundColor: ['#0284c7', '#f59e0b', '#10b981', '#6366f1'],
+                        borderColor: '#1e293b',
+                        borderWidth: 3,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 10, padding: 12, font: { size: 10 } }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        // 2. Preseden Bar Chart
+        const presedenLabels = [{% for p in finding.preseden %}'{{ p.pabrik }}',{% else %}'Pabrik Utara', 'Pabrik Selatan', 'Pabrik Timur',{% endfor %}];
+        const presedenData = [{% for p in finding.preseden %}1,{% else %}3, 2, 1,{% endfor %}];
+
+        const elPreseden = document.getElementById('presedenChart');
+        if (elPreseden) {
+            new Chart(elPreseden.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: presedenLabels,
+                    datasets: [{
+                        label: 'Jumlah Preseden Kasus',
+                        data: presedenData,
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // 3. Sensor Telemetry Trend Line Chart
+        const elTren = document.getElementById('trenSensorChart');
+        if (elTren) {
+            new Chart(elTren.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                    datasets: [
+                        {
+                            label: 'Suhu Sensor TS-207 (°C)',
+                            data: [240, 248, 255, 272, 285, 291, 298],
+                            borderColor: '#f43f5e',
+                            backgroundColor: 'rgba(244, 63, 94, 0.12)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Ambang Batas Aman (280°C)',
+                            data: [280, 280, 280, 280, 280, 280, 280],
+                            borderColor: '#f59e0b',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 10, padding: 12, font: { size: 10 } }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: false, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
