@@ -19,7 +19,7 @@ ARKA adalah sistem AI agent otonom untuk analisis akar masalah keandalan mesin d
 
 Berbeda dari chatbot RAG yang merangkum dokumen, ARKA **menalar di atas knowledge graph**: ia menelusuri rantai hubungan antara pabrik, lini produksi, mesin, komponen, riwayat work order, laporan inspeksi, dan rantai pasok sparepart. Kemampuan ini memungkinkannya menemukan hal yang mustahil ditemukan pencarian teks — misalnya bahwa gejala yang muncul di satu pabrik hari ini pernah terjadi dan terselesaikan di pabrik lain delapan bulan lalu.
 
-ARKA bekerja **proaktif**. Ia berjalan terjadwal tanpa menunggu ditanya, menyusun hipotesis dan mengujinya melalui serangkaian penelusuran yang saling bergantung, lalu merangkai temuannya menjadi laporan siap pakai — dengan setiap klaim membawa sitasi ke halaman dokumen aslinya.
+ARKA bekerja **proaktif**. Ia memindai seluruh armada tanpa ada yang menunjuk kasusnya, menyaring mana yang layak diselidiki — sekaligus melaporkan yang diabaikan beserta alasannya — lalu menelusuri yang terpilih dan merangkainya menjadi dokumen siap pakai dengan setiap klaim membawa sitasinya.
 
 ---
 
@@ -75,24 +75,32 @@ Pengetahuan paling berharga di manufaktur tidak berada di dalam satu dokumen, me
 ## Apa yang dilakukan ARKA
 
 ### 1. Menemukan tanpa diminta
-Berjalan terjadwal, memantau notifikasi terbuka, dan mengangkat temuan yang layak diperhatikan sebelum ada yang bertanya.
+Memindai seluruh armada tanpa ada yang menunjuk kasusnya, lalu mengangkat yang layak diperhatikan — dan **melaporkan berapa yang diabaikan beserta alasannya**, supaya penyaringnya bisa dibantah.
 
-### 2. Menyelidiki secara multi-hop
-Menyusun jalur penelusuran yang **tidak ditentukan sebelumnya** — setiap langkah dipilih berdasarkan hasil langkah sebelumnya, termasuk meninggalkan cabang yang buntu.
+Pemindaian dijalankan `scripts/pindai_terjadwal.py` dan dapat dipasang di penjadwal mana pun. Pemindaian **tidak memanggil model sama sekali**: ia murni deterministik, sehingga berjalan tiap pagi nyaris tanpa biaya. Model baru dilibatkan ketika ada yang benar-benar perlu diselidiki.
+
+### 2. Menyelidiki lintas pabrik, dengan jejak yang bisa diaudit
+Menelusuri dari gejala ke kasus tuntas pada model mesin yang sama di pabrik lain, ke penyebab terverifikasinya, ke komponen dan sparepart-nya, lalu ke jadwal perawatan berikutnya.
+
+Urutan penelusuran itu **tetap dan dapat direproduksi**; yang diputuskan model adalah kasus mana yang dikejar, seberapa dalam, dan kapan berhenti. Ini pilihan yang disengaja: penelusuran yang jalurnya berubah tiap dijalankan tidak bisa diaudit, dan bukti yang tidak bisa diaudit tidak layak dipakai mengambil keputusan perawatan. Setiap langkah tercatat di jejak penalaran yang ikut tercetak di laporan.
 
 ### 3. Menunjukkan bukti
-Setiap kesimpulan membawa sitasi ke dokumen sumber, sampai ke nomor halaman dan kalimat yang dikutip.
+Setiap kesimpulan membawa sitasi ke dokumen sumber beserta kalimat yang dikutip, dan nomor halaman **bila dokumen sumbernya memang mencatat halaman**. Sitasi yang tidak diketahui halamannya dibiarkan tanpa nomor — menomori halaman yang tidak tercatat akan membuat sitasi tampak lebih presisi daripada buktinya.
+
+Dokumen tanpa satu pun sitasi **ditolak terbit**, bukan diterbitkan dengan catatan.
 
 ### 4. Menghitung ulang kekritisan sparepart
-Menelusuri dari komponen ke sparepart ke pemasok, lalu menyebar ke aset lain yang memakai part yang sama di pabrik berbeda — dan dari situ **menghitung ulang tingkat kekritisan part** berdasarkan kondisi aktual, bukan mewarisinya dari aset induk.
+Menelusuri dari komponen ke sparepart ke pemasoknya, lalu menyebar lewat jenis komponen ke seluruh aset yang memakai part yang sama di pabrik lain — dan dari situ **menghitung ulang kekritisannya** dari kondisi aktual, bukan mewarisinya dari aset induk.
+
+Pada jalur demo, seal yang ditandai master data **0,30** dihitung ARKA **0,87**: vendor tunggal, lead time enam minggu, dan terpasang di **kelima pabrik** — bukan hanya di dua tempat ia sudah pernah gagal.
 
 ### 5. Berhenti ketika tidak yakin
 Ketika dua kandidat penyebab berdekatan, ARKA **tidak menebak** — ia mengeskalasi ke manusia dengan pertanyaan yang spesifik.
 
-### 6. Menyusun memo dan laporan
-Merangkai investigasi menjadi **memo temuan satu halaman** — berisi temuan beserta skornya, preseden dan tindakan yang dulu berhasil, dampak rantai pasok, dan rekomendasi bernomor. Setiap klaim membawa sitasinya. Laporan bulanan PPTX tersedia sebagai rekap berkala.
+### 6. Menyusun memo, nota dinas, dan laporan
+Merangkai investigasi menjadi dokumen berkop — temuan beserta skornya, preseden dan tindakan yang dulu berhasil, dampak rantai pasok, jejak penalaran, dan rekomendasi berprioritas. Isi dan angkanya identik di ketiga bentuk; yang berbeda hanya derajat formalitas dan blok bawaannya. Setiap klaim membawa sitasinya.
 
-Memo juga menandai **konflik waktu** yang ditemukan agent sendiri — misalnya ketika lead time pengadaan sparepart melampaui jendela inspeksi yang direkomendasikan, sehingga pengadaan harus dimulai lebih dulu.
+Memo juga menandai **konflik waktu yang tidak terlihat oleh sistem manapun secara sendirian**: perencana perawatan tahu kapan jendela berikutnya dibuka, perencana material tahu lead time-nya, dan keduanya hidup di sistem yang tidak pernah bicara. Pada jalur demo, perawatan dijadwalkan 28 hari lagi sementara lead time seal enam minggu — ARKA menghitung selisih 14 hari dan menaikkan pengadaan menjadi tindakan segera.
 
 ---
 
@@ -161,28 +169,30 @@ Keluaran yang paling berguna bukan skornya, melainkan **selisihnya terhadap labe
 ## Arsitektur
 
 ```
-                    ┌──────────────────────────────┐
-                    │   Vertex AI Agent Engine     │
-                    ├──────────────┬───────────────┤
-                    │  Curator     │  Investigator │
-                    │  (terjadwal) │  (multi-hop)  │
-                    └──────┬───────┴───────┬───────┘
-                           │               │
-                    ┌──────┴───────────────┴───────┐
-                    │    Retrieval Core            │
-                    │  planner → Cypher → validator│
-                    └──────────────┬───────────────┘
+        ┌──────────────────────────────────────────────────────┐
+        │        Cloud Run · Vertex AI Agent Engine            │
+        │  Scout → Investigator → Reporter → Designer          │
+        │  Curator (ortogonal)                                 │
+        └──────────────────────────┬───────────────────────────┘
+                                   │  Finding (kontrak tunggal)
+        ┌──────────────────────────┴───────────────────────────┐
+        │        Lapisan deteksi — deterministik, nol model    │
+        │  skor kemiripan · ambang keputusan · kekritisan      │
+        │  dinamis · konflik lead time vs jendela perawatan    │
+        └──────────────────────────┬───────────────────────────┘
                                    │
-        ┌──────────────────────────┴──────────────────────────┐
-        │        PostgreSQL 16 + Apache AGE 1.6               │
-        │   public (tabel kanonik) → arka_kg (graph)          │
-        │   + pgvector — pencarian titik masuk semantik       │
-        └──────────────────────────┬──────────────────────────┘
+        ┌──────────────────────────┴───────────────────────────┐
+        │        PostgreSQL 16 + Apache AGE 1.6                │
+        │   public (tabel kanonik) → arka_kg (proyeksi graph)  │
+        │   + pgvector — pencarian titik masuk semantik        │
+        └──────────────────────────┬───────────────────────────┘
                                    │
                     ┌──────────────┴───────────────┐
-                    │  Renderer: PPTX · chart      │
+                    │  Renderer: PDF · SVG · HTML  │
                     └──────────────────────────────┘
 ```
+
+Penelusuran rantai deteksi berjalan di atas **tabel kanonik**, bukan Cypher. Proyeksi AGE ada dan dipakai untuk pertanyaan yang menuntut kedalaman sembarang; relasi yang dibutuhkan jalur ini semuanya berjarak satu sampai dua join, dan menambah dialek kueri kedua di jalur kritis akan membeli kedalaman yang tidak dipakai sambil menambah satu mode kegagalan — proyeksi basi yang menghasilkan jawaban salah secara diam-diam, bukan galat.
 
 ### Sistem multi-agent
 
@@ -190,8 +200,8 @@ Lima agent, masing-masing dengan satu keputusan yang jelas miliknya dan titik se
 
 | Agent | Keputusan | Serah-terima |
 |---|---|---|
-| **Scout** | Berjalan terjadwal. Memindai notifikasi terbuka, menghitung skor, memutuskan mana yang layak diselidiki | → Investigator |
-| **Investigator** | Menyusun rencana penelusuran, menentukan langkah berikutnya dari hasil sebelumnya, memutuskan kapan mengeskalasi ke manusia | → Reporter |
+| **Scout** | Memindai kegagalan terbuka di seluruh armada, memutuskan mana yang layak diselidiki — dan melaporkan yang diabaikan | → Investigator |
+| **Investigator** | Memutuskan kasus mana yang dikejar, seberapa dalam menelusuri, dan kapan mengeskalasi ke manusia | → Reporter |
 | **Reporter** | Memutuskan isi dokumen dan urutan prioritasnya | → memo / laporan, Designer |
 | **Designer** | Memutuskan penekanan visual dan bentuk visual tiap blok | → infografis |
 | **Curator** | Loop terpisah. Memutuskan pemetaan mana yang aman disetujui otomatis | → proyeksi ulang graph |
@@ -206,13 +216,17 @@ Sistem dibangun di atas **Google ADK**, yang menyediakan komposisi multi-agent h
 
 ### Keluaran: satu temuan, tiga renderer
 
-Reporter menghasilkan objek `Finding` terstruktur; renderer mengubahnya menjadi bentuk yang sesuai penerimanya. Ketiganya dikirim melalui **ADK Artifacts**.
+Investigator menghasilkan objek `Finding` terstruktur; Reporter memutuskan blok mana yang masuk dan urutannya, lalu renderer mengubahnya menjadi bentuk yang sesuai penerimanya. Seluruhnya dikirim melalui **ADK Artifacts**.
+
+Kontrak `Finding` itulah yang membuat lapisan-lapisan ini bisa dikerjakan terpisah: ketika Investigator akhirnya tersambung, tidak ada satu baris pun di lapisan pelaporan yang perlu berubah.
 
 | Keluaran | Format | Penerima |
 |---|---|---|
-| Memo temuan | PDF / teks, 1 halaman | Maintenance Planner — tindakan segera |
+| Memo investigasi | PDF berkop | Reliability engineer — tindakan segera |
+| Nota dinas | PDF berkop, kelengkapan surat | Korespondensi antar unit |
+| Laporan investigasi | PDF, seluruh blok termasuk jejak penalaran | Pembaca yang ingin mengaudit |
 | Infografis | PNG | Manajemen — ringkasan visual |
-| Rekap bulanan | PPTX | Rapat berkala |
+| Dashboard | HTML interaktif | Tinjauan cepat di peramban |
 
 **Untuk dokumen bukti — memo, nota dinas, laporan — seluruh angka, grafik, dan diagram di-render secara deterministik dari data.** Model bahasa hanya menyusun kalimat narasinya. Ini konsisten dengan mekanisme deteksi: model tidak ditempatkan di jalur yang menuntut akurasi angka.
 
@@ -236,7 +250,7 @@ Setiap penerbitan meninggalkan jejak audit tersendiri: temuan, isi kanvas, spesi
 
 Tersedia antarmuka chat sebagai **jalur interogasi ke Investigator** — untuk bertanya bebas mengenai aset atau sparepart, menggali temuan lebih dalam, dan **menjawab pertanyaan eskalasi dari agent**. Mekanisme human-in-the-loop berjalan dua arah melalui jalur ini.
 
-ARKA bukan chatbot: ia bekerja terjadwal dan mengangkat temuan tanpa menunggu ditanya. Chat adalah salah satu permukaannya, bukan identitasnya.
+ARKA bukan chatbot: ia memindai armada dan mengangkat temuan tanpa menunggu ditanya, dan pemindaian itu dapat dijadwalkan. Chat adalah salah satu permukaannya, bukan identitasnya.
 
 ### Knowledge graph
 
@@ -275,12 +289,12 @@ Prinsip ini mengikuti praktik yang berlaku di lingkungan industri: knowledge gra
 | Database | PostgreSQL 16 |
 | Backend | FastAPI, SQLAlchemy (async), Alembic |
 | Renderer dokumen | Jinja2 + SVG inline, dicetak Chromium via Playwright |
-| Penggambar infografis | Model gambar OpenAI, dipagari gerbang mutu berbasis vision |
+| Penggambar infografis | Model gambar, dipagari gerbang mutu berbasis vision |
 | Pembaca halaman | Gemini vision — mentranskripsi halaman, kode yang menilai |
 | Pustaka desain | 44 aset YAML tervalidasi saat startup |
 | Kontainerisasi | Docker, Docker Compose |
 | Kualitas kode | pytest, ruff |
-| Infrastruktur | Google Cloud `[Compute Engine / Cloud SQL]` |
+| Deployment | Cloud Run (hidup) dan Vertex AI Agent Engine, memakai image yang sama |
 
 ---
 
