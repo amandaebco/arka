@@ -308,7 +308,32 @@ KASUS_PENGUAT = KasusJalurEmas(
     catatan="Gejala serupa muncul pada armada yang sama di pabrik lain.",
 )
 
-SEMUA_KASUS: tuple[KasusJalurEmas, ...] = (*PRESEDEN, KASUS_PENGUAT, KASUS_HIDUP)
+# Kasus yang memang harus diabaikan. Gejalanya tidak beririsan dengan preseden
+# manapun dan komponennya di subsistem lain, sehingga skornya jatuh di bawah
+# ambang pengabaian.
+#
+# Ada supaya penyaring Scout bisa dibantah. Sistem yang selalu menemukan sesuatu
+# tidak membuktikan apa pun tentang kemampuannya memilih; yang meyakinkan justru
+# ARKA yang menahan diri dan bisa menjelaskan alasannya.
+KASUS_DIABAIKAN = KasusJalurEmas(
+    kunci="kasus-sepele-selatan",
+    kode_pabrik="PLT-S",
+    nomor_equipment=118,
+    mulai=SEKARANG - _hari(9),
+    gejala=("GJL-SUARA-KASAR",),
+    penyebab=None,
+    komponen="BRG",
+    tuntas=False,
+    menit_henti=0,
+    catatan="Suara kasar sesaat pada transisi katup; hilang setelah penyetelan rutin.",
+)
+
+SEMUA_KASUS: tuple[KasusJalurEmas, ...] = (
+    *PRESEDEN,
+    KASUS_PENGUAT,
+    KASUS_HIDUP,
+    KASUS_DIABAIKAN,
+)
 
 
 # ---------------------------------------------------------------------------

@@ -332,3 +332,48 @@ def build_finding(
         rekomendasi=_recommendations(leader, verdict, parts),
     )
     return finding, verdict
+
+
+@dataclass(frozen=True)
+class ScreenedCase:
+    """One open failure, judged. The unit scout hands over."""
+
+    open_case: OpenCase
+    scored: list[ScoredCandidate]
+    verdict: Verdict
+
+    @property
+    def worth_investigating(self) -> bool:
+        return self.verdict.decision is not Decision.IGNORE
+
+
+def screen_case(
+    open_case: OpenCase,
+    candidates: list[CandidateEvidence],
+    subsystem_map: dict[str, str] | None = None,
+    today: date | None = None,
+) -> ScreenedCase:
+    """Judge one open failure without building a full finding.
+
+    Screening deliberately stops short of assembling a document. Scout answers
+    "is this worth a person's attention", and answering it should not cost the
+    work of answering "why did it happen" — otherwise scanning a fleet becomes
+    as expensive as investigating all of it.
+    """
+    scored = score_candidates(open_case, candidates, subsystem_map, today)
+    return ScreenedCase(
+        open_case=open_case, scored=scored, verdict=decide([s.total for s in scored])
+    )
+
+
+def rank_screened(cases: list[ScreenedCase]) -> list[ScreenedCase]:
+    """Strongest first, then oldest — a stale open failure outranks a fresh tie.
+
+    The tiebreak matters: when two cases score alike, the one that has been
+    waiting longer is the one more likely to have been forgotten, which is the
+    situation ARKA exists to catch.
+    """
+    return sorted(
+        cases,
+        key=lambda c: (-c.verdict.top_score, c.open_case.started_on),
+    )
