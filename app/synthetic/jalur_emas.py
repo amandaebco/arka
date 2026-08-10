@@ -224,6 +224,25 @@ PRESEDEN: tuple[KasusJalurEmas, ...] = (
         dokumen="DOC-FME-2023-0091",
         catatan="Terjadi tak lama setelah perawatan terjadwal.",
     ),
+    # Preseden torsi ketiga. Ditambahkan setelah skor diukur, bukan ditebak:
+    # dengan dua preseden saja kandidat torsi tertinggal 0,09 dari kandidat seal,
+    # sehingga Scout melaporkan tanpa ragu dan momen eskalasi tidak pernah terjadi.
+    # Yang disetel adalah datanya — bobot dan ambang tetap, karena keduanya
+    # kebijakan yang diterbitkan di CLAUDE.md dan Constitution.
+    KasusJalurEmas(
+        kunci="preseden-barat-torsi",
+        kode_pabrik="PLT-B",
+        nomor_equipment=204,
+        mulai=SEKARANG - _hari(200),
+        gejala=("GJL-AKURASI-TURUN", "GJL-GETAR-NAIK"),
+        penyebab="PNY-TORSI-MENYIMPANG",
+        komponen="KATUP",
+        tuntas=True,
+        solusi="Penyetelan ulang torsi kepala pengisi; akurasi pulih tanpa penggantian.",
+        menit_henti=130,
+        dokumen="DOC-FME-2023-0091",
+        catatan="Pola torsi yang sama terlihat pada pabrik ketiga.",
+    ),
     # Preseden torsi kedua. Tanpa ini kandidat torsi tidak punya koroborasi dan
     # skornya jatuh terlalu jauh di bawah kandidat seal — eskalasi tidak pernah
     # terpicu, dan Babak 1 demo kehilangan momen paling menariknya.

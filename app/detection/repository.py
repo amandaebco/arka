@@ -358,3 +358,51 @@ def group_by_cause(
         )
         for cause_id, items in sorted(grouped.items())
     ]
+
+
+@dataclass(frozen=True)
+class SparePartFacts:
+    """A spare part with the supply-chain attributes criticality is built from."""
+
+    part_number: str
+    name: str
+    static_criticality: float | None
+    lead_time_weeks: int | None
+    vendor_count: int | None
+    primary_vendor: str | None
+
+
+async def find_spare_parts(session: AsyncSession) -> list[SparePartFacts]:
+    """Master data for spare parts.
+
+    ⚠️ The schema has no link between a spare part and the component it serves —
+    `activity_spare_parts` exists but the synthetic generator never fills it.
+    Selecting the relevant part is therefore left to the caller, which matches on
+    the component name. This is a known weakness, recorded rather than hidden: a
+    real deployment would resolve the part through the maintenance activity.
+    """
+    from app.models.maintenance import SparePart
+
+    rows = (
+        await session.execute(
+            select(
+                SparePart.part_number,
+                SparePart.name,
+                SparePart.static_criticality,
+                SparePart.lead_time_weeks,
+                SparePart.vendor_count,
+                SparePart.primary_vendor,
+            ).order_by(SparePart.part_number)
+        )
+    ).all()
+    return [
+        SparePartFacts(
+            part_number=r[0],
+            name=r[1],
+            static_criticality=float(r[2]) if r[2] is not None else None,
+            lead_time_weeks=r[3],
+            vendor_count=r[4],
+            primary_vendor=r[5],
+        )
+        for r in rows
+    ]
