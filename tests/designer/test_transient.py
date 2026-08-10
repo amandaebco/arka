@@ -73,3 +73,17 @@ def test_habis_percobaan_tetap_gagal():
     with pytest.raises(GalatSementara):
         with_retry(call, what="uji", attempts=3, sleep=diam)
     assert percobaan["n"] == 3
+
+
+def test_kuota_habis_bukan_transien():
+    """A rate limit clears on its own; an exhausted quota does not. Both arrive
+    as RateLimitError with status 429, so only the message separates them."""
+    habis = type("RateLimitError", (Exception,), {"status_code": 429})(
+        "Error code: 429 - You have no credits remaining. insufficient_quota"
+    )
+    assert not is_transient(habis)
+
+
+def test_batas_laju_biasa_tetap_transien():
+    sesaat = type("RateLimitError", (Exception,), {"status_code": 429})("slow down")
+    assert is_transient(sesaat)

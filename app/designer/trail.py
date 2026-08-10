@@ -121,23 +121,65 @@ class RunTrail:
         self._mirror(name, text.encode("utf-8"), "text/plain; charset=utf-8")
 
     def _mirror(self, name: str, payload: bytes, content_type: str) -> None:
-        """Copy the file to object storage when one is configured.
+        _mirror(self.prefix, name, payload, content_type)
 
-        On Cloud Run the container filesystem is ephemeral, so a trail written
-        only to local disk disappears with the instance. Since the drawing cannot
-        be reproduced, losing the trail means losing the only account of how a
-        page came to be — the local copy alone is not a record.
 
-        A mirroring failure is logged and swallowed: the trail is evidence about
-        the run, and losing the evidence must never take the run down with it.
-        """
-        bucket = os.environ.get("ARTIFACT_GCS_BUCKET")
-        if not bucket:
-            return
-        try:
-            from google.cloud import storage
+def record_verdict(directory: str | Path, stage: str, verdict: str) -> None:
+    """Append a reviewer's verdict to a trail that has already been closed.
 
-            blob = storage.Client().bucket(bucket).blob(f"{self.prefix}/{name}")
-            blob.upload_from_string(payload, content_type=content_type)
-        except Exception as exc:  # noqa: BLE001 — evidence, never the critical path
-            logger.warning("Jejak %s gagal disalin ke GCS: %s", name, exc)
+    The publication tool opens the trail, draws, and closes it. The reviewers run
+    after that, in a different agent, so their verdict never reached the folder —
+    the trail recorded what was drawn but not why it was rejected. For the third
+    compensating control that is half a record: an auditor could see three pages
+    and not know what was wrong with the first two.
+
+    Reopening the log is the honest fix. Verdicts accumulate in order, and a run
+    that was rejected twice says so.
+    """
+    path = Path(directory) / "run.json"
+    if not path.parent.is_dir():
+        # Creating the folder here would manufacture a trail for a run whose
+        # record is gone — a verdict with nothing to attach to is not evidence.
+        logger.warning("Jejak %s tidak ada; vonis tidak dicatat", path.parent)
+        return
+
+    try:
+        log = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    except json.JSONDecodeError:  # pragma: no cover — a corrupt log is still evidence
+        logger.warning("Jejak %s tidak terbaca; vonis tidak dicatat", path)
+        return
+
+    log.setdefault("reviews", []).append(
+        {
+            "at": datetime.now().astimezone().isoformat(),
+            "stage": stage,
+            "verdict": verdict,
+        }
+    )
+    payload = json.dumps(log, indent=2, ensure_ascii=False, default=str)
+    path.write_text(payload, encoding="utf-8")
+    _mirror(f"infografis/{path.parent.name}", "run.json", payload.encode("utf-8"),
+            "application/json")
+
+
+def _mirror(prefix: str, name: str, payload: bytes, content_type: str) -> None:
+    """Copy the file to object storage when one is configured.
+
+    On Cloud Run the container filesystem is ephemeral, so a trail written only
+    to local disk disappears with the instance. Since the drawing cannot be
+    reproduced, losing the trail means losing the only account of how a page came
+    to be — the local copy alone is not a record.
+
+    A mirroring failure is logged and swallowed: the trail is evidence about the
+    run, and losing the evidence must never take the run down with it.
+    """
+    bucket = os.environ.get("ARTIFACT_GCS_BUCKET")
+    if not bucket:
+        return
+    try:
+        from google.cloud import storage
+
+        blob = storage.Client().bucket(bucket).blob(f"{prefix}/{name}")
+        blob.upload_from_string(payload, content_type=content_type)
+    except Exception as exc:  # noqa: BLE001 — evidence, never the critical path
+        logger.warning("Jejak %s gagal disalin ke GCS: %s", name, exc)

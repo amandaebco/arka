@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from app.designer.forms import applicable_forms
+
 EMPHASIS_LEVELS = ("dominant", "primary", "secondary", "tertiary")
 
 
@@ -69,7 +71,12 @@ def normalise(
     return spec
 
 
-def validate(spec: PresentationSpec, kb: Any, selected_blocks: list[str]) -> list[str]:
+def validate(
+    spec: PresentationSpec,
+    kb: Any,
+    selected_blocks: list[str],
+    content: Any = None,
+) -> list[str]:
     """Return every problem found. An empty list means the spec is safe to compile."""
     problems: list[str] = []
 
@@ -98,6 +105,19 @@ def validate(spec: PresentationSpec, kb: Any, selected_blocks: list[str]) -> lis
             problems.append(
                 f"bentuk '{form}' untuk blok '{block}' tidak diizinkan style "
                 f"'{spec.style}' ({', '.join(sorted(allowed_forms))})"
+            )
+            continue
+
+        # Diizinkan style belum tentu dapat diisi datanya. Bentuk yang menuntut
+        # bidang yang tidak dimiliki blok memaksa halaman mengarang isian — itulah
+        # yang membuat satu run mencetak empat tanggal yang tidak pernah ada.
+        if content is None:
+            continue
+        item = content.items(block)
+        if item and form not in applicable_forms(item, kb):
+            problems.append(
+                f"bentuk '{form}' untuk blok '{block}' tidak dapat diisi datanya; "
+                f"yang cocok: {', '.join(applicable_forms(item, kb)) or 'tidak ada'}"
             )
 
     for block, level in spec.emphasis.items():

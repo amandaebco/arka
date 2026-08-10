@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from difflib import SequenceMatcher
 from functools import lru_cache
 from typing import Any
 
@@ -149,6 +150,7 @@ def authorised_strings(content: Any, block_titles: list[str], subtitle: str = ""
             allowed += [
                 item.text, item.label, item.value,
                 item.horizon, item.date, item.level, item.owner, item.value_label,
+                item.reference, item.reference_label,
             ]
             allowed += SEVERITY_WORDS.get(item.level, ())
     return [a for a in allowed if a]
@@ -164,25 +166,65 @@ def normalise(value: str) -> str:
     return re.sub(r"[^\w]+", " ", value.casefold()).strip()
 
 
-def unauthorised_text(
-    drawn: list[str], authorised: list[str], min_length: int = 4
-) -> list[str]:
-    """Strings visible on the page that no authorised string accounts for.
+# A drawn string that is one or two characters away from an authorised one is a
+# misprint, not an invention. Two live runs spent their whole three-round budget
+# on exactly that: "Catatan Teknis" for "Catatan Teknisi", "Kandiat Penyebab" for
+# "Kandidat Penyebab". Redrawing does not reliably fix a slip of the pen, so the
+# budget burns while the real defect — a word missing one letter — stays.
+#
+# The tolerance is narrow on purpose. It applies only to strings long enough that
+# near-identity cannot happen by chance: "Sedang" and "Rendah" are six characters
+# and stay fabrications, which is what caught a page assigning severities the
+# finding never gave.
+MISPRINT_RATIO = 0.9
+MISPRINT_MIN_LENGTH = 12
 
-    A drawn string is accepted when it appears inside any authorised string, or
-    any authorised string appears inside it — line wrapping and truncation split
-    and join text in ways that are cosmetic. Very short fragments are ignored:
-    they carry too little meaning to distinguish a fabrication from a stray glyph.
+
+def _closest(clean: str, allowed: list[tuple[str, str]]) -> tuple[float, str]:
+    """The nearest authorised string, reported in its original spelling.
+
+    Comparison runs on the normalised form; the message quotes the original, so
+    whoever reads the verdict sees the text as it was meant to be printed.
     """
-    allowed = [normalise(a) for a in authorised if a]
-    unknown: list[str] = []
+    best, match = 0.0, ""
+    for flat, asli in allowed:
+        ratio = SequenceMatcher(None, clean, flat).ratio()
+        if ratio > best:
+            best, match = ratio, asli
+    return best, match
+
+
+def review_text(
+    drawn: list[str], authorised: list[str], min_length: int = 4
+) -> tuple[list[str], list[str]]:
+    """Split what the page shows into inventions and misprints.
+
+    A drawn string is accounted for when it appears inside any authorised string,
+    or any authorised string appears inside it — line wrapping and truncation
+    split and join text in ways that are cosmetic. Very short fragments are
+    ignored: they carry too little meaning to tell a fabrication from a stray
+    glyph.
+
+    Returns `(fabricated, misprinted)`. Only the first blocks publication. The
+    second is reported, because a citation title printed wrong is still wrong —
+    but it is a defect in the drawing of authorised text, not a claim the finding
+    never made, and treating the two alike is what stopped good pages publishing.
+    """
+    allowed = [(normalise(a), a) for a in authorised if a]
+    fabricated: list[str] = []
+    misprinted: list[str] = []
 
     for one in drawn:
         clean = normalise(one)
         if len(clean) < min_length:
             continue
-        if any(clean in a or a in clean for a in allowed if a):
+        if any(clean in flat or flat in clean for flat, _ in allowed if flat):
             continue
-        unknown.append(one)
 
-    return unknown
+        ratio, match = _closest(clean, allowed)
+        if len(clean) >= MISPRINT_MIN_LENGTH and ratio >= MISPRINT_RATIO:
+            misprinted.append(f"“{one}” — seharusnya “{match}”")
+            continue
+        fabricated.append(one)
+
+    return fabricated, misprinted

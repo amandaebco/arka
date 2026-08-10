@@ -18,7 +18,7 @@ from app.designer.content import (
     build_content,
     is_composed_label,
 )
-from app.designer.inspection import authorised_strings, unauthorised_text
+from app.designer.inspection import authorised_strings, review_text
 from app.reporting.blocks import susun_blok
 from app.synthetic.finding_contoh import finding_contoh
 
@@ -109,14 +109,14 @@ def test_kata_tingkat_ikut_disetujui_bersama_levelnya():
     """A severity chip is drawn as a word while the content carries the key. The
     word has to be authorised, or a faithful page is flagged for its own data."""
     allowed = authorised_strings(kanvas_dengan_level("high"), ["Tindakan"])
-    assert not unauthorised_text(["TINGGI", "HIGH"], allowed)
+    assert review_text(["TINGGI", "HIGH"], allowed) == ([], [])
 
 
 def test_kata_tingkat_yang_tidak_dimiliki_tetap_ditolak():
     """Authorising every severity word globally would let a low finding print
     “TINGGI” unnoticed — the exemption follows the data, not the vocabulary."""
     allowed = authorised_strings(kanvas_dengan_level("low"), ["Tindakan"])
-    assert unauthorised_text(["TINGGI"], allowed) == ["TINGGI"]
+    assert review_text(["TINGGI"], allowed)[0] == ["TINGGI"]
 
 
 # --- Objective checks -----------------------------------------------------
@@ -180,4 +180,41 @@ def test_nama_angka_ikut_disetujui(content, selected):
     """The caption is composed, not quoted — so it has to be authorised, or the
     page gets flagged for printing exactly what we asked it to print."""
     allowed = authorised_strings(content, list(selected))
-    assert not unauthorised_text(["Kekritisan (skala 0–1)"], allowed)
+    assert review_text(["Kekritisan ARKA (skala 0–1)", "Master data"], allowed) == ([], [])
+
+
+# --- Salah ketik versus karangan ------------------------------------------
+
+BERWENANG = [
+    "Catatan Teknisi — Kebocoran Berulang Filler F-207",
+    "Kandidat Penyebab",
+    "Kekritisan ARKA (skala 0–1)",
+    "Degradasi seal kepala pengisi akibat batch material di bawah spesifikasi",
+]
+
+
+def test_satu_huruf_hilang_adalah_cacat_cetak():
+    """Two live runs spent their whole three-round budget on one dropped letter.
+    Redrawing does not reliably fix a slip of the pen, so it must not block."""
+    karangan, cacat = review_text(
+        ["Catatan Teknis — Kebocoran Berulang Filler F-207"], BERWENANG
+    )
+    assert karangan == []
+    assert "Catatan Teknisi" in cacat[0]
+
+
+def test_karangan_tetap_memblokir():
+    """Every fabrication caught on a live page must still block — the tolerance
+    buys nothing if it also lets these through."""
+    karangan, _ = review_text(
+        ["Kritikalitas", "Lokasi Fungsional", "Ambang kandidat signifikan"], BERWENANG
+    )
+    assert karangan == ["Kritikalitas", "Lokasi Fungsional", "Ambang kandidat signifikan"]
+
+
+def test_kata_pendek_tidak_pernah_dimaafkan():
+    """“Sedang” and “Rendah” are six characters: near-identity at that length is
+    chance, and a page assigning severities the finding never gave is a claim."""
+    karangan, cacat = review_text(["Sedang", "Rendah"], BERWENANG)
+    assert karangan == ["Sedang", "Rendah"]
+    assert cacat == []

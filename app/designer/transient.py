@@ -53,11 +53,20 @@ TRANSIENT_NAMES = frozenset(
 RETRYABLE_STATUS = frozenset({408, 409, 425, 429, 500, 502, 503, 504, 520, 522, 524})
 
 
+# A rate limit clears on its own; an exhausted quota does not. Both arrive as
+# RateLimitError with status 429, so the type alone cannot tell them apart, and
+# retrying the second one waits out three backoffs to be told the same thing.
+PERMANENT_MARKERS = ("insufficient_quota", "credit_balance_exhausted", "billing")
+
+
 def is_transient(exc: BaseException) -> bool:
     """Whether the failure is about reaching the provider, not about the request.
 
     A wrong prompt fails the same way every time; retrying it only spends money.
     """
+    if any(m in str(exc) for m in PERMANENT_MARKERS):
+        return False
+
     if type(exc).__name__ in TRANSIENT_NAMES:
         return True
 

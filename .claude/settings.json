@@ -87,7 +87,20 @@
       "Bash(.venv/bin/python scripts/pindai_terjadwal.py)",
       "Bash(echo \"exit=$?\")",
       "Bash(git commit -q -m 'feat\\(detection\\): make three submission claims true instead of softening them *)",
-      "Bash(git commit -q -m 'feat\\(detection\\): flag procurement that cannot meet the maintenance window *)"
+      "Bash(git commit -q -m 'feat\\(detection\\): flag procurement that cannot meet the maintenance window *)",
+      "Bash(git commit -q -m 'docs\\(submission\\): align the claims with what the system actually does *)",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 gcloud logging read 'resource.type=\"cloud_run_revision\" severity>=ERROR' --project=ebco-aihack-amanda --limit=5 --format=\"value\\(textPayload,jsonPayload.message\\)\" --freshness=10m)",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 gcloud services list --enabled --project=ebco-aihack-amanda)",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 gcloud services enable bigquery.googleapis.com --project=ebco-aihack-amanda)",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 bq --project_id=ebco-aihack-amanda query --use_legacy_sql=false --format=none)",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 bq --project_id=ebco-aihack-amanda query --use_legacy_sql=false --format=none ' *)",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 bq --project_id=ebco-aihack-amanda query --use_legacy_sql=false --format=prettyjson ' *)",
+      "WebSearch",
+      "WebFetch(domain:docs.cloud.google.com)",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 bq --project_id=ebco-aihack-amanda query --use_legacy_sql=false --format=none 'SELECT * FROM GRAPH_EXPAND\\(GRAPH arka_graph.arka_kg\\) LIMIT 5')",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 bq --project_id=ebco-aihack-amanda query --use_legacy_sql=false --format=prettyjson 'SELECT * FROM GRAPH_EXPAND\\('\\\\''arka_graph.arka_kg'\\\\''\\) LIMIT 5')",
+      "Bash(.venv/bin/python -c \"import google.cloud.bigquery as b; print\\('bigquery ok', b.__version__\\)\")",
+      "Bash(.venv/bin/python scripts/uji_bigquery_graph.py)"
     ],
     "additionalDirectories": [
       "/Users/amanda/demo/arka"

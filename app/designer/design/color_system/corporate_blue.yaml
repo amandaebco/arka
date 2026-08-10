@@ -2,8 +2,10 @@ id: corporate_blue
 name: Corporate Blue
 category: color_system
 description: >
-  Palet default. Navy dan biru korporat di atas latar putih, dengan aksen
-  semantik yang hanya muncul pada status dan angka kritis.
+  Palet default. Navy dan biru korporat di atas latar putih. Warna semantik
+  membawa status dan angka kritis; navy membawa struktur — header kartu berlatar
+  penuh, band seksi, dan pita identitas — sehingga halaman terbaca sebagai
+  kelompok, bukan deretan kotak putih seragam.
 
 metadata:
   version: 2
@@ -12,7 +14,7 @@ metadata:
 primary:
   base: "#0F2C4C"
   on_base: "#FFFFFF"
-  usage: "titles, section headers, dividing rules"
+  usage: "titles, filled card headers, section bands, dividing rules"
 
 secondary:
   base: "#2E6DB4"
@@ -31,6 +33,9 @@ background:
   card: "#FFFFFF"
   card_alt: "#F5F7FA"
   border: "#E2E8F0"
+  card_header: "#0F2C4C"       # navy penuh di balik judul kartu
+  on_card_header: "#FFFFFF"
+  band_tint: "#EEF3F9"         # pengelompokan lembut, di bawah ambang kontras teks
 
 accessibility:
   min_contrast_body: 4.5
@@ -40,3 +45,6 @@ accessibility:
     - Colour is never the only difference; always pair it with a text label.
     - Red and green never sit adjacent without a label or shape to tell them apart.
     - Semantic accents are reserved for status and critical figures, never decoration.
+    - >-
+      Structural colour is not decoration: a filled header tells the reader where
+      one card ends and the next begins, and it carries no value of its own.

@@ -30,8 +30,14 @@ from app.reporting.blocks import Blok, IdBlok
 # number here keeps that caption inside the authorised content.
 SKALA = {
     "kandidat": "Skor kandidat (skala 0–1)",
-    "sparepart": "Kekritisan (skala 0–1)",
+    "sparepart": "Kekritisan ARKA (skala 0–1)",
 }
+
+# The gap between what the master data says a part is worth and what ARKA works
+# out from lead time, sole sourcing, and how many plants share it is the finding's
+# whole point. Carried as a comparison rather than a lone figure, because a
+# criticality of 0,87 means little until it sits beside the 0,30 it replaces.
+REFERENSI_SPAREPART = "Master data"
 
 CONFIDENCE_TOKENS = {"tinggi": "high", "sedang": "medium", "rendah": "low"}
 
@@ -64,6 +70,8 @@ class CanvasItem:
     date: str = ""
     quantity: str = ""  # the number behind a drawn shape, always also shown as text
     value_label: str = ""  # what `value` measures, in the canvas language
+    reference: str = ""       # the value this one is meant to be read against
+    reference_label: str = ""  # where that comparison value comes from
 
     def to_dict(self) -> dict[str, str]:
         return {k: v for k, v in asdict(self).items() if v}
@@ -215,6 +223,8 @@ def _spare_parts(data: dict) -> list[CanvasItem]:
                 value=as_number(s.criticality),
                 quantity=as_number(s.criticality),
                 value_label=SKALA["sparepart"],
+                reference=as_number(s.static_criticality),
+                reference_label=REFERENSI_SPAREPART,
                 level="high" if s.selisih > 0 else "",
             )
         )

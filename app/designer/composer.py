@@ -14,6 +14,7 @@ from typing import Any
 
 from app.designer import renderer
 from app.designer.content import CanvasContent, CanvasItem
+from app.designer.inspection import SEVERITY_WORDS
 from app.designer.presentation import PresentationSpec
 
 LANGUAGE_NAMES = {"id": "Indonesian", "en": "English"}
@@ -98,11 +99,11 @@ def _template_blocks(
         "header_visual": _illustration(layout),
         "layout_structure": _structure(layout),
         "typography": _typography(style["typography"]),
-        "color": _colour(spec, warna),
+        "color": _colour(spec, warna, isi),
         "icons": _icons(style["icon_system"]),
         "header": _header(isi),
         "identity_band": _identity_band(isi),
-        "cards": _cards(spec, isi, block_titles, kb),
+        "cards": _cards(spec, isi, block_titles, kb, int(layout["columns"])),
         "confidence_block": _confidence_block(isi, kb, warna),
         "language_name": LANGUAGE_NAMES.get(spec.language, spec.language),
         "subtitle": _subtitle(presentasi, spec.language),
@@ -129,8 +130,9 @@ def _structure(layout: dict[str, Any]) -> str:
               "footnote", "body", "content_grid", "closing"}
     langkah = [b["content"] for b in layout.get("bands") or [] if b.get("id") not in lewati]
     langkah.append(
-        f"then every card listed below, in the given order, flowing across a "
-        f"{layout['columns']}-column grid"
+        f"then every card listed below on a {layout['columns']}-column grid, each "
+        f"at the row and column its entry states — reading left to right, top to "
+        f"bottom, with no card moved to balance the page"
     )
     baris = [f"{i}. {s}" for i, s in enumerate(langkah, 1)]
     baris.append(
@@ -184,18 +186,55 @@ def _typography(t: dict[str, Any]) -> str:
     )
 
 
-def _colour(spec: PresentationSpec, c: dict[str, Any]) -> str:
+def _colour(spec: PresentationSpec, c: dict[str, Any], isi: CanvasContent) -> str:
+    latar = c["background"]
     baris = [
         f"Primary {c['primary']['base']} for {c['primary']['usage']}. "
         f"Secondary {c['secondary']['base']} for {c['secondary']['usage']}.",
         "Severity colours: " + ", ".join(f"{k} = {v}" for k, v in c["severity"].items()) + ".",
-        f"Cards {c['background']['card']} with {c['background']['border']} borders.",
+        f"Cards {latar['card']} with {latar['border']} borders.",
     ]
-    for nilai, kunci in spec.accents.items():
+
+    # Warna struktural. Tanpa ini setiap kartu tampil sebagai kotak putih dengan
+    # judul gelap, dan halaman terbaca sebagai deretan seragam — keluhan "terlalu
+    # sepi" pada dasarnya adalah tidak adanya pengelompokan yang terlihat.
+    if latar.get("card_header"):
+        baris.append(
+            f"Each card header sits on a filled {latar['card_header']} band running "
+            f"the full width of the card, with its text and icon in "
+            f"{latar.get('on_card_header', '#FFFFFF')}."
+        )
+    if latar.get("band_tint"):
+        baris.append(
+            f"Identity band and footer sit on {latar['band_tint']}; card bodies stay "
+            f"{latar['card']} so the tint groups rather than competes."
+        )
+
+    for nilai, kunci in _accents(spec, isi).items():
         warna = c["severity"].get(kunci)
         if warna:
             baris.append(f'The value "{nilai}" is shown in {warna}.')
     return "\n".join(baris)
+
+
+def _accents(spec: PresentationSpec, isi: CanvasContent) -> dict[str, str]:
+    """Accents to apply, falling back to the levels the canvas actually holds.
+
+    A live run sent `accents = {}` and drew a page with no semantic colour at all.
+    Leaving the choice entirely to the designer means an empty answer is a valid
+    one; deriving the fallback from the content means the page is never colourless
+    by omission, and never coloured for a level the finding did not assign.
+    """
+    if spec.accents:
+        return dict(spec.accents)
+
+    dari_isi: dict[str, str] = {}
+    for block in isi.sections:
+        for item in isi.items(block):
+            if item.level:
+                for kata in SEVERITY_WORDS.get(item.level, ()):
+                    dari_isi[kata] = item.level
+    return dari_isi
 
 
 def _icons(i: dict[str, Any]) -> str:
@@ -225,17 +264,58 @@ def _identity_band(isi: CanvasContent) -> str:
     )
 
 
+def _grid_cells(spec: PresentationSpec, isi: CanvasContent, columns: int) -> list[str]:
+    """Work out where each card sits, rather than leaving it to the drawing.
+
+    Numbering the cards was not enough on its own: a live page printed them 2, 3,
+    1 across a row, so the reading order the reporter settled was lost even though
+    every header carried its number. The grid is ours to compute — the number of
+    columns is known and the order is fixed — so the prompt states the cell instead
+    of asking the page to infer it.
+
+    A dominant card takes a row to itself; that is what "largest card on the
+    canvas" means in a grid, and leaving it implicit is what let the rest shuffle.
+    """
+    cells: list[str] = []
+    row, column = 1, 1
+
+    for blok in spec.order:
+        if not isi.items(blok):
+            continue
+        dominant = spec.emphasis.get(blok) == "dominant"
+        if dominant:
+            if column > 1:
+                row, column = row + 1, 1
+            cells.append(f"row {row}, spanning all {columns} columns")
+            row, column = row + 1, 1
+            continue
+
+        cells.append(f"row {row}, column {column} of {columns}")
+        column += 1
+        if column > columns:
+            row, column = row + 1, 1
+
+    return cells
+
+
 def _cards(
-    spec: PresentationSpec, isi: CanvasContent, block_titles: dict[str, str], kb: Any
+    spec: PresentationSpec,
+    isi: CanvasContent,
+    block_titles: dict[str, str],
+    kb: Any,
+    columns: int,
 ) -> str:
     kartu: list[str] = []
+    cells = _grid_cells(spec, isi, columns)
     nomor = 0
     for blok in spec.order:
         item = isi.items(blok)
         if not item:
             continue
+        kartu.append(
+            _one_card(nomor + 1, blok, item, spec, block_titles, kb, cells[nomor])
+        )
         nomor += 1
-        kartu.append(_one_card(nomor, blok, item, spec, block_titles, kb))
     return "\n\n".join(kartu)
 
 
@@ -246,12 +326,14 @@ def _one_card(
     spec: PresentationSpec,
     block_titles: dict[str, str],
     kb: Any,
+    cell: str,
 ) -> str:
     judul = block_titles.get(blok, blok.replace("_", " ").title())
     emphasis = spec.emphasis.get(blok, "secondary")
     baris = [
         f'{nomor}. Card header, write exactly: "{nomor}. {judul}" '
-        f"({emphasis} emphasis — {EMPHASIS_INSTRUCTION[emphasis]})."
+        f"({emphasis} emphasis — {EMPHASIS_INSTRUCTION[emphasis]}).",
+        f"   Place this card at {cell}.",
     ]
 
     form = spec.form.get(blok)
@@ -280,6 +362,11 @@ def _one_item(item: CanvasItem) -> str:
         nilai = f'value "{item.value}", printed as text beside any shape'
         if item.value_label:
             nilai += f', captioned exactly "{item.value_label}" and nothing else'
+        if item.reference:
+            nilai += (
+                f', shown against "{item.reference}" captioned exactly '
+                f'"{item.reference_label}" — the gap between the two is the point'
+            )
         sections.append(nilai)
     if item.level:
         sections.append(f'level "{item.level}"')
