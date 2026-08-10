@@ -30,7 +30,7 @@ from app.designer.inspection import (
     InspectionUnavailable,
     authorised_strings,
     read_page_text,
-    unauthorised_text,
+    review_text,
 )
 from app.designer.knowledge import DesignKnowledgeBase
 from app.designer.presentation import PresentationSpec, normalise, validate
@@ -77,7 +77,7 @@ def main() -> int:
     default_emphasis = kb.resolve_style(style)["storytelling"].get("emphasis_order") or {}
     spec = normalise(spec, selected, default_emphasis)
 
-    problems = validate(spec, kb, selected)
+    problems = validate(spec, kb, selected, content)
     if problems:
         trail.record_round(1, spec, "", review={"specification_problems": problems})
         trail.finish("SPEC_REJECTED")
@@ -112,6 +112,8 @@ def main() -> int:
         review = _inspect(page, content, blocks, style, kb)
         for one in review["unauthorised"]:
             print(f"  ! teks tak disetujui: “{one}”")
+        for one in review.get("misprinted") or []:
+            print(f"  ~ cacat cetak: {one}")
 
     page_path = trail.record_round(1, spec, prompt, page=page, review=review)
     outcome = "PUBLISHED" if not (review and review["unauthorised"]) else "PUBLISHED_WITH_FINDINGS"
@@ -138,10 +140,12 @@ def _inspect(page: bytes, content, blocks, style: str, kb) -> dict:
     except InspectionUnavailable as exc:
         return {"strings_read": 0, "unauthorised": [], "error": str(exc)}
 
+    karangan, cacat_cetak = review_text(drawn, authorised)
     return {
         "strings_read": len(drawn),
         "drawn": drawn,
-        "unauthorised": unauthorised_text(drawn, authorised),
+        "unauthorised": karangan,
+        "misprinted": cacat_cetak,
     }
 
 

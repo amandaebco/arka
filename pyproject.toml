@@ -30,6 +30,10 @@ dependencies = [
     "reportlab>=4.0",
     "openai>=2.53.0",
     "google-cloud-storage>=3.13.0",
+    # Dipakai lapisan retrieval dan backend BigQuery. Sebelumnya hanya hadir
+    # secara transitif lewat aiplatform, sehingga ada di venv tetapi tidak di
+    # image — dan baru ketahuan setelah deploy.
+    "google-cloud-bigquery>=3.30",
 ]
 
 [project.optional-dependencies]
@@ -57,6 +61,20 @@ filterwarnings = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# Berkas revisi Alembic ditulis oleh generatornya, bukan oleh tangan. Merapikannya
+# membuat revisi berbeda dari yang dihasilkan `alembic revision`, dan perbedaan itu
+# menyulitkan penelusuran riwayat skema.
+extend-exclude = ["migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+# Skrip demo dan uji coba menyimpan data sintetis serta prompt panjang sebagai
+# literal utuh. Melipatnya hanya untuk memuaskan pengukur baris justru menyulitkan
+# pembacaan datanya, dan pada literal prompt berisiko mengubah teks yang dikirim.
+# Yang dibebaskan hanya panjang baris; aturan lain tetap berlaku di sini.
+[tool.ruff.lint.per-file-ignores]
+"scripts/demo_full_comprehensive_dashboard.py" = ["E501"]
+"scripts/uji_variasi_layout.py" = ["E501"]
+"scripts/uji_dashboard_prompts.py" = ["E501"]
+"scripts/uji_golden_prompts.py" = ["E501"]

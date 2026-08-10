@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from html import escape
 from pathlib import Path
-
-from google.adk.tools.tool_context import ToolContext
 
 from app.agents.reporter import (
     KUNCI_TEMUAN,
@@ -39,10 +36,10 @@ class ContextPalsu:
 
 
 async def simulasikan_prompt(nomor_skenario: int, prompt_user: str, finding_obj, konteks_obj):
-    print(f"\n==================================================")
+    print("\n==================================================")
     print(f"📌 SKENARIO PROMPT {nomor_skenario}:")
     print(f'   "{prompt_user}"')
-    print(f"==================================================")
+    print("==================================================")
 
     ctx = ContextPalsu(finding_obj)
 

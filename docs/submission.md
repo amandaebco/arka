@@ -294,7 +294,7 @@ Prinsip ini mengikuti praktik yang berlaku di lingkungan industri: knowledge gra
 | Pustaka desain | 44 aset YAML tervalidasi saat startup |
 | Kontainerisasi | Docker, Docker Compose |
 | Kualitas kode | pytest, ruff |
-| Deployment | **Cloud Run** (hidup, image ber-Chromium) · jalur Vertex AI Agent Engine terbukti dan tercatat |
+| Deployment | **Cloud Run** — rantai penuh hidup, membaca dari BigQuery · jalur Agent Engine terbukti dan tercatat |
 
 ---
 
@@ -412,8 +412,8 @@ Yang membuat perpindahan itu murah adalah batas arsitekturnya: `app/detection/re
 
 Disampaikan terbuka:
 
-1. **Lapisan deteksi menuntut database yang dapat dijangkau.** Scout dan Investigator membutuhkan PostgreSQL + Apache AGE. AGE tidak tersedia di layanan database terkelola, sehingga pada demo ini database dijalankan lokal. Lapisan pelaporan dan penyajian berjalan penuh di Cloud Run.
-2. **Runtime utama adalah Cloud Run.** Jalur deploy ke Agent Engine sudah dibuktikan — agent hidup, menjawab, dan memanggil tool — dan resepnya tersimpan di `scripts/deploy_hello.py` serta `scripts/deploy_sumber.py`. Yang belum terpecahkan: Agent Engine dengan container sendiri (`image_spec`) berhasil dibangun tetapi tidak mengekspos permukaan query, karena container kami melayani `adk api_server` sementara runtime itu menuntut kontrak HTTP-nya sendiri. Karena render PDF menuntut Chromium yang hanya ada di image kami, runtime yang dipakai adalah Cloud Run.
+1. **Data di BigQuery adalah salinan.** Rantai penuh berjalan di Cloud Run membaca dari BigQuery, tetapi isinya disalin dari PostgreSQL lewat langkah sinkronisasi. Bila jalur emas berubah tanpa sinkronisasi dijalankan, salinan itu basi tanpa peringatan. Pada penerapan nyata BigQuery menjadi sumber langsung dan langkah ini hilang.
+2. **Runtime utama adalah Cloud Run**, dan di sana rantai penuh berjalan: memindai armada, menyelidiki, menerbitkan PDF, serta menjawab pertanyaan bebas — seluruhnya membaca dari BigQuery. Jalur deploy ke Agent Engine sudah dibuktikan — agent hidup, menjawab, dan memanggil tool — dan resepnya tersimpan di `scripts/deploy_hello.py` serta `scripts/deploy_sumber.py`. Yang belum terpecahkan: Agent Engine dengan container sendiri (`image_spec`) berhasil dibangun tetapi tidak mengekspos permukaan query, karena container kami melayani `adk api_server` sementara runtime itu menuntut kontrak HTTP-nya sendiri. Karena render PDF menuntut Chromium yang hanya ada di image kami, runtime yang dipakai adalah Cloud Run.
 3. **Urutan penelusuran bersifat tetap.** Yang diputuskan model adalah kasus mana yang dikejar, seberapa dalam, dan kapan berhenti — bukan rute traversalnya. Ini pilihan sadar demi jejak yang dapat diaudit, dan menjadi batasan yang jujur untuk disebut.
 4. **Lapisan ingestion belum generik.** Saat ini data ditulis langsung ke tabel kanonik; setiap sistem sumber baru memerlukan konektor tersendiri.
 5. **Curator belum dibangun.** Persetujuan pemetaan masih sepenuhnya manual.

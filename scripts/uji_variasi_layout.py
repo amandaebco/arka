@@ -8,6 +8,7 @@ import json
 import logging
 from datetime import date
 from decimal import Decimal
+
 from google.genai import types
 
 from app.agents.reporter import terbitkan_dokumen
