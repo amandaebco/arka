@@ -250,7 +250,13 @@ Resep dan jebakannya:
   karena Python 3.9 bawaannya. Obatnya:
   `CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 gcloud run deploy ...`
 
-⬜ Agent Engine dengan image yang sama lewat `image_spec` — belum dicoba.
+⚠️ **Agent Engine lewat `image_spec` — dicoba 11 Agt, buntu.** Build berhasil dan
+resource hidup, tetapi `class_methods` kosong dan `agent_framework: custom`,
+sehingga `:query` maupun `:streamQuery` menjawab 404. Container kita melayani
+`adk api_server`; runtime itu menuntut kontrak HTTP-nya sendiri. Yang belum
+dicoba dan jadi langkah berikutnya: `agent_server_mode` beserta kontrak server
+yang diminta Agent Engine. Resource uji sudah dihapus — **runtime demo adalah
+Cloud Run**.
 
 ### Lapisan pelaporan — sudah jadi, kontraknya kunci
 

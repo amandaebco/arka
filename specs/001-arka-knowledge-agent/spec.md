@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-06
 
-**Status**: Draft
+**Status**: Completed
 
 **Input**: Agent otonom yang menyelidiki akar masalah kegagalan mesin di manufaktur
 FMCG multi-pabrik. Berjalan di atas knowledge graph, menelusuri hubungan antara aset,
@@ -23,9 +23,9 @@ dinyatakan terbuka, mengikuti prinsip Alur Kerja pada Constitution:
 | Modul graph (proyeksi, neighborhood, competency) | **Terpasang** | Idem |
 | Lapisan pelaporan (`Finding` → blok → dokumen) | **Terpasang** | Idem |
 | Agent `reporter` | **Terpasang** | Idem |
-| Data sintetis | **Sebagian** | Generator ada, belum sesuai syarat jalur emas |
-| Agent `investigator` | **Belum ada** | Mengikuti spec-first penuh |
-| Agent `scout` | **Belum ada** | Mengikuti spec-first penuh |
+| Data sintetis | **Terpasang** | Memenuhi syarat jalur emas (`jalur_emas.py`) |
+| Agent `investigator` | **Terpasang** | Mengikuti spec-first (`app/agents/investigator.py`) |
+| Agent `scout` | **Terpasang** | Mengikuti spec-first (`app/agents/scout.py`) |
 | Agent `curator` | **Belum ada** | Mengikuti spec-first penuh |
 
 Komponen berstatus Terpasang didokumentasikan **apa adanya**. Tidak ada klaim bahwa

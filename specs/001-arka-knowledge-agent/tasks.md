@@ -42,7 +42,7 @@ their resolutions and document references.
 - [X] T014 [P] [US1] Cover finding assembly from fixtures, without a database, in `tests/test_investigation.py`
 - [X] T015 [US1] Create `app/agents/investigator.py` with tools `list_open_cases`, `investigate_case`, and `record_reasoning_step`, writing the result to session state key `finding`
 - [X] T016 [US1] Write the investigator prompt in English, instructing traversal order and forbidding it from restating or recomputing any score
-- [ ] T017 [P] [US1] Cover investigator tool behaviour without a model in `tests/test_investigator_agent.py`, including the case where a section is unavailable and must degrade to empty rather than fail (FR-019)
+- [X] T017 [P] [US1] Cover investigator tool behaviour without a model in `tests/test_investigator_agent.py`, including the case where a section is unavailable and must degrade to empty rather than fail (FR-019)
 - [X] T018 [US1] Add `scripts/run_chain.py` running investigator then reporter against the seeded database, printing the artifact path
 
 **Checkpoint**: `Finding` is produced from real data; the existing reporter turns it
@@ -82,10 +82,10 @@ hand-picked case — the framing that answers "you planted the finding".
 
 ## Phase 6 — Polish & cross-cutting
 
-- [ ] T028 [P] Record observed scores and the calibration outcome in `CLAUDE.md` so the next session does not re-derive them
+- [X] T028 [P] Record observed scores and the calibration outcome in `CLAUDE.md` so the next session does not re-derive them
 - [X] T029 [P] Resolve the FR-015 divergence noted in [research.md](./research.md): amend the requirement or restore the alternative render path
 - [X] T030 Verify Level 4 of [quickstart.md](./quickstart.md) — one score in the published PDF matches the value printed by the investigation, character for character
-- [ ] T031 Deploy the updated image and confirm the chain produces identical numbers on Cloud Run (SC-007)
+- [X] T031 Deploy the updated image and confirm the chain produces identical numbers on Cloud Run (SC-007)
 
 ---
 

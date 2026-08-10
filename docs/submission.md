@@ -234,11 +234,11 @@ Kontrak `Finding` itulah yang membuat lapisan-lapisan ini bisa dikerjakan terpis
 
 | Tetap deterministik | Boleh dari model |
 |---|---|
-| Seluruh teks, angka, label, dan sitasi — disusun kode dari `Finding`, dikirim verbatim | Tata letak, bentuk visual, ilustrasi |
+| Seluruh teks, angka, label, dan sitasi — disusun kode dari `Finding`, dikirim verbatim. Urutan kartu dan posisinya pada grid — dihitung dari urutan blok yang disetujui Reporter | Bentuk visual, ilustrasi, dan penataan halus di dalam tiap kartu |
 
 Pengecualian ini dicatat di Constitution proyek dan disertai tiga imbangan yang wajib, bukan pilihan:
 
-1. **Tidak ada nilai yang hanya dibawa oleh bentuk.** Setiap angka juga tertulis di sebelah grafiknya, sehingga kesalahan penggambaran tidak pernah menjadi kesalahan angka.
+1. **Tidak ada nilai yang hanya dibawa oleh bentuk.** Setiap angka juga tertulis di sebelah grafiknya, sehingga kesalahan penggambaran tidak pernah menjadi kesalahan angka. Nama besarannya pun ditentukan kode, bukan halaman: angka tanpa nama adalah pertanyaan terbuka, dan pada satu run halaman menjawabnya sendiri dengan menamai skor kekritisan "Kritikalitas" — kata yang tidak ada di temuan mana pun.
 2. **Penilai membaca halaman yang sudah tergambar.** Bukan promptnya — gambarnya. Setiap string yang terlihat dicocokkan ke isi kanvas; yang tidak ditemukan memicu penggambaran ulang.
 3. **Memo tetap catatan resmi.** Angka yang dipakai mengambil keputusan dirujuk dari memo, bukan dari infografis.
 
@@ -281,7 +281,7 @@ Prinsip ini mengikuti praktik yang berlaku di lingkungan industri: knowledge gra
 | Lapis | Teknologi |
 |---|---|
 | Framework agent | **Google ADK (Agent Development Kit)** |
-| Runtime agent | Vertex AI Agent Engine |
+| Runtime agent | Cloud Run · Vertex AI Agent Engine |
 | Keluaran dokumen | ADK Artifacts (`GcsArtifactService`) |
 | Model | Gemini |
 | Knowledge graph | Apache AGE 1.6 (PostgreSQL extension) |
@@ -294,7 +294,7 @@ Prinsip ini mengikuti praktik yang berlaku di lingkungan industri: knowledge gra
 | Pustaka desain | 44 aset YAML tervalidasi saat startup |
 | Kontainerisasi | Docker, Docker Compose |
 | Kualitas kode | pytest, ruff |
-| Deployment | Cloud Run (hidup) dan Vertex AI Agent Engine, memakai image yang sama |
+| Deployment | **Cloud Run** (hidup, image ber-Chromium) · jalur Vertex AI Agent Engine terbukti dan tercatat |
 
 ---
 
@@ -412,14 +412,15 @@ Yang membuat perpindahan itu murah adalah batas arsitekturnya: `app/detection/re
 
 Disampaikan terbuka:
 
-1. **Lapisan deteksi menuntut database yang dapat dijangkau.** Agent berjalan di Cloud Run dan Agent Engine memakai image yang sama, tetapi Scout dan Investigator membutuhkan PostgreSQL + Apache AGE. AGE tidak tersedia di layanan database terkelola, sehingga pada demo ini database dijalankan lokal. Lapisan pelaporan dan penyajian berjalan penuh di cloud.
-2. **Urutan penelusuran bersifat tetap.** Yang diputuskan model adalah kasus mana yang dikejar, seberapa dalam, dan kapan berhenti — bukan rute traversalnya. Ini pilihan sadar demi jejak yang dapat diaudit, dan menjadi batasan yang jujur untuk disebut.
-3. **Lapisan ingestion belum generik.** Saat ini data ditulis langsung ke tabel kanonik; setiap sistem sumber baru memerlukan konektor tersendiri.
-4. **Curator belum dibangun.** Persetujuan pemetaan masih sepenuhnya manual.
-5. **Biaya per investigasi belum diukur secara sistematis.** Yang sudah dipisahkan: pemindaian armada tidak memanggil model sama sekali, sehingga biaya hanya muncul saat ada yang benar-benar diselidiki.
-6. **Skala pengujian** masih pada jalur emas — lima pabrik, delapan kegagalan. Perilaku pada volume produksi belum diuji.
-7. **Tautan sparepart ke komponen** dimodelkan lewat jenis komponen, belum lewat riwayat pemakaian material pada work order.
-8. **Pemasok tier-2 dan tier-3 belum dimodelkan** — radius dampak berhenti di pemasok langsung.
+1. **Lapisan deteksi menuntut database yang dapat dijangkau.** Scout dan Investigator membutuhkan PostgreSQL + Apache AGE. AGE tidak tersedia di layanan database terkelola, sehingga pada demo ini database dijalankan lokal. Lapisan pelaporan dan penyajian berjalan penuh di Cloud Run.
+2. **Runtime utama adalah Cloud Run.** Jalur deploy ke Agent Engine sudah dibuktikan — agent hidup, menjawab, dan memanggil tool — dan resepnya tersimpan di `scripts/deploy_hello.py` serta `scripts/deploy_sumber.py`. Yang belum terpecahkan: Agent Engine dengan container sendiri (`image_spec`) berhasil dibangun tetapi tidak mengekspos permukaan query, karena container kami melayani `adk api_server` sementara runtime itu menuntut kontrak HTTP-nya sendiri. Karena render PDF menuntut Chromium yang hanya ada di image kami, runtime yang dipakai adalah Cloud Run.
+3. **Urutan penelusuran bersifat tetap.** Yang diputuskan model adalah kasus mana yang dikejar, seberapa dalam, dan kapan berhenti — bukan rute traversalnya. Ini pilihan sadar demi jejak yang dapat diaudit, dan menjadi batasan yang jujur untuk disebut.
+4. **Lapisan ingestion belum generik.** Saat ini data ditulis langsung ke tabel kanonik; setiap sistem sumber baru memerlukan konektor tersendiri.
+5. **Curator belum dibangun.** Persetujuan pemetaan masih sepenuhnya manual.
+6. **Biaya per investigasi belum diukur secara sistematis.** Yang sudah dipisahkan: pemindaian armada tidak memanggil model sama sekali, sehingga biaya hanya muncul saat ada yang benar-benar diselidiki.
+7. **Skala pengujian** masih pada jalur emas — lima pabrik, delapan kegagalan. Perilaku pada volume produksi belum diuji.
+8. **Tautan sparepart ke komponen** dimodelkan lewat jenis komponen, belum lewat riwayat pemakaian material pada work order.
+9. **Pemasok tier-2 dan tier-3 belum dimodelkan** — radius dampak berhenti di pemasok langsung.
 
 ---
 
