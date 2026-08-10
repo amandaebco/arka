@@ -54,7 +54,18 @@ what ARKA believes matters about reliability evidence, and bending them to
 produce a nicer demo would make every other score dishonest. The data is
 synthetic by design and may legitimately be shaped; the scoring policy may not.
 
-**Expected shape** (from the seeded golden path, to be confirmed by measurement):
+**Measured on 10 August**, after the chain ran against the seeded database:
+
+| Candidate | Supporting cases | Total | Note |
+|---|---|---|---|
+| Seal degradation | Barat, Timur | 0.9073 | same component |
+| Torque deviation | Barat, Selatan, Tengah | 0.8821 | same subsystem |
+
+Margin **0.0252**, inside the escalation band. Reaching it required seeding a
+third torque precedent: with two, the margin was 0.0919 and the escalation never
+fired. The lever was the data, as planned — weights and thresholds untouched.
+
+**Original expectation** (recorded before measurement):
 
 | Candidate | Supporting cases | Component relation to open case |
 |---|---|---|
@@ -77,15 +88,11 @@ sets and case dates.
 
 ---
 
-## 3. Note on an existing spec/implementation divergence
+## 3. Spec/implementation divergence — resolved
 
-FR-015 states the system MUST publish in an alternative form when the primary
-renderer is unavailable. The implementation deliberately removed that fallback on
-7 August: `terbitkan_dokumen` now fails loudly instead of handing a reader an
-HTML file that looks official but is not.
-
-That decision was later made moot — Chromium is baked into the image and PDF
-rendering works on Cloud Run — but the requirement and the code still disagree.
-This is out of scope for this plan and is recorded here so it is not lost:
-**FR-015 should be amended or the fallback restored**, and the choice belongs to
-the spec, not to a passing refactor.
+FR-015 required an alternative render path; the implementation had deliberately
+removed it. **Resolved on 10 August by amending the requirement**, not by
+restoring the fallback: evidence documents inform maintenance decisions, and an
+HTML file that looks official but is not is more dangerous than a visible
+failure. With Chromium in the image, PDF is available everywhere, so the
+fallback had lost its reason to exist. See the amendment note in `spec.md`.

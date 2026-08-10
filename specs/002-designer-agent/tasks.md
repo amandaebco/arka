@@ -33,9 +33,10 @@ bagi penilai dan harus cocok dengan yang dinyatakan di sini.
 | T013 | Selaraskan bagian prinsip pada `CLAUDE.md` | ✅ | `CLAUDE.md` |
 | T014 | Terbitkan infografis dari data ARKA | ✅ | `scripts/render_infografis.py` |
 | T015 | Persona `engineer` dan `reliability_manager` diuji | ✅ | keduanya menghasilkan halaman berbeda |
-| T016 | Jalankan `penerbitan_lengkap` pada sesi ADK hidup | ⬜ | — |
-| T017 | `RunTrail` dipakai jalur agent, bukan hanya skrip | ⬜ | `app/agents/designer.py` |
-| T018 | Tekan parafrase label oleh penggambar | ⬜ | terdeteksi, belum ditutup |
+| T016 | Jalankan `penerbitan_lengkap` pada sesi ADK hidup | ✅ | `scripts/jalankan_penerbitan.py` |
+| T017 | `RunTrail` dipakai jalur agent, bukan hanya skrip | ✅ | `app/agents/designer.py` |
+| T018 | Tekan parafrase label oleh penggambar | ✅ | subjudul dipisah dari arahan gaya |
+| T019 | Urutan kartu pada kanvas kadang tidak mengikuti nomornya | ⬜ | terdeteksi, belum ditutup |
 
 ## Yang sudah terbukti
 
@@ -47,19 +48,33 @@ awal mengarang chip "Lokasi Fungsional" dari judul dokumen sitasi, dan
 pemeriksaan hulu meloloskannya karena string itu memang ada di temuan. Hanya
 membaca gambarnya yang menangkapnya.
 
+## Rantai agent terbukti berjalan
+
+`penerbitan_lengkap` dijalankan pada sesi ADK in-memory: reporter menerbitkan memo,
+penilai meluluskannya, designer membaca blok dari state, penilai visual membaca
+gambarnya. 66 teks terbaca, seluruhnya berasal dari isi kanvas, satu putaran.
+
+Dua cacat ditemukan justru karena rantai itu dijalankan, dan keduanya tidak akan
+pernah terlihat dari pengujian deterministik:
+
+1. **`KUNCI_BERKAS_INFOGRAFIS` tidak pernah diisi.** Pemeriksa teks tergambar
+   menjawab "belum ada infografis" dan penilai **tetap meluluskan halaman**.
+   Pemeriksaan terkuat tidak berjalan, dan tidak ada yang protes.
+2. **Pemeriksaan yang tidak berjalan diperlakukan seperti yang lulus.** Kini
+   alatnya menjawab `GAGAL PERIKSA`, dan instruksi penilai menyatakan bahwa
+   pemeriksaan yang tidak berjalan bukan pemeriksaan yang lulus.
+
+T018 ditutup dengan memisahkan `presentation.reference` — arahan gaya untuk
+penggambar, tidak pernah dicetak — dari `presentation.subtitle`, teks yang benar
+benar tampil di bawah judul dalam bahasa laporan. Sebelumnya keduanya satu field,
+sehingga arahan "McKinsey-style reliability strategy brief" tercetak ke kanvas.
+
 ## Yang belum terbukti
 
-**T016** adalah sisa pembeda antara "kode ada" dan "sistem jalan". Jalur skrip
-sudah terbukti ujung ke ujung; jalur agent — `reporter` memilih blok, `designer`
-membacanya dari state, `penilai_visual` membuka artifact — belum pernah berjalan
-dalam satu sesi ADK sungguhan.
-
-**T018** adalah perilaku yang sudah terdeteksi tapi belum ditutup: penggambar
-kadang menerjemahkan label yang diberikan — "Keyakinan" menjadi "Kepercayaan",
-dan subjudul style berbahasa Inggris menjadi karangan berbahasa Indonesia.
-Pemeriksa menangkapnya setiap kali. Yang belum ada adalah penekanan di prompt
-yang membuatnya berhenti terjadi. **Jangan menutupnya dengan memperlebar daftar
-teks disetujui** — itu menyembunyikan cacat, bukan memperbaikinya.
+**T019** — nomor kartu benar, tetapi penempatannya di kanvas kadang tidak
+mengikuti urutan itu (2, 3, 1 pada satu baris). Pemeriksa visual tidak
+menangkapnya karena ia menilai kesetiaan teks dan penekanan, bukan urutan
+penempatan.
 
 ## Urutan pemotongan bila waktu menipis
 

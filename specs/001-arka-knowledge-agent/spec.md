@@ -204,8 +204,17 @@ fakta terverifikasi tanpa melewati persetujuan.
 - **FR-013**: Sistem MUST menyertakan blok ringkasan dan blok dokumen sumber pada
   setiap dokumen, terlepas dari pilihan model.
 - **FR-014**: Sistem MUST menyimpan dokumen sebagai artifact sesi.
-- **FR-015**: Sistem MUST tetap menerbitkan dokumen dalam bentuk alternatif bila
-  perender utama tidak tersedia.
+- **FR-015**: Sistem MUST menggagalkan penerbitan secara terang-terangan bila
+  perender utama tidak tersedia, dan MUST TIDAK menyerahkan bentuk alternatif
+  sebagai pengganti diam-diam.
+
+  *Diamandemen 10 Agt 2026.* Rumusan semula mensyaratkan bentuk alternatif.
+  Implementasi mengambil arah sebaliknya pada 7 Agt: dokumen bukti dipakai
+  mengambil keputusan perawatan, dan berkas HTML yang tampak resmi tetapi bukan
+  bentuk resminya lebih berbahaya daripada kegagalan yang terlihat. Sejak
+  Chromium dipanggang ke dalam image, PDF tersedia di semua lingkungan, sehingga
+  jalur mundur itu tidak lagi punya alasan keberadaan. HTML tetap ada sebagai
+  bentuk kerja internal — lihat `scripts/render_contoh.py`.
 - **FR-016**: Sistem MUST menanyakan kelengkapan surat kepada pengguna alih-alih
   mengarang nama, jabatan, atau nomor surat.
 

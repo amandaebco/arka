@@ -140,7 +140,46 @@ Berlanjut di D2 — status terbaru:
 - ⬜ `app/synthetic/validation.py` sebagai penjaga — versi lama (bentuk CSV) dihapus
 - ⬜ Proyeksi graph — `app/graph/project.py` sudah ada, belum dijalankan
 
-**D2 (7 Agt):** Scout + deteksi. Investigator kerangka.
+**D2–D4 — rantai deteksi selesai (10 Agt).**
+
+`Scout → Investigator → Reporter` **hidup end-to-end**. Tidak ada manusia yang
+menyebut kasusnya: scout memindai armada, investigator menelusuri, reporter
+menerbitkan PDF. 217 tes hijau.
+
+| Modul baru | Peran |
+|---|---|
+| `app/detection/scoring.py` | Empat komponen skor, ambang, `decide()` — nol model |
+| `app/detection/repository.py` | Query read-only atas tabel kanonik |
+| `app/detection/criticality.py` | Kekritisan dinamis sparepart |
+| `app/detection/investigation.py` | Merakit `Finding`, menyaring kasus untuk scout |
+| `app/agents/investigator.py` | Memutuskan kasus mana dan sedalam apa |
+| `app/agents/scout.py` | Memutuskan apa yang layak diselidiki |
+| `adk_agents/arka/` | Rantai penuh sebagai satu titik masuk tersaji |
+
+**Angka hasil pengukuran 10 Agt — jangan diturunkan ulang, ini fakta tentang data:**
+
+```
+PLT-U/FIL-207 (Pabrik Utara) — kasus hidup
+  PNY-SEAL-DEGRADASI    0,9073   Barat, Timur          komponen sama
+  PNY-TORSI-MENYIMPANG  0,8821   Barat, Selatan, Tengah  subsistem sama
+  margin 0,0252 → ESKALASI
+
+PLT-G/FIL-412  0,7406 → laporkan
+PLT-S/FIL-118  0,2821 → diabaikan (di bawah ambang 0,50)
+
+Sparepart seal: ARKA 0,8667 vs master data 0,30 → selisih 0,5667
+```
+
+Kalibrasi eskalasi butuh preseden torsi ketiga — dengan dua, marginnya 0,0919 dan
+eskalasi tidak pernah terpicu. **Yang disetel datanya; bobot dan ambang tidak
+pernah disentuh**, karena keduanya kebijakan yang diterbitkan.
+
+⚠️ Kasus `kasus-sepele-selatan` di `jalur_emas.py` **sengaja ada untuk diabaikan**.
+Jangan dihapus: tanpa satu pun kasus yang ditolak, penyaring Scout tidak bisa
+dibantah, dan tes `test_something_is_actually_ignored` akan merah.
+
+**Belum:** deploy ulang ke Cloud Run (image masih versi 7 Agt, belum memuat
+scout/investigator), `curator`, volume latar, proyeksi graph.
 
 ### Deploy Agent Engine — sudah terbukti jalan (7 Agt)
 
