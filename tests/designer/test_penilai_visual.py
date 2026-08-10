@@ -165,3 +165,19 @@ async def test_eskalasi_wajib_terlihat_di_awal(finding, selected):
     spec = spesifikasi(selected, order=tanpa_kandidat + ["kandidat_penyebab"])
     outcome = await periksa_infografis(konteks(finding, spec))
     assert "eskalasi" in outcome.lower()
+
+
+def test_angka_bertelanjang_diberi_nama_di_kanvas(content):
+    """A 0..1 figure with no caption is an open question, and the page answers it
+    by inventing one — a live run captioned criticality “Kritikalitas”."""
+    for block in ("kandidat_penyebab", "sparepart_kritis"):
+        for item in content.items(block):
+            if item.value:
+                assert item.value_label, f"{block}: “{item.value}” tanpa nama"
+
+
+def test_nama_angka_ikut_disetujui(content, selected):
+    """The caption is composed, not quoted — so it has to be authorised, or the
+    page gets flagged for printing exactly what we asked it to print."""
+    allowed = authorised_strings(content, list(selected))
+    assert not unauthorised_text(["Kekritisan (skala 0–1)"], allowed)

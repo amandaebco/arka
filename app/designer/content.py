@@ -24,6 +24,15 @@ from app.reporting.blocks import Blok, IdBlok
 
 # Confidence in `Finding` has exactly three levels, and the design library encodes
 # exactly three tokens. The mapping is direct — never a percentage.
+# A bare 0..1 number means nothing on a page, and a layout needs a caption for it.
+# Left unnamed, the drawing model supplies one — a live run captioned a criticality
+# figure "Kritikalitas", a word that appears nowhere in the finding. Naming the
+# number here keeps that caption inside the authorised content.
+SKALA = {
+    "kandidat": "Skor kandidat (skala 0–1)",
+    "sparepart": "Kekritisan (skala 0–1)",
+}
+
 CONFIDENCE_TOKENS = {"tinggi": "high", "sedang": "medium", "rendah": "low"}
 
 # Recommendation priority doubles as the horizon label on the actions block.
@@ -54,6 +63,7 @@ class CanvasItem:
     owner: str = ""
     date: str = ""
     quantity: str = ""  # the number behind a drawn shape, always also shown as text
+    value_label: str = ""  # what `value` measures, in the canvas language
 
     def to_dict(self) -> dict[str, str]:
         return {k: v for k, v in asdict(self).items() if v}
@@ -164,6 +174,7 @@ def _candidates(data: dict) -> list[CanvasItem]:
             text=k.deskripsi or "",
             value=as_number(k.skor.total),
             quantity=as_number(k.skor.total),
+            value_label=SKALA["kandidat"],
         )
         for k in data.get("kandidat") or []
     ]
@@ -203,6 +214,7 @@ def _spare_parts(data: dict) -> list[CanvasItem]:
                 text=" · ".join(details),
                 value=as_number(s.criticality),
                 quantity=as_number(s.criticality),
+                value_label=SKALA["sparepart"],
                 level="high" if s.selisih > 0 else "",
             )
         )

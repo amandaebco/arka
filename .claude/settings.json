@@ -77,7 +77,16 @@
       "Bash(git commit -q -m 'feat\\(runtime\\): expose the full chain and each link as served agents *)",
       "Bash(git commit -q -m 'docs: record the measured calibration and resolve FR-015 *)",
       "Bash(awk -F: '{print $1}')",
-      "Bash(git commit -q -m 'feat\\(designer\\): dashboard and infographic publishing, with client data scrubbed *)"
+      "Bash(git commit -q -m 'feat\\(designer\\): dashboard and infographic publishing, with client data scrubbed *)",
+      "Bash(echo \"selesai: $?\")",
+      "Bash(.venv/bin/python -m pytest tests/test_investigator_agent.py -q)",
+      "Bash(git commit -q -m 'test\\(investigator\\): cover the tools when the world is imperfect *)",
+      "Bash(CLOUDSDK_PYTHON=/opt/homebrew/bin/python3.12 gcloud run deploy arka --image=us-central1-docker.pkg.dev/ebco-aihack-amanda/arka/arka:v2 --project=ebco-aihack-amanda --region=us-central1 --platform=managed --no-allow-unauthenticated --memory=2Gi --cpu=2 --timeout=600 --max-instances=3 --set-env-vars=GOOGLE_CLOUD_PROJECT=ebco-aihack-amanda,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=gemini-3.6-flash)",
+      "Bash(.venv/bin/alembic revision *)",
+      "Bash(.venv/bin/alembic upgrade *)",
+      "Bash(.venv/bin/python scripts/pindai_terjadwal.py)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(git commit -q -m 'feat\\(detection\\): make three submission claims true instead of softening them *)"
     ],
     "additionalDirectories": [
       "/Users/amanda/demo/arka"

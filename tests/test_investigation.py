@@ -191,6 +191,7 @@ class TestBuildFinding:
         part = SparePartFacts(
             part_number="SP-SEAL-8801",
             name="Seal kepala pengisi RF-8000",
+            component_type="seal",
             static_criticality=0.30,
             lead_time_weeks=6,
             vendor_count=1,
@@ -203,10 +204,12 @@ class TestBuildFinding:
         assert finding.sparepart
         assert finding.sparepart[0].selisih > 0
 
-    def test_unmatched_spare_part_leaves_the_block_empty(self):
+    def test_part_for_another_component_is_not_attached(self):
+        """Selection follows the recorded link, not a resemblance in the name."""
         part = SparePartFacts(
             part_number="SP-NOZEL-2210",
             name="Nozel pengisi RF-8000",
+            component_type="nozel",
             static_criticality=0.55,
             lead_time_weeks=1,
             vendor_count=4,

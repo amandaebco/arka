@@ -128,6 +128,10 @@ def _citations(documents: tuple[DocumentRef, ...]) -> list[Sitasi]:
             judul=doc.title,
             tipe_dokumen=doc.document_type,
             tanggal=doc.published_on,
+            # Lokator diisi hanya bila dokumen sumber memang mencatat halamannya.
+            # Menomori halaman yang tidak diketahui akan membuat sitasi tampak
+            # lebih presisi daripada buktinya.
+            lokator=f"hlm. {doc.page_number}" if doc.page_number else None,
             kutipan=doc.excerpt,
         )
         for doc in documents
@@ -191,16 +195,17 @@ def _spare_parts(
 ) -> list[SparepartKritis]:
     """Criticality for parts implicated by the leading candidate.
 
-    Part selection matches on the component name because the schema carries no
-    link between a spare part and the component it serves — see
-    `repository.find_spare_parts`. When nothing matches, the block is left empty
-    rather than filled with every part in the catalogue.
+    Parts are selected through the component type they serve — a recorded link,
+    not a guess from the name. The plants affected come from the same link
+    rather than from the precedent list, so the figure answers "how much of the
+    fleet fits this part" instead of "where has it already failed". Those are
+    different questions, and only the first one sizes the exposure.
     """
     if leader is None or not open_case.component_code:
         return []
 
     needle = open_case.component_code.lower()
-    matched = [p for p in parts if needle in p.name.lower()]
+    matched = [p for p in parts if (p.component_type or "").lower() == needle]
     if not matched:
         logger.info("no spare part matched component %s", open_case.component_code)
         return []
@@ -221,7 +226,7 @@ def _spare_parts(
             static_criticality=Decimal(str(part.static_criticality or 0)),
             lead_time_minggu=part.lead_time_weeks,
             jumlah_vendor=part.vendor_count,
-            pabrik_terdampak=list(plants_involved),
+            pabrik_terdampak=list(part.plants_served or plants_involved),
         )
         for part in matched
     ]

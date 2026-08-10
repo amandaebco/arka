@@ -114,6 +114,7 @@ KOMPONEN_FILLER: tuple[tuple[str, str], ...] = (
 class SpesifikasiSparepart:
     part_number: str
     nama: str
+    jenis_komponen: str
     vendor: str
     jumlah_vendor: int
     lead_time_minggu: int
@@ -127,6 +128,7 @@ class SpesifikasiSparepart:
 SEAL_KRITIS = SpesifikasiSparepart(
     part_number="SP-SEAL-8801",
     nama="Seal kepala pengisi RF-8000",
+    jenis_komponen="seal",
     vendor="Vendor Tunggal A",
     jumlah_vendor=1,
     lead_time_minggu=6,
@@ -140,6 +142,7 @@ SPAREPART_LAIN: tuple[SpesifikasiSparepart, ...] = (
     SpesifikasiSparepart(
         part_number="SP-NOZEL-2210",
         nama="Nozel pengisi RF-8000",
+        jenis_komponen="nozel",
         vendor="Vendor B",
         jumlah_vendor=4,
         lead_time_minggu=1,
@@ -149,6 +152,7 @@ SPAREPART_LAIN: tuple[SpesifikasiSparepart, ...] = (
     SpesifikasiSparepart(
         part_number="SP-BRG-4470",
         nama="Bearing poros putar RF-8000",
+        jenis_komponen="brg",
         vendor="Vendor C",
         jumlah_vendor=3,
         lead_time_minggu=2,

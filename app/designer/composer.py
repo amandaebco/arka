@@ -39,6 +39,12 @@ BASE_CONSTRAINTS = [
     "no watermarks, logos or signatures",
     "no charts beyond those explicitly described",
     "never redraw, recompute, round or translate any quoted value",
+    # A live run captioned an unlabelled 0..1 figure "Kritikalitas" and drew a
+    # 0,25–1,00 axis with a threshold caption, none of it from the finding. Both
+    # were the page answering a question the prompt left open.
+    "never invent a caption, unit or category name for a number — print a number "
+    "without a caption of your own if none is given",
+    "no axis ticks, scale marks, gridline numbers or threshold captions",
 ]
 
 
@@ -271,7 +277,10 @@ def _one_item(item: CanvasItem) -> str:
     if item.text:
         sections.append(f'text "{item.text}"')
     if item.value:
-        sections.append(f'value "{item.value}", printed as text beside any shape')
+        nilai = f'value "{item.value}", printed as text beside any shape'
+        if item.value_label:
+            nilai += f', captioned exactly "{item.value_label}" and nothing else'
+        sections.append(nilai)
     if item.level:
         sections.append(f'level "{item.level}"')
     if item.owner:

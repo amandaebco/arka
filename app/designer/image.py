@@ -16,6 +16,7 @@ from functools import lru_cache
 from typing import Any
 
 from app.core.config import get_settings
+from app.designer.transient import with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +49,14 @@ def draw_page(prompt: str) -> bytes:
     """
     settings = get_settings()
     try:
-        hasil = _client().images.generate(
-            model=settings.image_model,
-            prompt=prompt,
-            size=settings.image_size,
-            quality=settings.image_quality,
+        hasil = with_retry(
+            lambda: _client().images.generate(
+                model=settings.image_model,
+                prompt=prompt,
+                size=settings.image_size,
+                quality=settings.image_quality,
+            ),
+            what="Penggambaran halaman",
         )
     except DrawingUnavailable:
         raise

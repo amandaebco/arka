@@ -73,6 +73,11 @@ class SparePart(TimestampMixin, Base):
     manufacturer: Mapped[str | None] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
 
+    # Jenis komponen yang dilayani part ini. Tanpa tautan ini, pemilihan part
+    # untuk sebuah temuan hanya bisa menebak dari kemiripan nama — dan tebakan
+    # nama adalah cara paling halus untuk salah menautkan biaya ke aset.
+    component_type: Mapped[str | None] = mapped_column(String(100))
+
     # Rantai pasok — dasar komponen `supply_risk` pada kekritisan dinamis.
     static_criticality: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
     lead_time_weeks: Mapped[int | None] = mapped_column(Integer)

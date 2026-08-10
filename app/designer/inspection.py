@@ -23,6 +23,7 @@ from functools import lru_cache
 from typing import Any
 
 from app.core.config import get_settings
+from app.designer.transient import with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -76,20 +77,24 @@ def read_page_text(page: bytes) -> list[str]:
 
     settings = get_settings()
     try:
-        response = _client().models.generate_content(
-            model=settings.vertex_ai_model,
-            contents=[
-                types.Content(
-                    role="user",
-                    parts=[
-                        types.Part.from_bytes(data=page, mime_type="image/png"),
-                        types.Part.from_text(text="Transcribe every visible string."),
-                    ],
-                )
-            ],
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM, temperature=0.0
+        isi = [
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_bytes(data=page, mime_type="image/png"),
+                    types.Part.from_text(text="Transcribe every visible string."),
+                ],
+            )
+        ]
+        response = with_retry(
+            lambda: _client().models.generate_content(
+                model=settings.vertex_ai_model,
+                contents=isi,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM, temperature=0.0
+                ),
             ),
+            what="Pembacaan halaman",
         )
     except Exception as exc:  # noqa: BLE001 — turned into one explicit failure type
         raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
@@ -143,7 +148,7 @@ def authorised_strings(content: Any, block_titles: list[str], subtitle: str = ""
         for item in content.items(block):
             allowed += [
                 item.text, item.label, item.value,
-                item.horizon, item.date, item.level, item.owner,
+                item.horizon, item.date, item.level, item.owner, item.value_label,
             ]
             allowed += SEVERITY_WORDS.get(item.level, ())
     return [a for a in allowed if a]

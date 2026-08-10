@@ -219,6 +219,7 @@ async def tulis_sparepart(sesi: AsyncSession, seed: int) -> dict[str, SparePart]
             name=spek.nama,
             manufacturer=spek.vendor,
             description=f"Dipakai pada {MODEL_FILLER}",
+            component_type=spek.jenis_komponen,
             static_criticality=spek.static_criticality,
             lead_time_weeks=spek.lead_time_minggu,
             vendor_count=spek.jumlah_vendor,
@@ -376,6 +377,7 @@ async def tulis_dokumen(sesi: AsyncSession, seed: int) -> None:
                 content_hash=_hash(berkas.isi),
                 start_offset=0,
                 end_offset=len(berkas.isi),
+                page_number=1,
             )
         )
 

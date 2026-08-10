@@ -69,6 +69,7 @@ class DocumentRef:
     document_type: str
     published_on: date | None = None
     excerpt: str | None = None
+    page_number: int | None = None
 
 
 @dataclass(frozen=True)
@@ -300,6 +301,7 @@ async def find_documents(
             Document.document_type,
             Document.source_created_at,
             DocumentChunk.content,
+            DocumentChunk.page_number,
         )
         .join(DocumentVersion, DocumentVersion.document_id == Document.id)
         .outerjoin(DocumentChunk, DocumentChunk.document_version_id == DocumentVersion.id)
@@ -308,7 +310,7 @@ async def find_documents(
     rows = (await session.execute(stmt)).all()
 
     seen: dict[str, DocumentRef] = {}
-    for canonical_id, title, doc_type, created_at, content in rows:
+    for canonical_id, title, doc_type, created_at, content, page in rows:
         if canonical_id in seen:
             continue
         excerpt = None
@@ -322,6 +324,7 @@ async def find_documents(
             document_type=doc_type,
             published_on=created_at.date() if created_at else None,
             excerpt=excerpt,
+            page_number=page,
         )
 
     if plant_names:
@@ -366,43 +369,69 @@ class SparePartFacts:
 
     part_number: str
     name: str
+    component_type: str | None
     static_criticality: float | None
     lead_time_weeks: int | None
     vendor_count: int | None
     primary_vendor: str | None
+    plants_served: tuple[str, ...] = ()
 
 
-async def find_spare_parts(session: AsyncSession) -> list[SparePartFacts]:
-    """Master data for spare parts.
+async def find_spare_parts(
+    session: AsyncSession, *, component_type: str | None = None
+) -> list[SparePartFacts]:
+    """Master data for spare parts, with the fleet reach of each one.
 
-    ⚠️ The schema has no link between a spare part and the component it serves —
-    `activity_spare_parts` exists but the synthetic generator never fills it.
-    Selecting the relevant part is therefore left to the caller, which matches on
-    the component name. This is a known weakness, recorded rather than hidden: a
-    real deployment would resolve the part through the maintenance activity.
+    `plants_served` is traversed, not assumed: part → component type →
+    components → equipment → plant. That path is what turns a lead time into a
+    business fact. A six-week wait on a part fitted in one plant is an
+    inconvenience; the same wait on a part fitted in five is a fleet-wide
+    exposure, and static criticality records neither.
     """
     from app.models.maintenance import SparePart
 
-    rows = (
-        await session.execute(
-            select(
-                SparePart.part_number,
-                SparePart.name,
-                SparePart.static_criticality,
-                SparePart.lead_time_weeks,
-                SparePart.vendor_count,
-                SparePart.primary_vendor,
-            ).order_by(SparePart.part_number)
-        )
-    ).all()
+    stmt = select(
+        SparePart.part_number,
+        SparePart.name,
+        SparePart.component_type,
+        SparePart.static_criticality,
+        SparePart.lead_time_weeks,
+        SparePart.vendor_count,
+        SparePart.primary_vendor,
+    ).order_by(SparePart.part_number)
+    if component_type:
+        stmt = stmt.where(SparePart.component_type == component_type)
+    rows = (await session.execute(stmt)).all()
+
+    reach = await _plants_by_component_type(session)
     return [
         SparePartFacts(
             part_number=r[0],
             name=r[1],
-            static_criticality=float(r[2]) if r[2] is not None else None,
-            lead_time_weeks=r[3],
-            vendor_count=r[4],
-            primary_vendor=r[5],
+            component_type=r[2],
+            static_criticality=float(r[3]) if r[3] is not None else None,
+            lead_time_weeks=r[4],
+            vendor_count=r[5],
+            primary_vendor=r[6],
+            plants_served=tuple(reach.get(r[2] or "", ())),
         )
         for r in rows
     ]
+
+
+async def _plants_by_component_type(session: AsyncSession) -> dict[str, list[str]]:
+    """Which plants have equipment fitted with each component type."""
+    rows = (
+        await session.execute(
+            select(Component.component_type, Plant.name)
+            .join(Equipment, Equipment.id == Component.equipment_id)
+            .join(ProductionLine, ProductionLine.id == Equipment.production_line_id)
+            .join(Plant, Plant.id == ProductionLine.plant_id)
+            .distinct()
+            .order_by(Component.component_type, Plant.name)
+        )
+    ).all()
+    reach: dict[str, list[str]] = {}
+    for component_type, plant in rows:
+        reach.setdefault(component_type, []).append(plant)
+    return reach
