@@ -328,11 +328,17 @@ uvicorn app.main:app --reload
 ### Menjalankan agent
 
 ```bash
-# Investigasi satu aset
-python -m app.agents.investigator --equipment <TAG>
+# Rantai penuh: pindai armada, selidiki yang terpilih, terbitkan dokumen
+python scripts/run_chain.py
 
-# Siklus terjadwal (Curator + pemindaian proaktif)
-python -m app.agents.scheduled_run
+# Satu aset tertentu
+python scripts/run_chain.py --tag PLT-U/FIL-207
+
+# Pemindaian terjadwal — deterministik, tanpa memanggil model
+python scripts/pindai_terjadwal.py
+
+# Membuktikan jalur produksi di BigQuery Graph
+python scripts/uji_bigquery_graph.py
 ```
 
 ### Menjalankan test
@@ -382,16 +388,38 @@ Beberapa keputusan yang disengaja dalam pembangkitan data:
 
 ---
 
+## Jalur produksi: BigQuery Graph
+
+Prototipe berjalan di **PostgreSQL + Apache AGE** — satu database untuk data operasional dan graph, tanpa sinkronisasi antar sistem, dan dapat dijalankan siapa pun tanpa lisensi tambahan.
+
+Untuk lingkungan produksi yang datanya sudah tinggal di BigQuery, lapisan graph dipindahkan ke **BigQuery Graph**. Ini bukan rencana di atas kertas — sudah diuji langsung, dan hasilnya mengoreksi asumsi awal kami sendiri:
+
+| | On-demand, tanpa reservation |
+|---|---|
+| `CREATE PROPERTY GRAPH` atas tabel kanonik | ✅ berhasil |
+| `GRAPH_EXPAND(...)` — traversal graph lewat SQL | ✅ berhasil |
+| `GRAPH … MATCH …` — sintaks GQL penuh | ❌ menuntut edisi Enterprise |
+
+Jadi yang menuntut reservation adalah **sintaksnya**, bukan kemampuan menelusuri graph. Kami semula menolak BigQuery Graph atas dasar itu, lalu mengujinya dan merevisi keputusannya.
+
+Pembuktiannya ada di `scripts/uji_bigquery_graph.py`: data yang sama dimuat ke BigQuery, property graph dibangun, dan pertanyaan preseden lintas pabrik yang sama diajukan. **Angka yang keluar identik** — symptom overlap 1,0000 dan 0,6667, sama persis dengan yang dihitung di PostgreSQL.
+
+Yang membuat perpindahan itu murah adalah batas arsitekturnya: `app/detection/repository.py` adalah **satu-satunya berkas yang menyentuh penyimpanan**. Seluruh lapisan di atasnya — skor deteksi, perakitan temuan, agent, renderer — bekerja pada dataclass dan tidak pernah tahu dari mana faktanya datang.
+
+---
+
 ## Batasan yang diketahui
 
 Disampaikan terbuka:
 
-1. **Lapisan ingestion belum generik.** Saat ini menerima satu bentuk sumber; setiap sistem sumber baru memerlukan konektor tersendiri.
-2. **Curator sebagian masih berbasis aturan**, belum sepenuhnya agentic.
-3. **Biaya per investigasi belum diukur secara sistematis.**
-4. **Skala pengujian** berada di kisaran ratusan ribu node. Perilaku pada skala jutaan node belum diuji.
-5. **Graph bersifat materialized**, sehingga memerlukan proyeksi ulang setelah perubahan data. Saat ini dijalankan sebagai langkah akhir siklus Curator.
-6. **Pemasok tier-2 dan tier-3 belum dimodelkan** — radius dampak berhenti di pemasok langsung.
+1. **Lapisan deteksi menuntut database yang dapat dijangkau.** Agent berjalan di Cloud Run dan Agent Engine memakai image yang sama, tetapi Scout dan Investigator membutuhkan PostgreSQL + Apache AGE. AGE tidak tersedia di layanan database terkelola, sehingga pada demo ini database dijalankan lokal. Lapisan pelaporan dan penyajian berjalan penuh di cloud.
+2. **Urutan penelusuran bersifat tetap.** Yang diputuskan model adalah kasus mana yang dikejar, seberapa dalam, dan kapan berhenti — bukan rute traversalnya. Ini pilihan sadar demi jejak yang dapat diaudit, dan menjadi batasan yang jujur untuk disebut.
+3. **Lapisan ingestion belum generik.** Saat ini data ditulis langsung ke tabel kanonik; setiap sistem sumber baru memerlukan konektor tersendiri.
+4. **Curator belum dibangun.** Persetujuan pemetaan masih sepenuhnya manual.
+5. **Biaya per investigasi belum diukur secara sistematis.** Yang sudah dipisahkan: pemindaian armada tidak memanggil model sama sekali, sehingga biaya hanya muncul saat ada yang benar-benar diselidiki.
+6. **Skala pengujian** masih pada jalur emas — lima pabrik, delapan kegagalan. Perilaku pada volume produksi belum diuji.
+7. **Tautan sparepart ke komponen** dimodelkan lewat jenis komponen, belum lewat riwayat pemakaian material pada work order.
+8. **Pemasok tier-2 dan tier-3 belum dimodelkan** — radius dampak berhenti di pemasok langsung.
 
 ---
 
@@ -410,11 +438,12 @@ Yang terikat domain: taksonomi ontologi, dan konektor ke sistem sumber.
 
 | Prioritas | Item |
 |---|---|
-| 1 | Lapisan ingestion generik dengan konektor yang dapat dikonfigurasi |
-| 2 | Curator sepenuhnya agentic |
-| 3 | Pengukuran biaya dan latensi per investigasi |
-| 4 | Pemodelan pemasok tier-2 dan tier-3 |
-| 5 | Analisis bottleneck lini produksi (perluasan dari kegagalan aset ke keterlambatan produksi) |
+| 1 | Lapisan graph di BigQuery untuk estate yang datanya sudah di sana — porting terbatas pada satu berkas |
+| 2 | Lapisan ingestion generik dengan konektor yang dapat dikonfigurasi |
+| 3 | Curator sepenuhnya agentic |
+| 4 | Pengukuran biaya dan latensi per investigasi |
+| 5 | Pemodelan pemasok tier-2 dan tier-3 |
+| 6 | Analisis bottleneck lini produksi (perluasan dari kegagalan aset ke keterlambatan produksi) |
 
 ---
 
