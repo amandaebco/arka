@@ -418,8 +418,19 @@ async def tulis_dokumen(sesi: AsyncSession, seed: int) -> None:
     await sesi.flush()
 
 
-async def bangun(seed: int = SEED_BAWAAN, reset: bool = False) -> dict[str, int]:
-    """Bangun jalur emas di dalam database. Mengembalikan cacah per kelompok."""
+async def bangun(
+    seed: int = SEED_BAWAAN, reset: bool = False, volume_latar: bool = False
+) -> dict[str, int]:
+    """Bangun jalur emas di dalam database. Mengembalikan cacah per kelompok.
+
+    Args:
+        seed: Menentukan seluruh undian. Dataset yang dibangun ulang dengan seed
+            yang sama identik sampai ke UUID-nya.
+        reset: Kosongkan tabel lebih dulu.
+        volume_latar: Tambahkan ~500 equipment dan ~3.000 work order di sekitar
+            jalur emas. Opsional, bukan bawaan: tes berjalan atas jalur emas dan
+            tidak perlu menanggung ongkos menulis ribuan baris.
+    """
     async with session_factory() as sesi:
         if reset:
             await kosongkan(sesi)
@@ -430,6 +441,13 @@ async def bangun(seed: int = SEED_BAWAAN, reset: bool = False) -> dict[str, int]
         await tulis_kasus(sesi, seed, kosakata, armada)
         await tulis_perawatan_terjadwal(sesi, seed, armada)
         await tulis_dokumen(sesi, seed)
+
+        tambahan: dict[str, int] = {}
+        if volume_latar:
+            from app.synthetic.volume_latar import tulis_volume_latar
+
+            tambahan = await tulis_volume_latar(sesi, seed)
+
         await sesi.commit()
 
     return {
@@ -438,6 +456,7 @@ async def bangun(seed: int = SEED_BAWAAN, reset: bool = False) -> dict[str, int]
         "kasus": len(SEMUA_KASUS),
         "dokumen": len(DOKUMEN),
         "sparepart": 1 + len(SPAREPART_LAIN),
+        **tambahan,
     }
 
 
@@ -448,9 +467,16 @@ def main() -> None:
     parser.add_argument(
         "--reset", action="store_true", help="Kosongkan tabel jalur emas lebih dulu"
     )
+    parser.add_argument(
+        "--volume-latar",
+        action="store_true",
+        help="Tambahkan ~500 equipment dan ~3.000 work order di sekitar jalur emas",
+    )
     argumen = parser.parse_args()
 
-    cacah = asyncio.run(bangun(seed=argumen.seed, reset=argumen.reset))
+    cacah = asyncio.run(
+        bangun(seed=argumen.seed, reset=argumen.reset, volume_latar=argumen.volume_latar)
+    )
     for nama, jumlah in cacah.items():
         print(f"  {nama:12} {jumlah}")
 

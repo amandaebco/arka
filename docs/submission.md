@@ -148,19 +148,19 @@ Praktik industri menilai kekritisan sparepart di tiga dimensi: probabilitas kega
 
 | Dimensi | Bobot | Sumber |
 |---|---|---|
-| `failure_probability` | 0,40 | Skor deteksi pola (lihat bagian sebelumnya) |
-| `consequence` | 0,35 | (pabrik terekspos / total pabrik) × kekritisan lini |
-| `supply_risk` | 0,25 | Lead time ternormalisasi + penalti vendor tunggal |
+| `failure_probability` | 0,40 | Berapa kali part ini benar-benar terlibat kegagalan, ternormalisasi terhadap titik jenuh |
+| `consequence` | 0,35 | Total menit downtime yang timbul ketika ia gagal, ternormalisasi terhadap titik jenuh |
+| `supply_risk` | 0,25 | 0,6 × lead time ternormalisasi + 0,4 × risiko pasokan (1 / jumlah vendor) |
 
 ```
 criticality = 0.40·failure_probability + 0.35·consequence + 0.25·supply_risk
 ```
 
-| Skor | Tingkat | Rekomendasi |
-|---|---|---|
-| ≥ 0,70 | Kritis | Amankan stok / cari sumber alternatif |
-| 0,40–0,69 | Perhatian | Pantau, tinjau siklus berikutnya |
-| < 0,40 | Normal | — |
+Skornya sendiri tidak dipotong menjadi tingkat. ARKA tidak menyatakan sebuah part
+"kritis" atau "normal" pada ambang tertentu, karena ambang semacam itu akan menjadi
+angka yang tidak berasal dari mana pun. Yang dipakai adalah **selisih terhadap master
+data**: sparepart diurutkan dari selisih terbesar, dan ditandai ketika hitungan ARKA
+melampaui label statisnya.
 
 Keluaran yang paling berguna bukan skornya, melainkan **selisihnya terhadap label statis di master data** — misalnya sebuah part berlabel non-kritis yang dinaikkan menjadi kritis karena probabilitas kegagalannya meningkat, beberapa pabrik terekspos, dan pemasoknya tunggal.
 
@@ -239,10 +239,12 @@ Kontrak `Finding` itulah yang membuat lapisan-lapisan ini bisa dikerjakan terpis
 Pengecualian ini dicatat di Constitution proyek dan disertai tiga imbangan yang wajib, bukan pilihan:
 
 1. **Tidak ada nilai yang hanya dibawa oleh bentuk.** Setiap angka juga tertulis di sebelah grafiknya, sehingga kesalahan penggambaran tidak pernah menjadi kesalahan angka. Nama besarannya pun ditentukan kode, bukan halaman: angka tanpa nama adalah pertanyaan terbuka, dan pada satu run halaman menjawabnya sendiri dengan menamai skor kekritisan "Kritikalitas" — kata yang tidak ada di temuan mana pun.
-2. **Penilai membaca halaman yang sudah tergambar.** Bukan promptnya — gambarnya. Setiap string yang terlihat dicocokkan ke isi kanvas; yang tidak ditemukan memicu penggambaran ulang.
+2. **Penilai membaca halaman yang sudah tergambar.** Bukan promptnya — gambarnya. Setiap string yang terlihat dicocokkan ke isi kanvas. Yang tidak punya padanan sama sekali adalah karangan dan memicu penggambaran ulang; yang hanya salah eja dari teks berwenang dicatat sebagai cacat cetak dan tidak memblokir. Pembedaan itu bukan pelonggaran: menggambar ulang tidak dapat diandalkan memperbaiki satu huruf yang hilang, dan memperlakukan keduanya sama membuat halaman yang setia gagal terbit karena "Catatan Teknis" tertulis untuk "Catatan Teknisi".
 3. **Memo tetap catatan resmi.** Angka yang dipakai mengambil keputusan dirujuk dari memo, bukan dari infografis.
 
 Imbangan kedua bukan formalitas. Pada satu run, penggambar menambahkan chip identitas "Lokasi Fungsional" yang diambilnya dari judul dokumen sitasi lalu disajikan sebagai fakta tentang aset. Pemeriksaan yang membandingkan isi kanvas terhadap temuan meloloskannya — string itu memang ada di temuan. Hanya membaca halamannya yang menangkapnya.
+
+Bentuk visual tiap kartu pun tidak dipilih dari nama bloknya, melainkan dari data yang dikandungnya. Tujuh belas pola visualisasi disaring terhadap isi kartu — berapa butir, mana yang membawa angka sungguhan, tanggal, atau tingkat — dan designer memilih dari yang tersisa. Efeknya menutup satu kelas kesalahan sejak hulu: kartu tanpa tanggal tidak pernah ditawari linimasa, sehingga tidak ada lagi halaman yang mengarang stempel waktu demi mengisi bentuk yang terlanjur dipilih. Perbandingan kekritisan pun dibawa utuh — 0,30 milik master data disandingkan dengan 0,87 hitungan ARKA — karena angka tunggal justru menyembunyikan hal yang paling layak dilihat.
 
 Setiap penerbitan meninggalkan jejak audit tersendiri: temuan, isi kanvas, spesifikasi penyajian, prompt, halaman, dan hasil pemeriksaan tiap putaran. Penggambaran tidak dapat direproduksi persis; jejak inilah yang menggantikan reproduktifitas sebagai dasar pertanggungjawaban.
 
@@ -283,13 +285,13 @@ Prinsip ini mengikuti praktik yang berlaku di lingkungan industri: knowledge gra
 | Framework agent | **Google ADK (Agent Development Kit)** |
 | Runtime agent | Cloud Run · Vertex AI Agent Engine |
 | Keluaran dokumen | ADK Artifacts (`GcsArtifactService`) |
-| Model | Gemini |
-| Knowledge graph | Apache AGE 1.6 (PostgreSQL extension) |
-| Pencarian semantik | pgvector |
-| Database | PostgreSQL 16 |
+| Model penalaran | Gemini di Vertex AI |
+| Knowledge graph | BigQuery (edge list + recursive CTE) · Apache AGE 1.6 di jalur lokal |
+| Pencarian semantik | BigQuery `VECTOR_SEARCH` · `gemini-embedding-2` (3072 dimensi) |
+| Database | BigQuery (sumber) · PostgreSQL 16 (generator sintetis, tes) |
 | Backend | FastAPI, SQLAlchemy (async), Alembic |
 | Renderer dokumen | Jinja2 + SVG inline, dicetak Chromium via Playwright |
-| Penggambar infografis | Model gambar, dipagari gerbang mutu berbasis vision |
+| Penggambar infografis | `gpt-image-2` (OpenAI), dipagari gerbang mutu berbasis vision |
 | Pembaca halaman | Gemini vision — mentranskripsi halaman, kode yang menilai |
 | Pustaka desain | 44 aset YAML tervalidasi saat startup |
 | Kontainerisasi | Docker, Docker Compose |
@@ -378,7 +380,11 @@ tests/             Test suite
 
 **Seluruh data dalam proyek ini dibangkitkan secara sintetis.** Tidak ada data nyata milik pihak mana pun yang digunakan.
 
-Data mencakup perusahaan FMCG fiktif dengan `[N]` pabrik, `[N]` equipment, `[N]` work order, dan `[N]` notifikasi, dalam rentang waktu `[N]` tahun.
+Data mencakup perusahaan FMCG fiktif dengan **5 pabrik**, **505 equipment**, **3.009 work order**, dan **68 kegagalan**, dalam rentang **3 tahun**.
+
+Angkanya terbagi dua dengan sengaja. **Jalur emas** — 5 filler model sama di 5 pabrik, 8 kegagalan, 4 dokumen — adalah data yang penalarannya diuji di atasnya, dan setiap angkanya dikalibrasi. **Volume latar** — 500 equipment dan 3.000 work order dari tipe mesin lain — ada untuk menguji penyaringnya, bukan penalarannya.
+
+Keduanya dipisahkan secara konstruksi, bukan lewat pemeriksaan sesudahnya: model mesin, jenis komponen, dan kepemilikan work order latar dibuat tidak beririsan dengan jalur emas, sehingga volume latar **tidak punya jalur** untuk menggeser skor. Setelah volume ditambahkan, seluruh angka demo tidak bergerak satu digit pun.
 
 Beberapa keputusan yang disengaja dalam pembangkitan data:
 
@@ -388,23 +394,51 @@ Beberapa keputusan yang disengaja dalam pembangkitan data:
 
 ---
 
-## Jalur produksi: BigQuery Graph
+## Jalur produksi: BigQuery
 
-Prototipe berjalan di **PostgreSQL + Apache AGE** — satu database untuk data operasional dan graph, tanpa sinkronisasi antar sistem, dan dapat dijalankan siapa pun tanpa lisensi tambahan.
+Prototipe dikembangkan di **PostgreSQL + Apache AGE**. Kini **seluruh 39 tabel kanonik ada di BigQuery**, dan rantai deteksi berjalan penuh dari sana.
 
-Untuk lingkungan produksi yang datanya sudah tinggal di BigQuery, lapisan graph dipindahkan ke **BigQuery Graph**. Ini bukan rencana di atas kertas — sudah diuji langsung, dan hasilnya mengoreksi asumsi awal kami sendiri:
+Perpindahannya murah karena satu batas arsitektur: `app/detection/store.py` adalah **satu-satunya tempat yang tahu penyimpanan mana yang menjawab**. Seluruh lapisan di atasnya — skor, perakitan temuan, agent, renderer — bekerja pada dataclass.
 
-| | On-demand, tanpa reservation |
+```bash
+python scripts/run_chain.py                       # PostgreSQL + AGE
+ARKA_STORE=bigquery python scripts/run_chain.py   # BigQuery
+```
+
+**Paritas diukur, bukan diklaim.** Rantai yang sama atas data yang sama, dari kedua penyimpanan: `0,9071` dan `0,8819`, eskalasi pada margin `0,0252`, 5 preseden, 8 sitasi, kekritisan seal `0,8667`. Identik sampai digit terakhir.
+
+### Yang kami temukan tentang graph di BigQuery
+
+Asumsi awal kami — "GQL butuh Enterprise, jadi BigQuery Graph tidak terpakai" — ternyata benar separuh, lalu ternyata tidak cukup. Diuji langsung, on-demand, tanpa reservation:
+
+| | On-demand |
 |---|---|
-| `CREATE PROPERTY GRAPH` atas tabel kanonik | ✅ berhasil |
-| `GRAPH_EXPAND(...)` — traversal graph lewat SQL | ✅ berhasil |
+| `CREATE PROPERTY GRAPH` | ✅ berhasil |
 | `GRAPH … MATCH …` — sintaks GQL penuh | ❌ menuntut edisi Enterprise |
+| `GRAPH_EXPAND(...)` | ⚠️ berhasil, tapi **bukan fungsi traversal** |
 
-Jadi yang menuntut reservation adalah **sintaksnya**, bukan kemampuan menelusuri graph. Kami semula menolak BigQuery Graph atas dasar itu, lalu mengujinya dan merevisi keputusannya.
+`GRAPH_EXPAND` menolak lebih dari 10 node table, menuntut graph bermuara tunggal, dan **menolak jalur konvergen**:
 
-Pembuktiannya ada di `scripts/uji_bigquery_graph.py`: data yang sama dimuat ke BigQuery, property graph dibangun, dan pertanyaan preseden lintas pabrik yang sama diajukan. **Angka yang keluar identik** — symptom overlap 1,0000 dan 0,6667, sama persis dengan yang dihitung di PostgreSQL.
+> *The subgraph reachable from start node 'failure_events' contains a convergent path involving node 'equipment'.*
 
-Yang membuat perpindahan itu murah adalah batas arsitekturnya: `app/detection/repository.py` adalah **satu-satunya berkas yang menyentuh penyimpanan**. Seluruh lapisan di atasnya — skor deteksi, perakitan temuan, agent, renderer — bekerja pada dataclass dan tidak pernah tahu dari mana faktanya datang.
+Equipment dicapai lewat komponennya **dan** secara langsung, jadi graph ini konvergen secara bawaan — tidak ada perampingan yang memperbaikinya. `GRAPH_EXPAND` adalah pemipih snowflake untuk satu tabel fakta, bukan penelusur graph.
+
+### Jalan keluarnya: edge list + recursive CTE
+
+Graph disimpan sebagai daftar edge terpadu (**4.630 node, 4.671 edge, 13 label**) dan ditelusuri dengan recursive CTE — jalan penuh di on-demand, tanpa reservation.
+
+Kedalaman menjadi parameter, bukan sifat skema, dan **jalurnya dikembalikan sebagai data**:
+
+```
+PLT-U/FIL-207 -[MEMILIKI_KOMPONEN]-> seal -[DIPASOK_OLEH]-> SP-SEAL-8801
+              -[DIPASOK_OLEH⁻¹]-> seal -[MEMILIKI_KOMPONEN⁻¹]-> PLT-G/FIL-412
+```
+
+Itulah bagian yang membuatnya bisa diperiksa, bukan sekadar dipercaya. Traversal yang hanya mengembalikan tujuannya meminta untuk dipercaya; yang mengembalikan jalurnya bisa dibantah.
+
+Edge ditelusuri **dua arah**, langkah balik ditandai `⁻¹`. Searah saja setiap rute buntu di sparepart pada hop ketiga — dan arah balik itulah arah pertanyaan rantai pasok berjalan: diberi sebuah part, apa lagi yang memakainya.
+
+Terukur: 1.086 jalur pada 4 hop, 1.580 pada 5 hop, dalam hitungan detik.
 
 ---
 
@@ -418,9 +452,12 @@ Disampaikan terbuka:
 4. **Lapisan ingestion belum generik.** Saat ini data ditulis langsung ke tabel kanonik; setiap sistem sumber baru memerlukan konektor tersendiri.
 5. **Curator belum dibangun.** Persetujuan pemetaan masih sepenuhnya manual.
 6. **Biaya per investigasi belum diukur secara sistematis.** Yang sudah dipisahkan: pemindaian armada tidak memanggil model sama sekali, sehingga biaya hanya muncul saat ada yang benar-benar diselidiki.
-7. **Skala pengujian** masih pada jalur emas — lima pabrik, delapan kegagalan. Perilaku pada volume produksi belum diuji.
+7. **Skala pengujian menengah, bukan produksi.** 505 equipment dan 3.009 work order — cukup untuk membuktikan penyaringan bekerja (20 kegagalan terbuka dipindai, 18 ditolak) dan traversal tetap cepat, tetapi masih dua kali lipat lebih kecil dari estate nyata. Perilaku pada ratusan ribu baris belum diuji.
 8. **Tautan sparepart ke komponen** dimodelkan lewat jenis komponen, belum lewat riwayat pemakaian material pada work order.
 9. **Pemasok tier-2 dan tier-3 belum dimodelkan** — radius dampak berhenti di pemasok langsung.
+10. **Traversal multi-hop belum dipakai agent mana pun.** Lapisannya jalan dan teruji sampai lima hop, tetapi rantai deteksi masih menjawab keempat pertanyaannya lewat join SQL — dan paritas antar penyimpanan bergantung pada itu. Menyambungkannya ke radius dampak sparepart menyentuh angka yang masuk ke memo, jadi menuntut pengujian paritas ulang, bukan sekadar tes hijau.
+11. **Sintaks GQL penuh tetap di luar jangkauan.** `GRAPH … MATCH …` menuntut reservation Enterprise. Recursive CTE menghasilkan traversal yang setara di on-demand dan justru mengembalikan jalurnya, tetapi ia SQL — bukan bahasa graph, dan tidak sepadan ekspresifnya untuk pola yang rumit.
+12. **Ambang kemiripan adalah properti korpus.** `MIN_SIMILARITY = 0,60` diukur ulang terhadap `gemini-embedding-2`: dalam domain 0,6359–0,7703, di luar domain 0,4834–0,5466. Sah untuk empat dokumen, dan **wajib diukur ulang** begitu korpusnya besar.
 
 ---
 

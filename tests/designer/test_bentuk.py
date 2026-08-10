@@ -54,3 +54,17 @@ def test_bentuk_yang_menuntut_bidang_tak_dimiliki_tidak_ditawarkan(kb):
 
 def test_kartu_kosong_tidak_punya_bentuk(kb):
     assert applicable_forms([], kb) == []
+
+
+def test_kekritisan_dibawa_sebagai_perbandingan(kb):
+    """ARKA's headline is the gap between the master data's number and its own —
+    0,30 against 0,87. A lone figure hides exactly the thing worth showing."""
+    from app.designer.content import build_content
+    from app.reporting.blocks import susun_blok
+    from app.synthetic.finding_contoh import finding_contoh
+
+    blok = [b for b in susun_blok(finding_contoh()).values() if b.tersedia]
+    item = build_content(blok).items("sparepart_kritis")
+
+    assert all(i.reference and i.reference_label for i in item)
+    assert "comparison" in applicable_forms(item, kb)

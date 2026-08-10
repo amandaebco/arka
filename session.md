@@ -36,37 +36,122 @@ python -m app.synthetic.generator --reset          # reseed the golden path
 
 ---
 
+## BigQuery is now the full mirror (11 August, later)
+
+All **39 canonical tables** are in `ebco-aihack-amanda.arka`, verified row by row
+on both sides. Defects 1 and 3 below are closed by this; defect 2 stands until
+the generator writes to BigQuery directly.
+
+```bash
+python scripts/migrasi_bigquery.py            # mirror all 39 tables + graph
+python scripts/migrasi_bigquery.py --verify   # row counts, both sides
+python scripts/migrasi_bigquery.py --index    # re-embed document chunks
+```
+
+`app/detection/bigquery_repository.py` now reads canonical tables, so parity is
+exact and `symptom_names` carries sentences: `0.9071` / `0.8819`, margin
+`0.0252`, 5 precedents, 8 citations, `SP-SEAL-8801` at `0.8667` — identical from
+both stores.
+
+### `GRAPH_EXPAND` is not a traversal function — measured, not assumed
+
+Three limits, each found by hitting it:
+
+1. more than **10 node tables** is refused;
+2. the graph must funnel into a **single sink**;
+3. **convergent paths are rejected** — *"the subgraph reachable from start node
+   'failure_events' contains a convergent path involving node 'equipment'"*.
+
+Equipment is reachable directly and through its components, so this graph
+converges by construction. No trimming fixes that. `GRAPH_EXPAND` is a snowflake
+denormaliser for one fact table, and full GQL `MATCH` still wants Enterprise.
+
+**The graph is therefore an edge list walked by a recursive CTE** —
+`app/bigquery/edges.py` (70 nodes, 111 edges, 13 labels) and
+`app/bigquery/traversal.py`. Depth is a parameter, cycles are guarded with
+`STRPOS` over a delimited trace (BigQuery's recursive term rejects subqueries),
+and the full path comes back as data.
+
+Edges are walked **both ways**, reversed steps marked `⁻¹`. Forward-only every
+route dead-ends at a spare part after three hops; the reverse step is what makes
+four and five reachable, and it is the direction the supply-chain question runs:
+
+```
+PLT-U/FIL-207 -[MEMILIKI_KOMPONEN]-> seal -[DIPASOK_OLEH]-> SP-SEAL-8801
+              -[DIPASOK_OLEH⁻¹]-> seal -[MEMILIKI_KOMPONEN⁻¹]-> PLT-G/FIL-412
+```
+
+**Multi-hop traversal can now be claimed in the pitch** — with the path printed,
+which is the part that makes it checkable rather than merely asserted.
+
+### Embedding model is `gemini-embedding-2`
+
+Also 3072 dimensions, so the schema did not change — and that is the trap, not
+the reassurance. Vectors from two models are not comparable; the index was fully
+rebuilt. ⚠️ **`gemini-embedding-2` ignores batching**: handed three texts it
+returns one vector, with no error. `app/retrieval/embedding.py` now sends one
+text per request and checks the count.
+
+`MIN_SIMILARITY` re-measured against the new model: in-domain 0.6359–0.7703,
+out-of-domain 0.4834–0.5466. **0.60 still sits in the gap** — unchanged by
+coincidence, not by assumption. Still a property of a four-document corpus.
+
+### Background volume — 500 equipment, 3,000 work orders
+
+```bash
+python -m app.synthetic.generator --reset --volume-latar
+```
+
+Optional, not the default: tests run on the golden path and should not pay for
+thousands of rows. `app/synthetic/volume_latar.py`.
+
+**The golden path is isolated by construction, not by inspection.** Three leak
+paths exist and all three are closed by disjoint sets, guarded in
+`tests/test_volume_latar.py`:
+
+| Leak | Closed by |
+|---|---|
+| `find_historical_cases` filters `equipment_model` | background models ≠ `MODEL_FILLER` |
+| `find_spare_parts` reaches plants via `component_type` | background types ∩ `KOMPONEN_FILLER` = ∅ |
+| `find_next_maintenance` filters `equipment_tag` | background work orders only on background units |
+
+Verified after seeding: `0.9071` / `0.8819`, margin `0.0252`, `SP-SEAL-8801` at
+`0.8667` — every figure unmoved, from both stores.
+
+What *does* change, deliberately, is the scan. Open failures are not filtered by
+model — Scout must sweep the whole fleet — so background failures do surface and
+are rejected on evidence:
+
+```
+Memeriksa 20 kegagalan terbuka.
+  PLT-U/FIL-207 — escalate     PLT-G/FIL-412 — report
+  18 diabaikan karena bukti di bawah ambang.
+```
+
+Two of twenty is a far better demonstration of the filter than two of three.
+
+Scale, measured: 4,689 rows, 4,630 graph nodes, 4,671 edges. Traversal from one
+equipment returns 1,086 paths at four hops and 1,580 at five, in seconds.
+
+---
+
 ## Known defects — real, not cosmetic
 
-### 1. Symptoms render as codes when reading from BigQuery
+### 1. ~~Symptoms render as codes when reading from BigQuery~~ — fixed
 
-`app/detection/bigquery_repository.py` fills `symptom_names` with codes
-(`GJL-BOCOR-KEPALA`) because the `symptoms` table was never synced. A document
-published from the BigQuery path therefore prints codes where the PostgreSQL
-path prints sentences. Fix: add `symptoms` and `causes` to the sync in
-`scripts/uji_bigquery_graph.py` and join the display name. ~20 minutes.
+Closed by the full mirror: `symptoms` is a real table on both sides now.
 
 ### 2. The BigQuery data is a copy
 
 It is synced from PostgreSQL. Change the golden path without re-running the
 sync and BigQuery answers from stale data **without any error** — the same
 failure mode that led us to query canonical tables rather than the AGE
-projection. In production this disappears, because BigQuery becomes the source.
+projection. This is the **last** thing standing between here and BigQuery as the
+sole source: `app/synthetic/generator.py` still writes to PostgreSQL only.
 
-### 3. The graph is one hop
+### 3. ~~The graph is one hop~~ — fixed
 
-The property graph has two node labels and one edge:
-`Equipment --TERJADI_PADA--> FailureEvent`. Everything else — symptoms, causes,
-components, spare parts — is a SQL join around it.
-
-**Do not claim multi-hop traversal in the pitch.** What is true and strong:
-cross-plant precedent discovery over a knowledge graph, with a traversal order
-that is fixed and auditable.
-
-Making it genuinely multi-hop means adding node labels for Symptom, Cause,
-Component, SparePart, Plant and edges between them. ~30–45 minutes; the DDL
-pattern is in `scripts/uji_bigquery_graph.py`. Worth it for EBCO — it is what
-lets one traversal answer "what else uses this material batch".
+13 labels, 111 edges, traversed to five hops. See above.
 
 ### 4. The similarity floor is tuned to four documents
 
@@ -81,9 +166,11 @@ re-measured** as the estate grows.
 
 - **Curator** — the fifth agent. Approval of mappings is entirely manual. The
   cut order in `CLAUDE.md` allows it to become a batch script.
-- **Background volume** — ~5,000 equipment, ~20,000 work orders over the golden
-  path. Everything currently runs on 130 rows, so nothing has been tested at
-  any scale.
+- **Traversal is not wired into any agent.** `app/bigquery/traversal.py` works
+  and is tested, but the detection chain still answers its four questions with
+  joins, and parity depends on that. Connecting it to the spare-part impact
+  radius is the obvious next step and touches figures that reach the memo, so it
+  needs a parity re-run, not just a green test suite.
 - **Agent Engine with our own image.** `image_spec` builds and the resource comes
   up, but exposes no query surface: `class_methods` is empty, `agent_framework`
   is `custom`, and both `:query` and `:streamQuery` return 404 because our

@@ -17,26 +17,39 @@ from dataclasses import dataclass
 
 from google.cloud import bigquery
 
+from app.bigquery import config
 from app.retrieval.embedding import DIMENSION, embed, embed_one
 
 logger = logging.getLogger(__name__)
 
-PROJECT = "ebco-aihack-amanda"
-DATASET = "arka_graph"
+# Project and dataset resolve through `app.bigquery.config` so the embedding
+# index lands beside the canonical mirror rather than in a dataset of its own.
+# Splitting them would mean a question could match a chunk whose case no longer
+# exists — the copy-goes-stale failure in a new costume.
 TABLE = "document_chunks_embedded"
 
 # Below this similarity a hit is noise dressed as an answer. Returning nothing is
 # a valid outcome; returning the least-bad match is how a system starts lying
 # confidently.
 #
-# Calibrated by measurement on 11 August, not chosen by feel. In-domain questions
-# phrased with entirely different words scored 0.61–0.72; an out-of-domain
-# question ("harga saham minggu ini") still reached 0.56, because a 3072-dimension
-# model over a four-document corpus leaves little room between everything.
+# Re-measured on 11 August against `gemini-embedding-2`, after the model change
+# invalidated the figures taken from `gemini-embedding-001`:
 #
-# ⚠️ This number is a property of the corpus, not of the model. It must be
-# re-measured when the document estate grows — a threshold tuned on four
-# documents will not hold on four thousand.
+#     in-domain   0.6359  "kenapa produk merembes saat pengisian?"
+#                 0.7703  "apa penyebab torsi kepala pengisi menyimpang?"
+#                 0.7542  "seal bocor di mesin filler"
+#     out-domain  0.5466  "harga saham minggu ini"
+#                 0.4834  "resep rendang padang"
+#
+# The gap runs 0.5466 → 0.6359, so 0.60 sits inside it with room on both sides.
+# The number is unchanged from the previous model, which is a coincidence worth
+# stating plainly rather than a reason to have skipped the measurement: the new
+# model separates in-domain from out-of-domain more widely, and had it separated
+# them less, 0.60 would have started admitting noise with nothing to announce it.
+#
+# ⚠️ Still a property of the corpus. Four documents is a small estate, and a
+# threshold tuned on four will not hold on four thousand — re-measure with this
+# same method (paraphrases in, nonsense out) as the estate grows.
 MIN_SIMILARITY = 0.60
 
 
@@ -53,7 +66,7 @@ class SemanticHit:
 
 
 def _client() -> bigquery.Client:
-    return bigquery.Client(project=PROJECT)
+    return bigquery.Client(project=config.project())
 
 
 def build_index(chunks: list[dict]) -> int:
@@ -85,7 +98,7 @@ def build_index(chunks: list[dict]) -> int:
     ]
     job = client.load_table_from_json(
         rows,
-        f"{PROJECT}.{DATASET}.{TABLE}",
+        f"{config.dataset_ref()}.{TABLE}",
         job_config=bigquery.LoadJobConfig(
             schema=schema, write_disposition="WRITE_TRUNCATE"
         ),
@@ -109,7 +122,7 @@ def search(question: str, limit: int = 5) -> list[SemanticHit]:
     SELECT base.document_id, base.title, base.document_type, base.content,
            base.page_number, 1 - distance AS similarity
     FROM VECTOR_SEARCH(
-      TABLE `{PROJECT}.{DATASET}.{TABLE}`, 'embedding',
+      TABLE `{config.dataset_ref()}.{TABLE}`, 'embedding',
       (SELECT @q AS embedding),
       top_k => @k, distance_type => 'COSINE'
     )

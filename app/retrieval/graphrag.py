@@ -21,11 +21,10 @@ from dataclasses import dataclass, field
 
 from google.cloud import bigquery
 
-from app.retrieval.vector_store import PROJECT, SemanticHit, search
+from app.bigquery import config
+from app.retrieval.vector_store import SemanticHit, search
 
 logger = logging.getLogger(__name__)
-
-DATASET = "arka_graph"
 
 # A context that grows without limit stops being context. Beyond this, the
 # earlier hits crowd out the later ones and nobody can tell which sentence the
@@ -68,33 +67,36 @@ class RetrievedContext:
 
 
 def _client() -> bigquery.Client:
-    return bigquery.Client(project=PROJECT)
+    return bigquery.Client(project=config.project())
 
 
 def _facts_for(terms: list[str]) -> list[GraphFact]:
-    """Traverse the property graph for cases related to the question's terms.
+    """Walk equipment → failure event → cause for the question's terms.
 
-    `GRAPH_EXPAND` walks equipment → failure event; the verified cause is joined
-    alongside. This runs on on-demand pricing — the Enterprise reservation is
-    required for GQL syntax, not for traversal.
+    Written as joins over the canonical mirror rather than `GRAPH_EXPAND`. The
+    property graph earns its keep on questions shaped like traversals — which
+    plants run a part, which technicians touched a cause — where the number of
+    hops is the question. This one is a filter over three tables that happen to
+    be connected, and saying so in SQL is both cheaper and easier to check.
     """
     if not terms:
         return []
 
     sql = f"""
-    WITH graf AS (SELECT * FROM GRAPH_EXPAND('{DATASET}.arka_kg'))
-    SELECT g.equipment_tag, g.equipment_plant AS plant,
-           g.failure_events_status AS status,
-           g.failure_events_started_on AS occurred_on,
-           ANY_VALUE(c.cause_name) AS cause_name
-    FROM graf g
-    LEFT JOIN `{PROJECT}.{DATASET}.failure_causes` c
-      ON c.failure_id = g.failure_events_id
+    SELECT e.tag_number AS equipment_tag, p.name AS plant, f.status,
+           CAST(DATE(f.started_at) AS STRING) AS occurred_on,
+           ANY_VALUE(cs.name) AS cause_name
+    FROM {config.table_ref("failure_events")} f
+    JOIN {config.table_ref("equipment")} e ON e.id = f.equipment_id
+    JOIN {config.table_ref("production_lines")} l ON l.id = e.production_line_id
+    JOIN {config.table_ref("plants")} p ON p.id = l.plant_id
+    LEFT JOIN {config.table_ref("failure_event_causes")} fc ON fc.failure_event_id = f.id
+    LEFT JOIN {config.table_ref("causes")} cs ON cs.id = fc.cause_id
     WHERE EXISTS (
       SELECT 1 FROM UNNEST(@terms) t
-      WHERE LOWER(g.equipment_tag) LIKE CONCAT('%', LOWER(t), '%')
-         OR LOWER(g.equipment_plant) LIKE CONCAT('%', LOWER(t), '%')
-         OR LOWER(IFNULL(c.cause_name, '')) LIKE CONCAT('%', LOWER(t), '%')
+      WHERE LOWER(e.tag_number) LIKE CONCAT('%', LOWER(t), '%')
+         OR LOWER(p.name) LIKE CONCAT('%', LOWER(t), '%')
+         OR LOWER(IFNULL(cs.name, '')) LIKE CONCAT('%', LOWER(t), '%')
     )
     GROUP BY 1, 2, 3, 4
     ORDER BY occurred_on DESC

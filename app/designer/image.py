@@ -35,7 +35,7 @@ def _client() -> Any:
     try:
         from openai import OpenAI
     except ImportError as exc:  # pragma: no cover - dependency is declared
-        raise DrawingUnavailable(f"knowledge_base penggambar tidak terpasang: {exc}") from exc
+        raise DrawingUnavailable(f"pustaka penggambar tidak terpasang: {exc}") from exc
 
     return OpenAI(api_key=settings.image_api_key, timeout=settings.image_timeout_seconds)
 

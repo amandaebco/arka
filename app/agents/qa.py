@@ -198,7 +198,7 @@ async def periksa_infografis(tool_context: ToolContext) -> str:
             if item.quantity and not item.value:
                 defects.append(f"Blok `{block_id}` membawa kuantitas tanpa nilai tertulis.")
 
-    # 3. Tepat one blok dominant. Halaman tanpa titik fokus tidak punya pintu masuk.
+    # 3. Tepat satu blok dominan. Halaman tanpa titik fokus tidak punya pintu masuk.
     emphasis = spec.get("emphasis") or {}
     dominant = [b for b, t in emphasis.items() if t == "dominant"]
     if len(dominant) > 1:
@@ -214,7 +214,7 @@ async def periksa_infografis(tool_context: ToolContext) -> str:
         if position > 2:
             defects.append(
                 "Temuan ini perlu eskalasi, tetapi `kandidat_penyebab` tidak berada "
-                "di parts awal halaman."
+                "di bagian awal halaman."
             )
 
     # 5. Blok tanpa isi tidak boleh diminta tampil.
@@ -258,7 +258,7 @@ def _comes_from(value: str, source_text: str) -> bool:
     """Apakah sebuah string berasal dari temuan.
 
     Label yang disusun lapisan penyusun (mis. "Gejala", "Langkah 2") tidak ada di
-    temuan sebagai text utuh, jadi yang diperiksa adalah kata-kata isinya. Sebuah
+    temuan sebagai teks utuh, jadi yang diperiksa adalah kata-kata isinya. Sebuah
     string dianggap sah bila seluruh kata panjangnya muncul di temuan — cukup
     ketat untuk menangkap kalimat karangan, cukup longgar untuk memaafkan label
     struktural.
@@ -271,7 +271,7 @@ def _comes_from(value: str, source_text: str) -> bool:
 
 
 async def periksa_teks_tergambar(tool_context: ToolContext) -> str:
-    """Membaca infografis yang sudah tergambar dan menandai text yang tidak allowed.
+    """Membaca infografis yang sudah tergambar dan menandai teks yang tidak disetujui.
 
     Pemeriksaan lain membandingkan isi kanvas terhadap temuan — one tahap
     **sebelum** penggambaran. Alat ini membaca gambarnya sendiri, karena justru
@@ -282,7 +282,7 @@ async def periksa_teks_tergambar(tool_context: ToolContext) -> str:
         tool_context: Disuntikkan ADK.
 
     Returns:
-        Daftar text yang tampil tetapi tidak berasal dari isi kanvas, atau
+        Daftar teks yang tampil tetapi tidak berasal dari isi kanvas, atau
         pernyataan bahwa seluruh text tergambar memang allowed.
     """
     finding = _temuan(tool_context)
@@ -427,7 +427,7 @@ dikirim ke manusia, atau harus diperbaiki dulu.
 
 # LANGKAH
 1. Panggil `periksa_dokumen`. Hasilnya fakta, bukan pendapat — jangan dibantah.
-3. Di atas kedua outcome itu, timbang hal yang memang butuh pertimbangan:
+3. Di atas kedua hasil itu, timbang hal yang memang butuh pertimbangan:
    - Apakah urutan blok masuk akal bagi pembaca yang sibuk?
    - Apakah narasi menjelaskan makna, atau cuma mengulang isi tabel?
    - Untuk temuan yang perlu eskalasi: apakah pembaca segera paham bahwa ada
@@ -469,11 +469,11 @@ dikirim ke manusia, atau harus disusun ulang dulu.
 
 # LANGKAH
 1. Panggil `periksa_infografis` — memeriksa isi kanvas terhadap temuan.
-2. Panggil `periksa_teks_tergambar` — membaca gambarnya dan menandai text yang
+2. Panggil `periksa_teks_tergambar` — membaca gambarnya dan menandai teks yang
    tidak berasal dari isi kanvas. Ini pemeriksaan yang paling menentukan:
    penggambar bisa menambahkan chip atau label yang tidak pernah diminta.
-3. Di atas kedua outcome itu, timbang hal yang memang butuh pertimbangan:
-   - Apakah blok yang dominant memang yang paling penting bagi pembaca temuan ini?
+3. Di atas kedua hasil itu, timbang hal yang memang butuh pertimbangan:
+   - Apakah blok yang dominan memang yang paling penting bagi pembaca temuan ini?
    - Untuk temuan berkeyakinan rendah: apakah halaman terlihat lebih yakin
      daripada temuannya? Itu defects, bukan gaya.
    - Apakah bentuk visual yang dipilih menolong, atau justru menambah beban baca?
@@ -485,7 +485,7 @@ dikirim ke manusia, atau harus disusun ulang dulu.
      halaman belum dapat diverifikasi. Pemeriksaan yang tidak berjalan bukan
      pemeriksaan yang lulus.
    - Ada yang perlu diperbaiki → panggil `minta_perbaikan` dengan perbaikan yang
-     konkret: sebut blok dan penekanan atau bentuk yang seharusnya. Untuk text
+     konkret: sebut blok dan penekanan atau bentuk yang seharusnya. Untuk teks
      karangan, minta batasan eksplisit yang melarang elemen itu.
 
 # BATAS
@@ -530,11 +530,11 @@ designer_terjaga = LoopAgent(
 )
 
 
-# Rangkaian penuh dari one temuan ke dua artefak. Urutannya bukan selera:
+# Rangkaian penuh dari satu temuan ke dua artefak. Urutannya bukan selera:
 # `designer` membaca blok yang dipilih `reporter` dari state, jadi reporter harus
 # selesai lebih dulu. Menjalankannya paralel akan membuat designer menebak.
 #
-# Kegagalan pada one tahap tidak menghentikan tahap berikutnya — dokumen yang
+# Kegagalan pada satu tahap tidak menghentikan tahap berikutnya — dokumen yang
 # terbit tanpa infografis tetap berguna, dan sebaliknya. Yang tidak boleh terjadi
 # adalah keduanya gagal diam-diam; itulah sebabnya tiap tool melaporkan
 # kegagalannya apa adanya alih-alih mengembalikan outcome separuh jadi.

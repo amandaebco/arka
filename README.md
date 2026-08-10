@@ -74,6 +74,20 @@ mentranskripsi halaman yang sudah jadi, lalu kode memutuskan teks mana yang berw
 (`app/designer/inspection.py`). Pemeriksaan yang tidak berjalan diperlakukan sebagai gagal,
 bukan lulus.
 
+Vonisnya dibedakan dua tingkat, karena dua hal berbeda pernah diperlakukan sama beratnya.
+**Karangan** — teks yang tidak punya padanan di isi kanvas, seperti chip "Lokasi Fungsional"
+yang diangkat dari judul dokumen — memblokir penerbitan. **Cacat cetak** — teks berwenang
+yang salah eja, seperti "Catatan Teknis" untuk "Catatan Teknisi" — dilaporkan dan tercatat di
+jejak, tapi tidak memblokir: menggambar ulang tidak dapat diandalkan memperbaiki satu huruf,
+dan dua run pernah menghabiskan seluruh jatah tiga putaran karenanya. Toleransinya sempit
+(≥ 12 karakter, kemiripan ≥ 0,9), sehingga kata pendek seperti "Sedang" tetap dihitung karangan.
+
+**Bentuk kartu mengikuti data, bukan nama blok.** `app/designer/forms.py` menyaring 17 pola
+visualisasi terhadap isi tiap kartu — berapa butir, mana yang punya angka sungguhan, tanggal,
+atau tingkat — lalu designer memilih dari yang tersisa. Kartu yang tidak punya tanggal tidak
+akan pernah ditawari linimasa, sehingga halaman tidak perlu mengarang stempel waktu untuk
+mengisinya.
+
 **Jejak audit.** Satu folder per penerbitan di `out/infografis/<stempel>-<temuan>/`, berisi
 temuan, isi kanvas, spesifikasi, prompt, halaman, dan hasil tiap putaran. Karena gambar tidak
 bisa direproduksi byte demi byte, jejak inilah catatannya. Bila `ARTIFACT_GCS_BUCKET` disetel,
