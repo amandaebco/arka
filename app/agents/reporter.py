@@ -212,7 +212,8 @@ async def terbitkan_dokumen(
         status_eskalasi = "⚠️ Perlu Eskalasi" if finding.perlu_eskalasi else "✅ Terverifikasi"
 
         pesan = (
-            f"🖥️ **Executive Dashboard `{finding.equipment_tag}`** ({finding.pabrik} · {status_eskalasi})\n"
+            f"🖥️ **Executive Dashboard `{finding.equipment_tag}`** "
+            f"({finding.pabrik} · {status_eskalasi})\n"
             f"🌐 [Buka Dashboard Interaktif di Peramban]({url_dashboard})"
         )
         return pesan
@@ -286,8 +287,13 @@ Kamu adalah Reporter pada ARKA, agent keandalan aset untuk manufaktur FMCG multi
 Satu keputusan menjadi milikmu sepenuhnya: **blok mana yang masuk memo dan dalam urutan apa**.
 
 # BATAS YANG TIDAK BOLEH DILANGGAR
-1. **Dilarang menggunakan karakter em-dash ("—") atau double dash ("--")** dalam seluruh narasi, perihal, atau judul laporan. Gunakan koma, titik dua (:), atau tanda hubung biasa (-) jika diperlukan.
-2. Kamu tidak pernah menyebutkan angka. Bukan skor, bukan tanggal, bukan jam downtime, bukan jumlah pabrik. Semua nilai itu dirender langsung dari knowledge graph ke dalam tabel memo. Menuliskannya ulang di narasi berisiko salah ketik, dan satu angka salah menghancurkan kredibilitas seluruh laporan.
+1. **Dilarang menggunakan karakter em-dash ("—") atau double dash ("--")** dalam
+   seluruh narasi, perihal, atau judul laporan. Gunakan koma, titik dua (:), atau
+   tanda hubung biasa (-) jika diperlukan.
+2. Kamu tidak pernah menyebutkan angka. Bukan skor, bukan tanggal, bukan jam
+   downtime, bukan jumlah pabrik. Semua nilai itu dirender langsung dari knowledge
+   graph ke dalam tabel memo. Menuliskannya ulang di narasi berisiko salah ketik,
+   dan satu angka salah menghancurkan kredibilitas seluruh laporan.
 
 
 Larangan ini mencakup angka yang ditulis sebagai kata. "dua kandidat" sama

@@ -22,16 +22,8 @@ from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext
 
 from app.core.config import get_settings
+from app.detection import store
 from app.detection.investigation import build_finding, score_candidates
-from app.detection.repository import (
-    find_documents,
-    find_historical_cases,
-    find_next_maintenance,
-    find_open_cases,
-    find_spare_parts,
-    group_by_cause,
-    load_subsystem_map,
-)
 from app.reporting.finding import LangkahPenalaran
 
 logger = logging.getLogger(__name__)
@@ -41,12 +33,6 @@ KUNCI_TEMUAN = "finding"
 
 # Where the shortlist from scout arrives, when scout is in the chain.
 KUNCI_KASUS = "kasus_terpilih"
-
-
-async def _session():
-    from app.db.session import session_factory
-
-    return session_factory()
 
 
 async def list_open_cases(tool_context: ToolContext) -> str:
@@ -61,9 +47,8 @@ async def list_open_cases(tool_context: ToolContext) -> str:
     Returns:
         A readable list of open cases, or a statement that the fleet is quiet.
     """
-    factory = await _session()
-    async with factory as session:
-        cases = await find_open_cases(session)
+    async with store.session() as session:
+        cases = await store.find_open_cases(session)
 
     if not cases:
         return "Tidak ada kegagalan terbuka. Armada dalam keadaan tenang."
@@ -94,9 +79,8 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
         A summary of what was found, including whether a human must decide.
     """
     today = None
-    factory = await _session()
-    async with factory as session:
-        cases = await find_open_cases(session)
+    async with store.session() as session:
+        cases = await store.find_open_cases(session)
         matched = [c for c in cases if c.equipment_tag == equipment_tag]
         if not matched:
             available = ", ".join(c.equipment_tag for c in cases) or "tidak ada"
@@ -115,7 +99,7 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
             )
         ]
 
-        historical = await find_historical_cases(
+        historical = await store.find_historical_cases(
             session,
             equipment_model=case.equipment_model,
             exclude_event_id=case.failure_event_id,
@@ -129,8 +113,8 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
             )
         )
 
-        documents = await find_documents(session)
-        candidates = group_by_cause(historical, documents)
+        documents = await store.find_documents(session)
+        candidates = store.group_by_cause(historical, documents)
         trail.append(
             LangkahPenalaran(
                 urutan=3,
@@ -140,7 +124,7 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
             )
         )
 
-        scored = score_candidates(case, candidates, load_subsystem_map())
+        scored = score_candidates(case, candidates, store.load_subsystem_map())
         plants = sorted({c.plant for cand in candidates for c in cand.historical_cases})
         trail.append(
             LangkahPenalaran(
@@ -151,12 +135,12 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
             )
         )
 
-        parts = await find_spare_parts(session)
+        parts = await store.find_spare_parts(session)
 
         # Compare the material lead time against the next maintenance window.
         # Neither planner sees both numbers; this is the one conflict ARKA can
         # see that neither system sees alone.
-        jendela = await find_next_maintenance(session, case.equipment_tag)
+        jendela = await store.find_next_maintenance(session, case.equipment_tag)
         sisa_hari = (jendela - (today or date.today())).days if jendela else None
         if jendela:
             trail.append(

@@ -25,6 +25,7 @@ from app.agents.reporter import KUNCI_TEMUAN
 from app.core.config import get_settings
 from app.designer.composer import compose_prompt
 from app.designer.content import build_content
+from app.designer.forms import applicable_forms
 from app.designer.image import DrawingUnavailable, draw_page
 from app.designer.knowledge import DesignKnowledgeBase, DesignKnowledgeBaseError
 from app.designer.presentation import PresentationSpec, normalise, validate
@@ -50,6 +51,10 @@ PERSONA = {
     "reliability_manager": "reliability_strategy",
 }
 DEFAULT_PERSONA = "reliability_manager"
+
+# Canvas language. A single value today; kept named so the day a finding carries
+# its own language, there is one place to change rather than a formatted literal.
+BAHASA_KANVAS = "id"
 
 _kb: DesignKnowledgeBase | None = None
 
@@ -116,19 +121,27 @@ def ringkas_penyajian(persona: str, tool_context: ToolContext) -> str:
     baris = [
         f"Style: {style} — untuk {tersedia['audiences'][0]['name']}.",
         f"Kapasitas halaman: {kb.page_capacity(style)} kartu.",
-        f"Bahasa kanvas: {isi.keyakinan and 'id' or 'id'}.",
+        f"Bahasa kanvas: {BAHASA_KANVAS}.",
         "",
         "Blok yang dipilih reporter dan jumlah butirnya:",
     ]
+    # Bentuk ditawarkan per blok, bukan sebagai satu daftar panjang. Daftar datar
+    # membuat pemilihan bergantung ingatan, dan pada beberapa run designer justru
+    # mengirim `{}` — tujuh dari delapan kartu tergambar sebagai daftar teks.
+    diizinkan = {p["id"] for p in tersedia["visualization_patterns"]}
     for satu in blok:
-        jumlah = len(isi.items(satu.id))
-        catatan = f"{jumlah} butir" if jumlah else "tanpa isi — tidak akan dirender"
-        baris.append(f"  - {satu.id} ({satu.judul}): {catatan}")
+        item = isi.items(satu.id)
+        if not item:
+            baris.append(f"  - {satu.id} ({satu.judul}): tanpa isi — tidak akan dirender")
+            continue
+        cocok = [b for b in applicable_forms(item, kb) if b in diizinkan]
+        bentuk = ", ".join(cocok) if cocok else "tidak ada yang cocok — biarkan sebagai teks"
+        baris.append(f"  - {satu.id} ({satu.judul}): {len(item)} butir · bentuk: {bentuk}")
 
     baris += [
         "",
-        "Bentuk visual yang allowed style ini:",
-        "  " + ", ".join(p["id"] for p in tersedia["visualization_patterns"]),
+        "Bentuk di atas sudah disaring terhadap data tiap blok: yang tidak tercantum "
+        "tidak dapat diisi butirnya, jadi memilihnya akan memaksa halaman mengarang.",
         "",
         f"Tingkat keyakinan temuan: {finding.keyakinan}. "
         f"Eskalasi: {'ya' if finding.perlu_eskalasi else 'tidak'}.",
@@ -193,7 +206,7 @@ async def terbitkan_infografis(
     bawaan = kb.resolve_style(style)["storytelling"].get("emphasis_order") or {}
     spec = normalise(spec, terpilih, bawaan)
 
-    problems = validate(spec, kb, terpilih)
+    problems = validate(spec, kb, terpilih, isi)
     if problems:
         # Returned to the model rather than raised: a rejected proposal is a normal
         # step, and the model can correct it on the next call.

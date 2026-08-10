@@ -29,7 +29,17 @@ PROJECT = "ebco-aihack-amanda"
 DATASET = "arka_graph"
 LOCATION = "US"
 
-TABEL = ("plants", "equipment", "failure_events", "failure_symptoms", "failure_causes")
+TABEL = (
+    "plants",
+    "equipment",
+    "components",
+    "failure_events",
+    "failure_symptoms",
+    "failure_causes",
+    "documents",
+    "spare_parts",
+    "work_orders",
+)
 
 
 async def ambil_dari_postgres() -> dict[str, list[dict]]:
@@ -49,9 +59,11 @@ async def ambil_dari_postgres() -> dict[str, list[dict]]:
         """,
         "failure_events": """
             SELECT f.canonical_id AS id, e.canonical_id AS equipment_id,
-                   f.status, f.started_at::date::text AS started_on
+                   f.status, f.started_at::date::text AS started_on,
+                   f.downtime_minutes, c.component_type
             FROM failure_events f
             JOIN equipment e ON e.id = f.equipment_id
+            LEFT JOIN components c ON c.id = f.component_id
         """,
         "failure_symptoms": """
             SELECT f.canonical_id AS failure_id, s.code AS symptom_code
@@ -64,6 +76,37 @@ async def ambil_dari_postgres() -> dict[str, list[dict]]:
             FROM failure_event_causes fc
             JOIN failure_events f ON f.id = fc.failure_event_id
             JOIN causes c ON c.id = fc.cause_id
+        """,
+        "components": """
+            SELECT c.canonical_id AS id, c.component_type, e.canonical_id AS equipment_id,
+                   p.name AS plant
+            FROM components c
+            JOIN equipment e ON e.id = c.equipment_id
+            JOIN production_lines l ON l.id = e.production_line_id
+            JOIN plants p ON p.id = l.plant_id
+        """,
+        "documents": """
+            SELECT d.canonical_id AS id, d.title, d.document_type,
+                   ch.page_number, ch.content
+            FROM documents d
+            JOIN document_versions v ON v.document_id = d.id
+            JOIN document_chunks ch ON ch.document_version_id = v.id
+        """,
+        "spare_parts": """
+            SELECT part_number, name, component_type,
+                   static_criticality::float8 AS static_criticality,
+                   lead_time_weeks, vendor_count, primary_vendor
+            FROM spare_parts
+        """,
+        "work_orders": """
+            SELECT w.canonical_id AS id, e.tag_number AS equipment_tag,
+                   w.work_order_type, w.status, w.description,
+                   w.scheduled_start_at::date::text AS scheduled_on,
+                   f.canonical_id AS failure_id
+            FROM work_orders w
+            JOIN equipment e ON e.id = w.equipment_id
+            LEFT JOIN work_order_failure_events wf ON wf.work_order_id = w.id
+            LEFT JOIN failure_events f ON f.id = wf.failure_event_id
         """,
     }
 

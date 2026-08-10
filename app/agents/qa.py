@@ -33,6 +33,7 @@ from google.adk.tools.tool_context import ToolContext
 
 from app.agents.designer import (
     KUNCI_BERKAS_INFOGRAFIS,
+    KUNCI_JEJAK,
     KUNCI_SPESIFIKASI,
     designer_agent,
     knowledge_base,
@@ -44,8 +45,9 @@ from app.designer.inspection import (
     InspectionUnavailable,
     authorised_strings,
     read_page_text,
-    unauthorised_text,
+    review_text,
 )
+from app.designer.trail import record_verdict
 from app.reporting.blocks import susun_blok
 from app.reporting.finding import Finding
 from app.reporting.narasi import memuat_angka
@@ -138,7 +140,10 @@ async def periksa_dokumen(tool_context: ToolContext) -> str:
         return "LULUS — tidak ada cacat objektif pada dokumen terakhir."
 
     logger.info("Pemeriksaan menemukan %d cacat", len(defects))
-    return "Cacat yang ditemukan:\n" + "\n".join(f"- {c}" for c in defects)
+    return _catat(
+        tool_context, "struktur",
+        "Cacat yang ditemukan:\n" + "\n".join(f"- {c}" for c in defects),
+    )
 
 
 async def periksa_infografis(tool_context: ToolContext) -> str:
@@ -218,7 +223,10 @@ async def periksa_infografis(tool_context: ToolContext) -> str:
             defects.append(f"Blok `{block_id}` diminta tampil padahal tidak punya isi.")
 
     if not defects:
-        return "LULUS — tidak ada cacat objektif pada infografis terakhir."
+        return _catat(
+            tool_context, "struktur",
+            "LULUS — tidak ada cacat objektif pada infografis terakhir.",
+        )
 
     logger.info("Pemeriksaan infografis menemukan %d defects", len(defects))
     return "Cacat yang ditemukan:\n" + "\n".join(f"- {c}" for c in defects)
@@ -298,7 +306,7 @@ async def periksa_teks_tergambar(tool_context: ToolContext) -> str:
     if parts is None or not getattr(parts, "inline_data", None):
         return f"Artifact `{nama}` tidak memuat gambar."
 
-    # Daftar text yang boleh tampil disusun di one tempat — dipakai bersama
+    # Daftar teks yang boleh tampil disusun di satu tempat — dipakai bersama
     # skrip pengembangan, supaya tidak ada dua versi yang berbeda diam-diam.
     blok = [b for b in susun_blok(finding).values() if b.tersedia]
     isi = build_content(blok)
@@ -317,24 +325,58 @@ async def periksa_teks_tergambar(tool_context: ToolContext) -> str:
     try:
         tergambar = read_page_text(parts.inline_data.data)
     except InspectionUnavailable as exc:
-        # Pembaca yang gagal tidak boleh terlihat seperti halaman yang clean.
+        # Pembaca yang gagal tidak boleh terlihat seperti halaman yang bersih.
         logger.error("Pembacaan halaman gagal: %s", exc)
-        return (
+        return _catat(
+            tool_context,
+            "teks_tergambar",
             f"Halaman tidak dapat dibaca ({exc}). Jangan menyatakan infografis "
-            "layak kirim: pemeriksaan text tergambar belum pernah berhasil."
+            "layak kirim: pemeriksaan teks tergambar belum pernah berhasil.",
         )
 
-    unknown = unauthorised_text(tergambar, allowed)
-    if not unknown:
-        return (
+    karangan, cacat_cetak = review_text(tergambar, allowed)
+    catatan = ""
+    if cacat_cetak:
+        # Dilaporkan, tidak memblokir. Salah eja pada teks yang jelas-jelas
+        # disetujui adalah cacat cetak, dan menggambar ulang tidak dapat
+        # diandalkan memperbaikinya — dua run menghabiskan tiga putaran karena
+        # satu huruf yang hilang.
+        catatan = "\n\nCacat cetak (tidak menghalangi terbit):\n" + "\n".join(
+            f"- {a}" for a in cacat_cetak
+        )
+
+    if not karangan:
+        return _catat(
+            tool_context,
+            "teks_tergambar",
             f"LULUS — {len(tergambar)} teks terbaca pada halaman, seluruhnya "
-            "berasal dari isi kanvas."
+            f"berasal dari isi kanvas.{catatan}",
         )
 
-    logger.info("Teks tak disetujui pada halaman: %d", len(unknown))
-    return "Teks yang tampil tetapi tidak berasal dari isi kanvas:\n" + "\n".join(
-        f"- “{a}”" for a in unknown
+    logger.info("Teks tak disetujui pada halaman: %d", len(karangan))
+    return _catat(
+        tool_context,
+        "teks_tergambar",
+        "Teks yang tampil tetapi tidak berasal dari isi kanvas:\n"
+        + "\n".join(f"- “{a}”" for a in karangan)
+        + catatan,
     )
+
+
+def _catat(tool_context: ToolContext, tahap: str, vonis: str) -> str:
+    """Record a verdict in the run's trail, and hand it back unchanged.
+
+    Returns the verdict so call sites stay single-expression returns: a check
+    whose result is recorded and a check whose result is returned must not be
+    able to drift apart.
+    """
+    jejak = tool_context.state.get(KUNCI_JEJAK)
+    if jejak:
+        try:
+            record_verdict(jejak, tahap, vonis)
+        except Exception as exc:  # noqa: BLE001 — evidence, never the critical path
+            logger.warning("Vonis %s gagal dicatat ke jejak: %s", tahap, exc)
+    return vonis
 
 
 def selesai(alasan: str, tool_context: ToolContext) -> str:
@@ -352,14 +394,14 @@ def selesai(alasan: str, tool_context: ToolContext) -> str:
     tool_context.actions.escalate = True
     tool_context.state[KUNCI_MASUKAN] = ""
     logger.info("Penilai menghentikan putaran: %s", alasan)
-    return f"Dokumen dinyatakan layak kirim. {alasan}"
+    return _catat(tool_context, "putusan", f"Dokumen dinyatakan layak kirim. {alasan}")
 
 
 def minta_perbaikan(masukan: str, tool_context: ToolContext) -> str:
     """Meneruskan perbaikan yang harus dikerjakan reporter pada putaran berikutnya.
 
     Args:
-        masukan: Perbaikan konkret, one per lines. Sebutkan blok atau parts
+        masukan: Perbaikan konkret, satu per baris. Sebutkan blok atau bagian
             yang dimaksud, bukan penilaian umum seperti "kurang bagus".
         tool_context: Disuntikkan ADK.
 
@@ -368,6 +410,7 @@ def minta_perbaikan(masukan: str, tool_context: ToolContext) -> str:
     """
     tool_context.state[KUNCI_MASUKAN] = masukan
     logger.info("Penilai meminta perbaikan")
+    _catat(tool_context, "perbaikan_diminta", masukan)
     return "Masukan diteruskan ke reporter untuk putaran berikutnya."
 
 
@@ -404,7 +447,7 @@ Kamu juga tidak pernah menyebut angka. Kalau reporter salah menaruh angka di
 narasi, katakan "narasi blok X memuat angka", bukan angkanya berapa.
 
 # BAHASA
-Bahasa Indonesia, ringkas, spesifik. Sebut blok atau parts yang kamu maksud.
+Bahasa Indonesia, ringkas, spesifik. Sebut blok atau bagian yang kamu maksud.
 """,
 )
 

@@ -24,14 +24,8 @@ from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext
 
 from app.core.config import get_settings
+from app.detection import store
 from app.detection.investigation import rank_screened, screen_case
-from app.detection.repository import (
-    find_documents,
-    find_historical_cases,
-    find_open_cases,
-    group_by_cause,
-    load_subsystem_map,
-)
 from app.detection.scoring import THRESHOLD_IGNORE
 
 logger = logging.getLogger(__name__)
@@ -53,25 +47,23 @@ async def scan_fleet(tool_context: ToolContext) -> str:
     Returns:
         The shortlist with each case's decision, plus how many were skipped.
     """
-    from app.db.session import session_factory
-
-    async with session_factory() as session:
-        open_cases = await find_open_cases(session)
+    async with store.session() as session:
+        open_cases = await store.find_open_cases(session)
         if not open_cases:
             tool_context.state[KUNCI_KASUS] = []
             return "Tidak ada kegagalan terbuka di seluruh armada. Tidak ada yang perlu diselidiki."
 
-        documents = await find_documents(session)
-        subsystems = load_subsystem_map()
+        documents = await store.find_documents(session)
+        subsystems = store.load_subsystem_map()
 
         screened = []
         for case in open_cases:
-            historical = await find_historical_cases(
+            historical = await store.find_historical_cases(
                 session,
                 equipment_model=case.equipment_model,
                 exclude_event_id=case.failure_event_id,
             )
-            candidates = group_by_cause(historical, documents)
+            candidates = store.group_by_cause(historical, documents)
             screened.append(screen_case(case, candidates, subsystems))
 
     ranked = rank_screened(screened)
