@@ -337,52 +337,71 @@ Prinsip ini mengikuti praktik yang berlaku di lingkungan industri: knowledge gra
 ## Menjalankan
 
 ### Prasyarat
-Docker & Docker Compose · Python 3.12+ · akses project GCP dengan Vertex AI aktif
+Docker & Docker Compose · Python 3.12+ · `uv` · akses project GCP dengan Vertex AI dan BigQuery aktif
 
 ### Langkah
 
 ```bash
 # 1. Konfigurasi
 cp .env.example .env        # isi kredensial database & Vertex AI
+uv sync
 
-# 2. Jalankan database (PostgreSQL + AGE)
+# 2. Jalankan PostgreSQL (tempat generator menulis)
 docker compose up -d
+uv run alembic upgrade head
 
-# 3. Migrasi skema
-alembic upgrade head
+# 3. Bangkitkan data sintetis — jalur emas + volume latar
+uv run python -m app.synthetic.generator --reset --volume-latar
 
-# 4. Bangkitkan data sintetis
-python -m app.synthetic.generator --scale 1x
+# 4. Salin ke BigQuery, bangun node & edge, lalu verifikasi kedua sisi
+uv run python scripts/migrasi_bigquery.py
+uv run python scripts/migrasi_bigquery.py --verify
 
-# 5. Proyeksikan graph
-python -m app.graph.project
+# 5. Indeks embedding dokumen (memanggil model; sekali saja)
+uv run python scripts/migrasi_bigquery.py --index
+```
 
-# 6. Jalankan API
-uvicorn app.main:app --reload
+PostgreSQL diperlukan karena **generator sintetis menulis ke sana** — ia alat waktu-pengembangan dan tidak ikut ter-deploy. Di penerapan nyata data sudah berada di BigQuery dan langkah 2–4 hilang seluruhnya.
+
+Sumber data bawaannya BigQuery. Kedua titik masuk **menolak jalan** bila salinan BigQuery tidak sepadan dengan PostgreSQL, sehingga jawaban dari data basi tidak mungkin terbit diam-diam:
+
+```bash
+ARKA_STORE=postgres uv run python scripts/run_chain.py   # paksa jalur lokal
 ```
 
 ### Menjalankan agent
 
 ```bash
 # Rantai penuh: pindai armada, selidiki yang terpilih, terbitkan dokumen
-python scripts/run_chain.py
+uv run python scripts/run_chain.py
 
 # Satu aset tertentu
-python scripts/run_chain.py --tag PLT-U/FIL-207
+uv run python scripts/run_chain.py --tag PLT-U/FIL-207
 
 # Pemindaian terjadwal — deterministik, tanpa memanggil model
-python scripts/pindai_terjadwal.py
+uv run python scripts/pindai_terjadwal.py
+```
 
-# Membuktikan jalur produksi di BigQuery Graph
-python scripts/uji_bigquery_graph.py
+Penelusuran multi-hop di knowledge graph:
+
+```python
+from app.bigquery.traversal import traverse
+
+for jalur in traverse("SparePart", "SP-SEAL-8801", max_hops=5, only_label="Plant"):
+    print(jalur.as_sentence())
+# SP-SEAL-8801 -[DIPASOK_OLEH⁻¹]-> seal -[MEMILIKI_KOMPONEN⁻¹]-> PLT-B/FIL-204
+#              -[MEMILIKI_EQUIPMENT⁻¹]-> Lini Pengisian 1 — Pabrik Barat
+#              -[MEMILIKI_LINE⁻¹]-> Pabrik Barat
 ```
 
 ### Menjalankan test
 
 ```bash
-pytest
-ruff check .
+uv run pytest        # 364 tes
+uv run ruff check .
 ```
+
+Suite dikunci ke PostgreSQL lewat `tests/conftest.py`. Itu disengaja dan konsekuensinya disebut: tes yang membaca BigQuery menguji sinkronisasi terakhir, bukan kode yang sedang ditulis. **Jalur BigQuery karena itu tidak ditutup suite** — yang menjaganya pengujian paritas yang dijalankan tangan setelah tiap migrasi.
 
 ---
 

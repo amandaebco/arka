@@ -28,8 +28,9 @@ menyusunnya menjadi dokumen yang setiap klaimnya bisa ditelusuri ke sumber aslin
         └───────────────────┬──────────────────────────┘
                             │
         ┌───────────────────┴──────────────────────────┐
-        │   PostgreSQL 16 + Apache AGE + pgvector      │
-        │   public (kanonik) → arka_kg (graph)         │
+        │   BigQuery — 39 tabel kanonik (sumber)       │
+        │   graph_nodes / graph_edges · VECTOR_SEARCH  │
+        │   lokal: PostgreSQL 16 + Apache AGE          │
         └───────────────────┬──────────────────────────┘
                             │
         ┌───────────────────┴──────────────────────────┐
@@ -40,14 +41,22 @@ menyusunnya menjadi dokumen yang setiap klaimnya bisa ditelusuri ke sumber aslin
 ## Menjalankan
 
 ```bash
-cp .env.example .env          # isi kredensial
-docker compose up -d          # PostgreSQL + AGE + pgvector
-uv sync                       # dependensi
-alembic upgrade head          # skema
-python -m app.synthetic.generator --scale 1x
-python -m app.graph.project   # proyeksi graph
-uvicorn app.main:app --reload
+cp .env.example .env                       # isi kredensial
+uv sync                                    # dependensi
+docker compose up -d                       # PostgreSQL (tempat generator menulis)
+uv run alembic upgrade head                # skema
+
+uv run python -m app.synthetic.generator --reset --volume-latar
+uv run python scripts/migrasi_bigquery.py           # salin + bangun graph
+uv run python scripts/migrasi_bigquery.py --verify  # bandingkan kedua sisi
+uv run python scripts/migrasi_bigquery.py --index   # embedding dokumen
+
+uv run python scripts/run_chain.py         # scout → investigator → reporter
+uv run python scripts/pindai_terjadwal.py  # pemindaian, tanpa model
 ```
+
+Sumber data bawaannya **BigQuery** (`ARKA_STORE=postgres` untuk memaksa jalur lokal).
+Kedua titik masuk menolak jalan bila salinan BigQuery tidak sepadan dengan PostgreSQL.
 
 ## Infografis
 
