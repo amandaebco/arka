@@ -1,4 +1,24 @@
-"""Prove the production path: cross-plant precedent discovery on BigQuery Graph.
+"""⚠️ SUPERSEDED — kept as the record of an experiment, not as a working path.
+
+Use `scripts/migrasi_bigquery.py` instead. That script mirrors all 39 canonical
+tables into the `arka` dataset and builds the node/edge list the system actually
+traverses.
+
+This one writes to a **different dataset** (`arka_graph`) holding a flattened
+nine-table copy that nothing reads any more. Running it will not update anything
+the chain uses, and the counts it prints describe that old copy — not the graph.
+
+It is kept because what it measured is worth keeping: `CREATE PROPERTY GRAPH`
+and `GRAPH_EXPAND` both work on on-demand pricing, while `GRAPH … MATCH` demands
+an Enterprise reservation. What the experiment did **not** survive is the shape
+of the real graph — `GRAPH_EXPAND` refuses more than ten node tables, requires a
+single sink, and rejects convergent paths, and equipment is reachable both
+directly and through its components. That is why the shipped traversal is a
+recursive CTE over `app/bigquery/edges.py`.
+
+---
+
+Prove the production path: cross-plant precedent discovery on BigQuery Graph.
 
 The prototype runs on PostgreSQL + Apache AGE. For a production estate whose
 data already lives in BigQuery, the graph layer would move there — and the
