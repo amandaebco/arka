@@ -9,11 +9,31 @@ picks it up alongside the individual agents, which stay available for demoing
 one link at a time.
 """
 
-from google.adk.agents import SequentialAgent
+from copy import deepcopy
+
+from google.adk.agents import BaseAgent, SequentialAgent
 
 from app.agents.investigator import investigator_agent
 from app.agents.reporter import reporter_agent
 from app.agents.scout import scout_agent
+
+
+def _lepas(agent: BaseAgent) -> BaseAgent:
+    """Return a detached copy, so this chain never competes for ownership.
+
+    ADK lets an agent instance have exactly one parent. `reporter_agent` is also
+    a child of the quality loop in `app.agents.qa`, so whichever module was
+    imported second used to raise `already has a parent` and take its whole
+    endpoint down with it — `designer`, `reporter`, and `penerbitan` all returned
+    500 while `arka` happened to load first and survive.
+
+    Copying here rather than in `qa` keeps the fix where the duplication is: this
+    module is a thin serving wrapper, and the quality loop is the definition.
+    """
+    salinan = deepcopy(agent)
+    salinan.parent_agent = None
+    return salinan
+
 
 root_agent = SequentialAgent(
     name="arka",
@@ -21,5 +41,5 @@ root_agent = SequentialAgent(
         "Scans open equipment failures across the fleet, investigates the one "
         "that most deserves attention, and publishes the finding as a document."
     ),
-    sub_agents=[scout_agent, investigator_agent, reporter_agent],
+    sub_agents=[_lepas(scout_agent), _lepas(investigator_agent), _lepas(reporter_agent)],
 )
