@@ -44,7 +44,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assets import Component, Equipment, ProductionLine
 from app.models.maintenance import WorkOrder
-from app.models.reliability import FailureEvent
+from app.models.reliability import FailureEvent, FailureEventSymptom, Symptom
 from app.synthetic.jalur_emas import (
     PABRIK_ARMADA,
     SEKARANG,
@@ -97,6 +97,43 @@ GEJALA_BEBAS = (
     "Konsumsi arus meningkat",
     "Kebocoran pelumas ringan",
 )
+
+# Kosakata gejala dan penyebab untuk armada latar.
+#
+# Kodenya sengaja **tidak beririsan** dengan jalur emas: `symptom_overlap`
+# membandingkan himpunan kode, jadi satu kode yang sama akan membuat kegagalan
+# mixer menyumbang kemiripan pada kasus kepala pengisi.
+#
+# Ini ada supaya penolakan Scout berarti sesuatu. Tanpa gejala tercatat,
+# "18 diabaikan" hanya berarti 18 rekaman kosong — dan penyaring yang menolak
+# rekaman kosong tidak membuktikan apa pun tentang kemampuannya menimbang bukti.
+# Dengan gejala dan preseden yang benar-benar ada di armadanya sendiri, angka
+# yang keluar adalah skor sungguhan yang kebetulan di bawah ambang.
+GEJALA_LATAR: tuple[tuple[str, str], ...] = (
+    ("GJL-ARUS-NAIK", "Konsumsi arus motor meningkat"),
+    ("GJL-SUHU-BANTALAN", "Suhu bantalan di atas kebiasaan"),
+    ("GJL-SABUK-AUS", "Keausan tidak merata pada sabuk"),
+    ("GJL-PANEL-RESET", "Panel kendali melakukan reset sendiri"),
+    ("GJL-PELUMAS-BOCOR", "Rembesan pelumas di sekitar rumah bantalan"),
+    ("GJL-POSISI-MELESET", "Posisi henti meleset dari titik acuan"),
+)
+
+# ⚠️ Kegagalan latar **tidak** diberi penyebab terverifikasi, dan itu keputusan
+# yang diukur, bukan kelalaian.
+#
+# Percobaan pertama memberi mereka penyebab. Akibatnya armada latar punya
+# preseden berlimpah di modelnya sendiri — 100 unit semodel, gejala berulang
+# dari kosakata sempit — sehingga kasus palletiser dan capper menembus 0,61–0,79
+# dan ikut dilaporkan. Sistemnya benar; dengan bukti sebanyak itu ia memang
+# seharusnya melapor. Yang keliru adalah datanya: armada latar jadi menuntut
+# perhatian yang tidak dimaksudkan untuk didemonstrasikan.
+#
+# Tanpa penyebab terverifikasi, `find_historical_cases` mengecualikan mereka —
+# kasus tertutup yang penyebabnya tidak pernah ditegakkan siapa pun memang tidak
+# boleh menyumbang bobot corroboration. Jadi kasus latar tetap punya **gejala
+# tercatat**, ditimbang dengan aturan yang sama, dan ditolak karena tidak ada
+# preseden yang menegakkan penjelasan apa pun. Itu penolakan berbasis bukti,
+# bukan penolakan rekaman kosong.
 
 
 async def tulis_volume_latar(
@@ -160,13 +197,15 @@ async def tulis_volume_latar(
 
     await sesi.flush()
 
-    kegagalan = _tulis_kegagalan(sesi, seed, acak, mesin)
+    kosakata = await _tulis_kosakata_latar(sesi, seed)
+    kegagalan = await _tulis_kegagalan(sesi, seed, acak, mesin, kosakata)
     work_order = _tulis_work_order(sesi, seed, acak, mesin, jumlah_work_order)
     await sesi.flush()
 
     cacah = {
         "equipment_latar": len(mesin),
         "komponen_latar": len(mesin) * 2,
+        "gejala_latar": len(GEJALA_LATAR),
         "kegagalan_latar": kegagalan,
         "work_order_latar": work_order,
     }
@@ -187,13 +226,32 @@ def _lini_pabrik(kode_pabrik: str):
     )
 
 
-def _tulis_kegagalan(sesi: AsyncSession, seed: int, acak: random.Random, mesin) -> int:
-    """Kegagalan pada equipment latar. Tanpa penyebab terverifikasi.
+async def _tulis_kosakata_latar(sesi: AsyncSession, seed: int) -> dict[str, dict]:
+    """Gejala dan penyebab milik armada latar."""
+    peta: dict[str, dict] = {"gejala": {}}
+    for kode, nama in GEJALA_LATAR:
+        obj = Symptom(
+            id=id_stabil(seed, f"latar:gejala:{kode}"),
+            canonical_id=kode,
+            code=kode,
+            name=nama,
+        )
+        sesi.add(obj)
+        peta["gejala"][kode] = obj
+    await sesi.flush()
+    return peta
 
-    Sengaja tidak diberi `FailureEventCause`: kasus tertutup tanpa penyebab
-    terverifikasi memang dikecualikan `find_historical_cases`, dan itulah yang
-    diinginkan — volume latar tidak boleh menyumbang bobot corroboration kepada
-    penjelasan yang tidak pernah ditegakkan siapa pun.
+
+async def _tulis_kegagalan(
+    sesi: AsyncSession, seed: int, acak: random.Random, mesin, kosakata: dict[str, dict]
+) -> int:
+    """Kegagalan pada equipment latar, lengkap dengan gejala dan penyebabnya.
+
+    Gejala diberikan supaya penolakan Scout berarti sesuatu: kasus tanpa gejala
+    ditolak karena kosong, bukan karena ditimbang. Sebagian kasus tertutup
+    mendapat penyebab terverifikasi sehingga armada latar punya preseden
+    sendiri — dan skor yang keluar untuk kasus latar adalah skor sungguhan yang
+    kebetulan di bawah ambang, bukan nol karena tidak ada apa-apa.
     """
     jumlah = 0
     for unit in mesin:
@@ -202,8 +260,7 @@ def _tulis_kegagalan(sesi: AsyncSession, seed: int, acak: random.Random, mesin) 
         terbuka = acak.random() < PELUANG_TERBUKA
         mulai = SEKARANG - timedelta(days=acak.randint(1, RENTANG_HARI))
         jumlah += 1
-        sesi.add(
-            FailureEvent(
+        kejadian = FailureEvent(
                 id=id_stabil(seed, f"latar:kegagalan:{unit.tag_number}:{jumlah}"),
                 equipment_id=unit.id,
                 component_id=None,
@@ -217,8 +274,20 @@ def _tulis_kegagalan(sesi: AsyncSession, seed: int, acak: random.Random, mesin) 
                 status="open" if terbuka else "closed",
                 source_system="CMMS-FIKTIF",
                 source_record_id=f"LATAR-{jumlah:05d}",
-            )
         )
+        sesi.add(kejadian)
+        await sesi.flush()
+
+        for kode in acak.sample([k for k, _n in GEJALA_LATAR], k=acak.randint(2, 3)):
+            sesi.add(
+                FailureEventSymptom(
+                    failure_event_id=kejadian.id,
+                    symptom_id=kosakata["gejala"][kode].id,
+                    observed_at=mulai,
+                    severity=acak.choice(("low", "medium", "high")),
+                )
+            )
+
     return jumlah
 
 

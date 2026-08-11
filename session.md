@@ -7,7 +7,7 @@ rediscover the hard way.
 ## Where things stand
 
 - Branch `feat/rantai-pelaporan`, working tree clean.
-- **364 tests green**, ruff clean.
+- **377 tests green**, ruff clean on tracked files.
 - Full chain live on Cloud Run at
   `https://arka-110352541672.us-central1.run.app` (authenticated; a browser
   without a token gets 403, which looks like it is down but is not).
@@ -31,8 +31,8 @@ is stale against PostgreSQL — see `app/bigquery/kesegaran.py`.
 
 1. **Fill the placeholders** in `docs/submission.md`: name, repo link,
    `https://arka-110352541672.us-central1.run.app`, video link.
-2. **Record the video.** Suggested order: scout sweeping 20 open failures and
-   rejecting 18 → the escalation at margin 0.0252 → the criticality gap
+2. **Record the video.** Suggested order: scout sweeping 24 open failures and
+   rejecting 22 → the escalation at margin 0.0252 → the criticality gap
    (0.30 in master data, 0.8667 computed) and the procurement conflict.
 3. **Merge the branch** when ready: `git merge --ff-only feat/rantai-pelaporan`.
 
@@ -69,7 +69,7 @@ converges by construction. No trimming fixes that. `GRAPH_EXPAND` is a snowflake
 denormaliser for one fact table, and full GQL `MATCH` still wants Enterprise.
 
 **The graph is therefore an edge list walked by a recursive CTE** —
-`app/bigquery/edges.py` (6,474 nodes, 9,975 edges, 13 labels) and
+`app/bigquery/edges.py` (6,471 nodes, 10,094 edges, 13 labels) and
 `app/bigquery/traversal.py`. Depth is a parameter, cycles are guarded with
 `STRPOS` over a delimited trace (BigQuery's recursive term rejects subqueries),
 and the full path comes back as data.
@@ -166,14 +166,28 @@ model — Scout must sweep the whole fleet — so background failures do surface
 are rejected on evidence:
 
 ```
-Memeriksa 20 kegagalan terbuka.
+Memeriksa 24 kegagalan terbuka.
   PLT-U/FIL-207 — escalate     PLT-G/FIL-412 — report
-  18 diabaikan karena bukti di bawah ambang.
+  22 diabaikan karena bukti di bawah ambang.
 ```
 
-Two of twenty is a far better demonstration of the filter than two of three.
+Two of twenty-four is a far better demonstration of the filter than two of three.
 
-Scale, measured: 9,152 rows, 6,474 graph nodes, 9,975 edges.
+**Background failures carry recorded symptoms** — every open case does, down
+from 17 of 20 with none. Without them, "22 ignored" meant 22 empty records, and
+a filter that rejects blanks proves nothing about weighing evidence.
+
+⚠️ They carry **no verified cause**, and that is measured rather than lazy. The
+first attempt gave them causes; the background fleet then had abundant precedent
+within its own models — 100 units per model, symptoms drawn from a narrow
+vocabulary — and palletiser and capper cases scored **0.61–0.79** and were
+reported, drowning the golden path. The system was right; with that much
+evidence it should report. The data was wrong. `find_historical_cases` excludes
+closed cases nobody established a cause for, so background cases are now weighed
+by the same rules and rejected for having no precedent that establishes any
+explanation.
+
+Scale, measured: 9,277 rows, 6,471 graph nodes, 10,094 edges.
 
 ### Every label the graph advertises now has rows
 

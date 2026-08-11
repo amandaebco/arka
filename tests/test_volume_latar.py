@@ -49,6 +49,40 @@ class TestTidakMenyentuhJalurEmas:
         assert all(sufiks not in ("FIL",) for _t, sufiks, _m in latar.TIPE_LATAR)
 
 
+class TestPenolakanBerbasisBukti:
+    """Kasus latar harus punya gejala, dan tetap tidak punya preseden."""
+
+    def test_kosakata_gejala_latar_tidak_beririsan(self):
+        """`symptom_overlap` membandingkan kode; satu kode sama sudah cukup bocor."""
+        from app.synthetic.jalur_emas import GEJALA
+
+        emas = {kode for kode, _nama in GEJALA}
+        latar = {kode for kode, _nama in latar_gejala()}
+        assert not (emas & latar)
+
+    def test_ada_cukup_gejala_untuk_bervariasi(self):
+        assert len(latar_gejala()) >= 5
+
+    def test_tidak_ada_penyebab_terverifikasi_untuk_kasus_latar(self):
+        """Diukur, bukan lalai — lihat catatan panjang di volume_latar.py.
+
+        Dengan penyebab terverifikasi, armada latar punya preseden berlimpah di
+        modelnya sendiri dan kasus palletiser menembus 0,79 — ikut dilaporkan,
+        menenggelamkan kasus jalur emas. Sistemnya benar; datanya yang salah.
+        """
+        import inspect
+
+        from app.synthetic import volume_latar as modul
+
+        assert not hasattr(modul, "PENYEBAB_LATAR")
+        sumber = inspect.getsource(modul)
+        assert "FailureEventCause" not in sumber
+
+
+def latar_gejala():
+    return latar.GEJALA_LATAR
+
+
 class TestBentukVolume:
     def test_rasio_work_order_per_equipment_masuk_akal(self):
         """~6 per unit selama tiga tahun. Rasio yang dipilih, bukan angka bulatnya."""
