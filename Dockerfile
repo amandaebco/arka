@@ -37,4 +37,15 @@ EXPOSE 8080
 # `ARTIFACT_GCS_BUCKET` menentukan ke mana artifact disimpan. Tanpa itu ADK
 # memakai penyimpanan dalam memori, dan keluaran hilang begitu instance didaur
 # ulang — tidak terlihat saat demo, fatal untuk keterlacakan.
-CMD ["sh", "-c", "exec adk api_server adk_agents --host 0.0.0.0 --port ${PORT:-8080} ${ARTIFACT_GCS_BUCKET:+--artifact_service_uri=gs://$ARTIFACT_GCS_BUCKET}"]
+#
+# `ALLOW_ORIGINS` membuka CORS bagi antarmuka web. Tanpa itu `OPTIONS /run`
+# menjawab 405 tanpa header `Access-Control-*`, dan peramban memblokir panggilan
+# dari frontend mana pun — kegagalan yang terlihat seperti bug frontend padahal
+# asalnya di server. Tidak ada nilai bawaan: origin yang boleh memanggil adalah
+# keputusan penyebaran, bukan sesuatu yang pantas diam-diam menjadi `*`.
+#
+# Dipisah pada koma karena `--allow_origins` diulang per origin. Mengirimnya
+# sebagai satu string koma mendaftarkan satu origin harfiah yang tidak pernah
+# cocok, dan gagalnya berupa 403 pada POST lintas origin — bukan pesan yang
+# menyebut CORS sama sekali.
+CMD ["sh", "-c", "set -- ; for o in $(echo \"${ALLOW_ORIGINS:-}\" | tr ',' ' '); do set -- \"$@\" --allow_origins=\"$o\"; done; exec adk api_server adk_agents --host 0.0.0.0 --port ${PORT:-8080} ${ARTIFACT_GCS_BUCKET:+--artifact_service_uri=gs://$ARTIFACT_GCS_BUCKET} \"$@\""]
