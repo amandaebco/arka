@@ -12,7 +12,7 @@
 
 ## Summary
 
-ARKA investigates root causes of machine failures across multi-plant manufacturing environments. Operating over a GraphRAG Knowledge Graph (39 canonical BigQuery tables, graph nodes & edges, and vector search), ARKA traces hidden connections across assets, maintenance work orders, SAP history, inspection reports, and supplier sparepart batches. It synthesizes findings into publication-ready executive deliverables (PDF Memos, Official Memos, Slide Decks, and Visual Infographics) where every claim is fully traceable to original evidence.
+ARKA investigates root causes of machine failures across multi-plant manufacturing environments. Operating over a GraphRAG Knowledge Graph (39 canonical BigQuery tables, graph nodes & edges, and vector search), ARKA traces hidden connections across assets, maintenance work orders, maintenance history, inspection reports, and supplier sparepart batches — all of it fully synthetic. It synthesizes findings into publication-ready executive deliverables (PDF Memos, Official Memos, Slide Decks, and Visual Infographics) where every claim is fully traceable to original evidence.
 
 ## Architecture
 
