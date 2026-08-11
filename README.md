@@ -1,158 +1,157 @@
 # ARKA — Asset Reliability Knowledge Agent
 
-> Agent otonom yang menyingkap akar masalah keandalan mesin, dengan bukti yang bisa ditelusuri.
+> Autonomous multi-agent system revealing root causes of industrial equipment failures with end-to-end evidence traceability.
 
-**EBCO AI Hackathon 2026 · Kategori B — AI Agent · Tema: Knowledge Management Solution**
+**EBCO AI Hackathon 2026 · Category B — AI Agent · Theme: Knowledge Management Solution**
 
 ---
 
 ## Status
 
-✅ **Siap untuk Submission & Penjurian EBCO AI Hackathon 2026.**
+✅ **Ready for Submission & Evaluation — EBCO AI Hackathon 2026.**
 
-## Ringkasan
+## Summary
 
-ARKA menyelidiki akar masalah kegagalan mesin di manufaktur multi-pabrik. Berjalan di atas
-knowledge graph, ia menelusuri hubungan antara aset, riwayat perbaikan, dokumen inspeksi, dan
-rantai pasok sparepart — untuk menemukan penyebab yang tidak terlihat di sistem manapun, lalu
-menyusunnya menjadi dokumen yang setiap klaimnya bisa ditelusuri ke sumber aslinya.
+ARKA investigates root causes of machine failures across multi-plant manufacturing environments. Operating over a GraphRAG Knowledge Graph (39 canonical BigQuery tables, graph nodes & edges, and vector search), ARKA traces hidden connections across assets, maintenance work orders, SAP history, inspection reports, and supplier sparepart batches. It synthesizes findings into publication-ready executive deliverables (PDF Memos, Official Memos, Slide Decks, and Visual Infographics) where every claim is fully traceable to original evidence.
 
-## Arsitektur
+## Architecture
 
 ```
-        ┌──────────────────────────────────────────────┐
-        │              Google ADK                      │
-        │  Scout → Investigator → Reporter → Designer  │
-        │  Penilai + Penilai Visual (gerbang mutu)     │
-        │  Curator (ortogonal)                         │
-        └───────────────────┬──────────────────────────┘
-                            │
-        ┌───────────────────┴──────────────────────────┐
-        │   BigQuery — 39 tabel kanonik (sumber)       │
-        │   graph_nodes / graph_edges · VECTOR_SEARCH  │
-        │   lokal: PostgreSQL 16 + Apache AGE          │
-        └───────────────────┬──────────────────────────┘
-                            │
-        ┌───────────────────┴──────────────────────────┐
-        │  ADK Artifacts: memo · infografis · deck     │
-        └──────────────────────────────────────────────┘
-## Agent-Agent di ARKA
+        ┌────────────────────────────────────────────────────────┐
+        │                     Google ADK                         │
+        │    Scout → Investigator → Reporter → Designer          │
+        │    QA Evaluator + Vision Inspector (Quality Gate)      │
+        │    Curator (Knowledge Graph Policy Enforcer)           │
+        │    Interactive Q&A (Conversational GraphRAG)          │
+        └───────────────────────────┬────────────────────────────┘
+                                    │
+        ┌───────────────────────────┴────────────────────────────┐
+        │   BigQuery — 39 Canonical Tables (Primary Store)        │
+        │   graph_nodes / graph_edges · VECTOR_SEARCH            │
+        │   (Optional local fallback: PostgreSQL + Apache AGE)   │
+        └───────────────────────────┬────────────────────────────┘
+                                    │
+        ┌───────────────────────────┴────────────────────────────┐
+        │  ADK Deliverables: Executive Memo · Infographic · Deck │
+        └────────────────────────────────────────────────────────┘
+```
 
-ARKA mengorkestrasi 7 agent spesialis berbasis **Google ADK** dengan pembagian peran yang terisolasi secara ketat (*separation of concerns*):
+## Specialized AI Agents
 
-1. **Scout Agent** (`adk_agents/scout` / `app/agents/scout.py`):
-   Secara otonom memindai seluruh kegagalan mesin yang terbuka di armada pabrik (*fleet*) dan memutuskan kasus mana yang membutuhkan perhatian serta layak diselidiki lebih lanjut.
-2. **Investigator Agent** (`adk_agents/investigator` / `app/agents/investigator.py`):
-   Menyelidiki akar masalah (*root cause*) melalui penelusuran graf multi-hop (*GraphRAG*), mengumpulkan bukti riwayat perbaikan, dokumen inspeksi, FMEA, dan nomor batch sparepart terdistribusi.
-3. **Reporter Agent** (`adk_agents/reporter` / `app/agents/reporter.py`):
-   Memilih bentuk dokumen (Memo, Nota Dinas, Laporan Lengkap, atau Web Dashboard), menentukan struktur urutan blok informasi, dan menulis narasi pengantar eksekutif tanpa pernah mengarang angka.
-4. **Designer Agent** (`adk_agents/designer` / `app/agents/designer.py`):
-   Menentukan bentuk visualisasi dan penekanan blok (*emphasis*), lalu merender infografis kanvas 1 halaman menggunakan Playwright engine.
-5. **QA Agent / Penilai Mutu & Visual Inspector** (`app/agents/qa.py` & `app/designer/inspection.py`):
-   Menegakkan gerbang mutu (*quality gate*) berbasis **Gemini Vision AI (OCR)** untuk mentranskripsi halaman infografis dan memverifikasi akurasi teks demi mencegah halusinasi sebelum diterbitkan.
-6. **Curator Agent** (`app/agents/curator.py`):
-   Menilai kandidat fakta baru yang diekstrak dari dokumen untuk menentukan mana yang aman dimasukkan otomatis ke Knowledge Graph vs yang wajib dieskalasi ke manusia.
-7. **Tanya Jawab Agent / Interactive Q&A** (`adk_agents/tanya_jawab` / `app/agents/tanya_jawab.py`):
-   Agent interaktif yang melayani pertanyaan *reliability engineer* secara langsung mengenai riwayat aset, penelusuran graf, dan rekomendasi solusi teknis.
+ARKA orchestrates **7 specialized AI agents** built on **Google ADK** with strict isolation of concerns:
 
-## Menjalankan & Penjurian
+### 1. Scout Agent (`adk_agents/scout` / `app/agents/scout.py`)
+- **Role**: Autonomous fleet-wide failure scanner.
+- **Function**: Continuously scans open machine failures across multi-plant fleets, calculates similarity against historical resolved cases, and selects non-trivial cases that warrant deep investigation.
+- **Key Tools**: `scan_fleet`, `explain_skip`.
+- **Output**: Shortlisted failure candidates with clear rationale for skipped cases.
 
-### 🚀 One-Command Bootstrap (Sangat Direkomendasikan)
-Untuk kemudahan pengujian dan penjurian, jalankan skrip bootstrap otomatis berikut:
+### 2. Investigator Agent (`adk_agents/investigator` / `app/agents/investigator.py`)
+- **Role**: Multi-hop GraphRAG root cause investigator.
+- **Function**: Performs 4–5 hop graph traversal across `Asset -> WorkOrder -> Notification -> SparePart -> Plant`. Collects evidence from inspection reports, technician notes, FMEA, and supplier batch numbers to pinpoint root causes.
+- **Key Tools**: `list_open_cases`, `investigate_case`.
+- **Output**: Structured `Finding` model containing verified causes, cross-plant precedents, and sparepart criticality.
+
+### 3. Reporter Agent (`adk_agents/reporter` / `app/agents/reporter.py`)
+- **Role**: Executive document synthesizer & layout composer.
+- **Function**: Selects document format (`memo`, `nota_dinas`, `laporan`, `dashboard`), orders information blocks, and writes introductory narrative explaining significance.
+- **Hard Boundaries**: **Never mentions numbers in narrative** (rendered via tables only) and **never uses em-dashes ("—")**.
+- **Key Tools**: `muat_temuan`, `ringkas_temuan`, `terbitkan_dokumen`.
+- **Output**: Single-page PDF Memo, Official Letter (`Nota Dinas`), Full Report, or Interactive Dark Glassmorphism Web Dashboard.
+
+### 4. Designer Agent (`adk_agents/designer` / `app/agents/designer.py`)
+- **Role**: Visual presentation & canvas layout engine.
+- **Function**: Determines dominant block emphasis and assigns visual card shapes (from 17 data-driven form patterns). Renders 1-page visual poster infographics using Playwright.
+- **Key Tools**: `ringkas_penyajian`, `terbitkan_infografis`.
+- **Output**: High-definition HD Poster Infographic (`1024x1536` canvas).
+
+### 5. QA Agent & Visual Inspector (`app/agents/qa.py` & `app/designer/inspection.py`)
+- **Role**: Vision-based anti-hallucination quality gate.
+- **Function**: Transcribes rendered infographic images using **Gemini Vision AI (OCR)** and compares rendered text against authoritative `Finding` data using fuzzy matching.
+- **Quality Enforcement**: Blocks publication on **Inventions/Hallucinations** (unauthorized text ≥ 12 chars) and logs **Misprints** for audit.
+- **Output**: Quality verdict (`APPROVED` / `REJECTED_WITH_FEEDBACK`) with audit logs.
+
+### 6. Curator Agent (`app/agents/curator.py`)
+- **Role**: Knowledge Graph ingestion policy enforcer.
+- **Function**: Evaluates newly extracted candidate facts from inspection documents. Auto-accepts facts backed by multiple non-contradictory sources, rejects unevidenced claims, and escalates ambiguous facts to human engineers.
+- **Key Tools**: `daftar_kandidat`, `putuskan_kandidat`, `ringkas_kurasi`.
+- **Output**: Approved graph updates and human escalation queue.
+
+### 7. Interactive Q&A Agent (`adk_agents/tanya_jawab` / `app/agents/tanya_jawab.py`)
+- **Role**: Conversational GraphRAG assistant.
+- **Function**: Serves real-time natural language queries from reliability engineers regarding equipment history, failure causes, and graph relationships.
+- **Key Tools**: `cari_konteks`, `telusuri_graph`.
+- **Output**: Citation-backed technical answers referencing exact graph paths and source document chunks.
+
+## Running & Evaluation
+
+### 🚀 One-Command Bootstrap (Recommended)
+For seamless evaluator onboarding, execute the automated bootstrap script:
 
 ```bash
 bash scripts/bootstrap.sh
 ```
-Skrip ini secara otomatis melakukan pengecekan dependensi, konfigurasi `.env`, inisialisasi kontainer PostgreSQL (Apache AGE + pgvector), migrasi skema database, dan pembentukan dataset sintetis dalam satu langkah.
+This script automatically validates prerequisites, configures `.env`, launches containerized PostgreSQL (Apache AGE + pgvector), executes database migrations, and seeds synthetic datasets in one command.
 
-### Jalur Manual
+### Manual Setup
 ```bash
-cp .env.example .env                       # isi kredensial
-uv sync                                    # dependensi
-docker compose up -d                       # PostgreSQL (tempat generator menulis)
-uv run alembic upgrade head                # skema
+cp .env.example .env                       # Credentials setup
+uv sync                                    # Dependencies
+docker compose up -d                       # PostgreSQL container
+uv run alembic upgrade head                # Schema migration
 
 uv run python -m app.synthetic.generator --reset --volume-latar
-uv run python scripts/migrasi_bigquery.py --full    # salin → verifikasi → indeks
+uv run python scripts/migrasi_bigquery.py --full    # Copy -> Verify -> Index
 
-uv run python scripts/run_chain.py         # scout → investigator → reporter
-uv run python scripts/pindai_terjadwal.py  # pemindaian, tanpa model
+uv run python scripts/run_chain.py         # Run Scout -> Investigator -> Reporter
+uv run python scripts/pindai_terjadwal.py  # Scheduled scan
 ```
 
-> **Catatan Arsitektur Database:**
-> Sumber data utama dan arsitektur produksi ARKA adalah **100% BigQuery Murni (Cloud Native)** di GCP — mencakup 39 tabel kanonik, Knowledge Graph (`graph_nodes` & `graph_edges`), serta `VECTOR_SEARCH` bawaan. Berkat **Direct BigQuery Ingestion (Spec 007)**, data dapat diserap langsung ke BigQuery tanpa melalui database perantara. PostgreSQL lokal (Apache AGE) hanya berfungsi sebagai *optional offline dev fallback* untuk kebutuhan pengujian tanpa jaringan GCP.
+> **Database Architecture Note:**
+> The primary data store and production architecture of ARKA is **100% Native Cloud BigQuery** on GCP — encompassing 39 canonical tables, Knowledge Graph (`graph_nodes` & `graph_edges`), and `VECTOR_SEARCH`. Powered by **Direct BigQuery Ingestion (Spec 007)**, data is ingested directly into BigQuery without intermediate databases. Local PostgreSQL (Apache AGE) serves strictly as an *optional offline dev fallback* for offline testing without GCP connectivity.
 
-## Fitur Kunci & Pemenuhan Kriteria Submission
+## Key Features & Submission Checklist
 
-1. **GraphRAG & BigQuery Knowledge Graph**: Mengintegrasikan 39 tabel kanonik BigQuery dengan tabel `graph_nodes` dan `graph_edges` untuk eksekusi query relasional dan graf terpadu.
-2. **VectorDB Retrieval**: Menggunakan `pgvector` di PostgreSQL lokal dan `VECTOR_SEARCH` di BigQuery untuk pencarian semantik berkinerja tinggi.
-3. **Korpus Dokumen Sintetis**: Menghasilkan **50 dokumen latar inspeksi teknis** terstruktur (`app/synthetic/dokumen_latar.py`).
-4. **Penelusuran Graf Multi-Hop**: Mendukung pencarian berantai **4 hingga 5 hop** dari *Asset $\rightarrow$ Work Order $\rightarrow$ Notification $\rightarrow$ SparePart $\rightarrow$ Plant Lain*.
-5. **Cakupan Skenario Kasus**:
-   - **Reliability Case**: Investigasi akar masalah keandalan mesin, analisis riwayat perbaikan, FMEA, dan catatan teknisi.
-   - **Supply Chain Case**: Pelacakan batch sparepart terdistribusi (*batch tracking*) untuk mendeteksi cacat vendor lintas pabrik (`specs/006-batch-sparepart-tracking`).
-6. **Multi-Tier Caching Layer & Performance Optimization**: Modul caching terpusat (`app/core/cache.py`) berbasis TTL yang menghemat panggilan database dan konsumsi token LLM.
+1. **GraphRAG & BigQuery Knowledge Graph**: Unifies 39 canonical BigQuery tables with `graph_nodes` and `graph_edges` for hybrid relational + graph queries.
+2. **VectorDB Retrieval**: Combines `pgvector` and BigQuery `VECTOR_SEARCH` for high-performance semantic chunk retrieval.
+3. **Synthetic Document Corpus**: Generates **50 structured technical inspection documents** (`app/synthetic/dokumen_latar.py`).
+4. **Multi-Hop Graph Traversal**: Executes **4 to 5 hop** deep graph walks (`Asset -> WorkOrder -> Notification -> SparePart -> Plant`).
+5. **Comprehensive Use Case Coverage**:
+   - **Reliability Case**: Equipment root cause analysis, maintenance history, FMEA, and technician notes.
+   - **Supply Chain Case**: Distributed sparepart batch tracking (`specs/006-batch-sparepart-tracking`) to detect vendor batch defects across plants.
+6. **Multi-Tier Caching Layer**: Centralized TTL-based caching (`app/core/cache.py`) optimizing database queries and reducing LLM token consumption.
 
-## Infografis
+## Infographics & Audit Trail
 
-Designer menerbitkan satu halaman infografis dari temuan yang sudah diselesaikan Reporter.
-Ia tidak memilih isi: urutan blok datang dari Reporter lewat state sesi, dan seluruh teks
-kanvas disusun verbatim dari `Finding`. Yang ditentukan Designer hanya penyajiannya — gaya,
-penekanan, dan bentuk.
+The Designer Agent publishes single-page infographics from findings completed by the Reporter. All canvas text is constructed verbatim from `Finding` data.
 
-Dua persona tersedia: `engineer` (diagnosis teknis) dan `reliability_manager` (bawaan,
-ringkas untuk keputusan).
+Persona options: `engineer` (technical diagnosis) and `reliability_manager` (default executive summary).
 
 ```bash
-uv run python scripts/render_infografis.py --persona engineer   # gambar satu halaman
-uv run python scripts/render_infografis.py --prompt-saja        # lihat prompt, tanpa biaya
-uv run python scripts/jalankan_penerbitan.py                    # rantai penuh, sesi ADK hidup
-uv run python scripts/jalankan_penerbitan.py --hanya-designer   # lewati Reporter
+uv run python scripts/render_infografis.py --persona engineer   # Render single page
+uv run python scripts/render_infografis.py --prompt-saja        # Inspect prompt cost-free
+uv run python scripts/jalankan_penerbitan.py                    # Full chain execution
+uv run python scripts/jalankan_penerbitan.py --hanya-designer   # Skip Reporter
 ```
 
-Menggambar butuh `IMAGE_API_KEY`; pemeriksaan halaman butuh `GOOGLE_CLOUD_PROJECT`.
+**Audit Trail**: Every publication run saves a complete audit trail in `out/infografis/<timestamp>-<finding>/`, containing findings, canvas content, specifications, prompts, rendered pages, and inspection verdicts. If `ARTIFACT_GCS_BUCKET` is configured, artifacts are mirrored to Google Cloud Storage.
 
-**Gerbang mutu.** Konstitusi mengecualikan tahap menggambar dari Prinsip I, dengan tiga
-imbangan — dan yang menegakkannya di sini adalah pemeriksaan berbasis vision: Gemini
-mentranskripsi halaman yang sudah jadi, lalu kode memutuskan teks mana yang berwenang tampil
-(`app/designer/inspection.py`). Pemeriksaan yang tidak berjalan diperlakukan sebagai gagal,
-bukan lulus.
+## Synthetic Data
 
-Vonisnya dibedakan dua tingkat, karena dua hal berbeda pernah diperlakukan sama beratnya.
-**Karangan** — teks yang tidak punya padanan di isi kanvas, seperti chip "Lokasi Fungsional"
-yang diangkat dari judul dokumen — memblokir penerbitan. **Cacat cetak** — teks berwenang
-yang salah eja, seperti "Catatan Teknis" untuk "Catatan Teknisi" — dilaporkan dan tercatat di
-jejak, tapi tidak memblokir: menggambar ulang tidak dapat diandalkan memperbaiki satu huruf,
-dan dua run pernah menghabiskan seluruh jatah tiga putaran karenanya. Toleransinya sempit
-(≥ 12 karakter, kemiripan ≥ 0,9), sehingga kata pendek seperti "Sedang" tetap dihitung karangan.
+**All data is 100% synthetically generated.** No real-world proprietary data is used.
 
-**Bentuk kartu mengikuti data, bukan nama blok.** `app/designer/forms.py` menyaring 17 pola
-visualisasi terhadap isi tiap kartu — berapa butir, mana yang punya angka sungguhan, tanggal,
-atau tingkat — lalu designer memilih dari yang tersisa. Kartu yang tidak punya tanggal tidak
-akan pernah ditawari linimasa, sehingga halaman tidak perlu mengarang stempel waktu untuk
-mengisinya.
+## Future Roadmap & Enterprise Expansion
 
-**Jejak audit.** Satu folder per penerbitan di `out/infografis/<stempel>-<temuan>/`, berisi
-temuan, isi kanvas, spesifikasi, prompt, halaman, dan hasil tiap putaran. Karena gambar tidak
-bisa direproduksi byte demi byte, jejak inilah catatannya. Bila `ARTIFACT_GCS_BUCKET` disetel,
-jejak dicerminkan ke GCS agar tidak ikut hilang bersama instance Cloud Run.
+1. **IoT / SCADA Telemetry Streaming (Real-time Prescriptive Alert)**: Connect ARKA to Pub/Sub IoT telemetry streams to trigger proactive agent scans before machine breakdown occurs.
+2. **Multi-Modal Technical Drawing Parsing**: Leverage Gemini Vision to parse P&ID diagrams, CAD schematics, and thermal imaging directly into knowledge graph edges.
+3. **Human-in-the-Loop (HITL) Active Learning**: Interactive UI for chief reliability engineers to approve/correct agent findings, writing verified labels back to the graph (`VERIFIED_BY_ENGINEER`).
+4. **Direct Connectors for SAP PM & IBM Maximo**: Zero-ETL connectors mapping native ERP/CMMS schemas into ARKA's 39 canonical tables.
+5. **Closed-Loop Action Execution**: Automated drafting of SAP Work Orders or sparepart batch reservations upon report approval.
 
-## Data
+## Development & Spec Kit
 
-**Seluruh data dibangkitkan secara sintetis.** Tidak ada data nyata milik pihak manapun.
-
-## Rencana Pengembangan & Improvement Masa Depan
-
-1. **IoT / SCADA Telemetry Streaming (Real-time Prescriptive Alert)**: Menghubungkan ARKA ke aliran data sensor IoT via Google Cloud Pub/Sub untuk memicu pemindaian otomatis sebelum kegagalan mesin terjadi.
-2. **Multi-Modal Technical Drawing Parsing**: Menggunakan kemampuan penglihatan Gemini untuk membaca diagram P&ID, skematik CAD, dan citra termal untuk diekstrak secara otomatis menjadi struktur graf.
-3. **Human-in-the-Loop (HITL) Active Learning**: Menyediakan antarmuka konfirmasi bagi chief reliability engineer untuk memverifikasi temuan agent, di mana feedback dituliskan kembali ke Knowledge Graph (`VERIFIED_BY_ENGINEER`).
-4. **Direct Connectors untuk SAP PM & IBM Maximo**: Menyediakan konektor native zero-ETL untuk otomatisasi sinkronisasi data dari sistem ERP/CMMS industri.
-5. **Closed-Loop Execution**: Memungkinkan ARKA untuk membuat draft Work Order otomatis di SAP atau memesan alokasi batch sparepart setelah laporan disetujui manajemen.
-
-## Pengembangan
-
-Proyek ini memakai **Spec-Driven Development** ([GitHub Spec Kit](https://github.com/github/spec-kit)).
-Spesifikasi ada di `.specify/` dan `specs/`; alurnya `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`.
+Built using **Spec-Driven Development** ([GitHub Spec Kit](https://github.com/github/spec-kit)).
+Specifications are located in `.specify/` and `specs/` (`specs/001` through `specs/008`).
 
 ```bash
 uv run pytest
