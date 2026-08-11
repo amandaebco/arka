@@ -6,9 +6,8 @@ rediscover the hard way.
 
 ## Where things stand
 
-- Branch `feat/rantai-pelaporan`, 33 commits, working tree clean.
-- **262 tests green**, ruff clean on everything except four pre-existing
-  long-line warnings in demo scripts.
+- Branch `feat/rantai-pelaporan`, working tree clean.
+- **364 tests green**, ruff clean.
 - Full chain live on Cloud Run at
   `https://arka-110352541672.us-central1.run.app` (authenticated; a browser
   without a token gets 403, which looks like it is down but is not).
@@ -16,12 +15,15 @@ rediscover the hard way.
   search, retrieval agent, question-answering agent.
 
 ```bash
-python scripts/run_chain.py                        # scout → investigator → reporter
-ARKA_STORE=bigquery python scripts/run_chain.py    # same chain, BigQuery
-python scripts/pindai_terjadwal.py                 # scheduled scan, no model calls
-python scripts/uji_bigquery_graph.py               # sync PostgreSQL → BigQuery
-python -m app.synthetic.generator --reset          # reseed the golden path
+python scripts/run_chain.py                       # scout → investigator → reporter
+ARKA_STORE=postgres python scripts/run_chain.py   # same chain, local store
+python scripts/pindai_terjadwal.py                # scheduled scan, no model calls
+python scripts/migrasi_bigquery.py                # mirror all 39 tables + graph
+python -m app.synthetic.generator --reset --volume-latar
 ```
+
+BigQuery is the default store. Both entry points refuse to run when the mirror
+is stale against PostgreSQL — see `app/bigquery/kesegaran.py`.
 
 ---
 
@@ -29,9 +31,9 @@ python -m app.synthetic.generator --reset          # reseed the golden path
 
 1. **Fill the placeholders** in `docs/submission.md`: name, repo link,
    `https://arka-110352541672.us-central1.run.app`, video link.
-2. **Record the video.** Suggested order: scout scanning three failures and
-   ignoring one → the escalation → the criticality gap and the procurement
-   conflict.
+2. **Record the video.** Suggested order: scout sweeping 20 open failures and
+   rejecting 18 → the escalation at margin 0.0252 → the criticality gap
+   (0.30 in master data, 0.8667 computed) and the procurement conflict.
 3. **Merge the branch** when ready: `git merge --ff-only feat/rantai-pelaporan`.
 
 ---
@@ -67,7 +69,7 @@ converges by construction. No trimming fixes that. `GRAPH_EXPAND` is a snowflake
 denormaliser for one fact table, and full GQL `MATCH` still wants Enterprise.
 
 **The graph is therefore an edge list walked by a recursive CTE** —
-`app/bigquery/edges.py` (70 nodes, 111 edges, 13 labels) and
+`app/bigquery/edges.py` (6,474 nodes, 9,975 edges, 13 labels) and
 `app/bigquery/traversal.py`. Depth is a parameter, cycles are guarded with
 `STRPOS` over a delimited trace (BigQuery's recursive term rejects subqueries),
 and the full path comes back as data.
