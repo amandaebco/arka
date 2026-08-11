@@ -47,6 +47,11 @@ BASE_CONSTRAINTS = [
     "never invent a caption, unit or category name for a number — print a number "
     "without a caption of your own if none is given",
     "no axis ticks, scale marks, gridline numbers or threshold captions",
+    # Satu run mencetak "Framework Grid" dan "primary emphasis, larger type,
+    # stronger contrast" sebagai label di halaman: kosakata pengarahan kita
+    # sendiri, dibaca sebagai isi.
+    "pattern names, emphasis levels and layout directions in this brief are "
+    "instructions to you — never print them, and never label a card with them",
 ]
 
 
@@ -419,9 +424,15 @@ def _confidence_block(isi: CanvasContent, kb: Any, warna: dict[str, Any]) -> str
                 "these three, and no numeric scale of any kind."
             )
     if isi.perlu_eskalasi:
+        # Kata persisnya, bukan penjelasannya. Versi sebelumnya memerikan penanda
+        # ini dalam bahasa Inggris, dan halaman menerjemahkan deskripsi itu lalu
+        # mencetaknya sebagai kalimat buatannya sendiri — teks yang tidak pernah
+        # ada di temuan, dan ditolak gerbang mutu dengan benar.
         baris.append(
-            "An escalation marker is shown: this finding awaits a human decision, "
-            "and both leading candidates are presented rather than one."
+            'An escalation marker is shown. Write exactly these two strings and no '
+            'others: the label "Menunggu putusan manusia", and beneath it the note '
+            '"dua kandidat teratas disajikan". Do not translate them, do not '
+            "rephrase them, and do not add a sentence of your own."
         )
     return "\n".join(baris) + "\n"
 

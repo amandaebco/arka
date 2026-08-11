@@ -173,8 +173,15 @@ def _mirror(prefix: str, name: str, payload: bytes, content_type: str) -> None:
     A mirroring failure is logged and swallowed: the trail is evidence about the
     run, and losing the evidence must never take the run down with it.
     """
-    bucket = os.environ.get("ARTIFACT_GCS_BUCKET")
+    # Dibaca dari Settings, bukan langsung dari os.environ: `.env` dimuat pydantic
+    # dan tidak pernah sampai ke lingkungan proses, sehingga bucket yang sudah
+    # dikonfigurasi di sana diabaikan tanpa suara — setiap jejak lokal kehilangan
+    # salinan permanennya dan tidak ada satu pun peringatan yang memberitahu.
+    from app.core.config import get_settings
+
+    bucket = get_settings().artifact_gcs_bucket or os.environ.get("ARTIFACT_GCS_BUCKET")
     if not bucket:
+        logger.debug("ARTIFACT_GCS_BUCKET kosong — jejak %s hanya ada di disk lokal", name)
         return
     try:
         from google.cloud import storage

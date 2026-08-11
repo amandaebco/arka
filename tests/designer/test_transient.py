@@ -87,3 +87,13 @@ def test_kuota_habis_bukan_transien():
 def test_batas_laju_biasa_tetap_transien():
     sesaat = type("RateLimitError", (Exception,), {"status_code": 429})("slow down")
     assert is_transient(sesaat)
+
+
+def test_rasio_aspek_diturunkan_dari_ukuran_yang_sama():
+    """Both providers draw the same page, so its shape comes from one setting.
+    Written out twice, the two would drift and nobody would notice until the
+    layouts stopped matching."""
+    from app.designer.image import _aspect_ratio
+
+    assert _aspect_ratio("1024x1536") == "2:3"
+    assert _aspect_ratio("1024x1024") == "1:1"

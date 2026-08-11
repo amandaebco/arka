@@ -46,8 +46,17 @@ class Settings(BaseSettings):
     # di luar Google — dipilih sadar untuk memperluas keragaman tumpukan, dan
     # isinya terbatas pada nilai yang sudah ada di `Finding`
     # (Constitution 1.2.0, pengecualian infografis).
+    # `openai` memakai gpt-image-2 dan menuntut IMAGE_API_KEY; `vertex` memakai
+    # model gambar Gemini lewat project yang sama dengan pembaca halaman, jadi ia
+    # tetap jalan ketika kredit OpenAI habis.
+    # Salinan permanen jejak penerbitan. Kosong berarti jejak hanya ada di disk
+    # lokal — di Cloud Run itu berarti hilang bersama instance-nya.
+    artifact_gcs_bucket: str = ""
+
+    image_provider: str = "openai"
     image_api_key: str = Field(default="", repr=False)
     image_model: str = "gpt-image-2"
+    image_model_vertex: str = "gemini-3-pro-image"
     image_size: str = "1024x1536"
     image_quality: str = "high"
     image_timeout_seconds: float = Field(default=180.0, gt=0, le=600)

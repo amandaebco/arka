@@ -44,6 +44,8 @@ from app.designer.content import build_content, is_composed_label
 from app.designer.inspection import (
     InspectionUnavailable,
     authorised_strings,
+    card_defects,
+    read_card_headers,
     read_page_text,
     review_text,
 )
@@ -56,6 +58,13 @@ logger = logging.getLogger(__name__)
 
 # Masukan penilai untuk putaran berikutnya. Reporter membacanya lewat prompt.
 KUNCI_MASUKAN = "masukan_qa"
+
+# Hasil pemeriksaan halaman terakhir, disimpan supaya `selesai` dapat menolak.
+# Instruksi saja tidak cukup: pada satu run, penilai memanggil `selesai` dan
+# menyatakan halaman layak kirim padahal pemeriksaannya sendiri baru saja
+# melaporkan teks tak disetujui dan satu kartu yang tidak tergambar. Imbangan
+# yang bisa dilangkahi pertimbangan model bukan imbangan.
+KUNCI_HALAMAN_LULUS = "halaman_lulus"
 
 # Batas putaran. Tiga sudah cukup: satu untuk terbit, satu untuk perbaikan,
 # satu cadangan. Lebih dari itu biasanya pertanda cacatnya bukan di dokumen.
@@ -334,6 +343,18 @@ async def periksa_teks_tergambar(tool_context: ToolContext) -> str:
             "layak kirim: pemeriksaan teks tergambar belum pernah berhasil.",
         )
 
+    # Struktur diperiksa terpisah dari kesetiaan teks. Satu halaman menggambar
+    # satu kartu dua kali, satu lagi tiga kali, dan menghilangkan yang keempat —
+    # seluruh teksnya berwenang, jadi pemeriksaan kesetiaan menyatakannya bersih.
+    cacat_kartu: list[str] = []
+    try:
+        cacat_kartu = card_defects(
+            read_card_headers(parts.inline_data.data), [b.judul for b in blok]
+        )
+    except InspectionUnavailable as exc:
+        logger.warning("Pembacaan judul kartu gagal: %s", exc)
+        cacat_kartu = [f"struktur kartu tidak dapat diperiksa ({exc})"]
+
     karangan, cacat_cetak = review_text(tergambar, allowed)
     catatan = ""
     if cacat_cetak:
@@ -345,12 +366,23 @@ async def periksa_teks_tergambar(tool_context: ToolContext) -> str:
             f"- {a}" for a in cacat_cetak
         )
 
-    if not karangan:
+    if cacat_kartu:
+        catatan = "\n\nStruktur kartu:\n" + "\n".join(f"- {c}" for c in cacat_kartu) + catatan
+
+    if not karangan and not cacat_kartu:
         return _catat(
             tool_context,
             "teks_tergambar",
             f"LULUS — {len(tergambar)} teks terbaca pada halaman, seluruhnya "
-            f"berasal dari isi kanvas.{catatan}",
+            f"berasal dari isi kanvas, dan tiap kartu tergambar tepat sekali."
+            f"{catatan}",
+        )
+
+    if not karangan:
+        return _catat(
+            tool_context,
+            "teks_tergambar",
+            f"Teks halaman setia, tetapi susunan kartunya cacat.{catatan}",
         )
 
     logger.info("Teks tak disetujui pada halaman: %d", len(karangan))
@@ -370,6 +402,9 @@ def _catat(tool_context: ToolContext, tahap: str, vonis: str) -> str:
     whose result is recorded and a check whose result is returned must not be
     able to drift apart.
     """
+    if tahap in ("teks_tergambar", "struktur"):
+        tool_context.state[KUNCI_HALAMAN_LULUS] = vonis.startswith("LULUS")
+
     jejak = tool_context.state.get(KUNCI_JEJAK)
     if jejak:
         try:
@@ -391,6 +426,20 @@ def selesai(alasan: str, tool_context: ToolContext) -> str:
     Returns:
         Konfirmasi penghentian.
     """
+    lulus = tool_context.state.get(KUNCI_HALAMAN_LULUS)
+    if lulus is False:
+        # Ditolak di sini, bukan diserahkan pada pertimbangan. Pemeriksaan halaman
+        # adalah imbangan yang membuat pengecualian menggambar dapat
+        # dipertanggungjawabkan; menyatakan layak kirim di atasnya membatalkannya.
+        logger.warning("Penilai mencoba menutup putaran padahal halaman belum lulus")
+        return _catat(
+            tool_context,
+            "putusan",
+            "DITOLAK — pemeriksaan halaman terakhir tidak lulus, jadi infografis "
+            "tidak boleh dinyatakan layak kirim. Panggil `minta_perbaikan` dengan "
+            "cacat yang disebutkan pemeriksaan itu.",
+        )
+
     tool_context.actions.escalate = True
     tool_context.state[KUNCI_MASUKAN] = ""
     logger.info("Penilai menghentikan putaran: %s", alasan)

@@ -218,3 +218,24 @@ def test_kata_pendek_tidak_pernah_dimaafkan():
     karangan, cacat = review_text(["Sedang", "Rendah"], BERWENANG)
     assert karangan == ["Sedang", "Rendah"]
     assert cacat == []
+
+
+def test_kartu_hilang_dan_ganda_tertangkap():
+    """A missing card is worse than a fabricated string: the reader has no way of
+    knowing something was left out, and a fidelity check never asks."""
+    from app.designer.inspection import card_defects
+
+    diminta = ["Ringkasan", "Kandidat Penyebab", "Preseden Lintas Pabrik", "Jejak Penalaran"]
+    tergambar = ["1. Ringkasan", "2. Kandidat Penyebab",
+                 "3. Preseden Lintas Pabrik", "3. Preseden Lintas Pabrik"]
+
+    cacat = card_defects(tergambar, diminta)
+    assert any("Jejak Penalaran" in c and "tidak tergambar" in c for c in cacat)
+    assert any("Preseden" in c and "2 kali" in c for c in cacat)
+
+
+def test_halaman_utuh_tidak_dianggap_cacat():
+    from app.designer.inspection import card_defects
+
+    diminta = ["Ringkasan", "Kandidat Penyebab"]
+    assert card_defects(["1. Ringkasan", "2. Kandidat Penyebab"], diminta) == []

@@ -37,6 +37,14 @@ SYSTEM = (
 )
 
 
+HEADER_SYSTEM = (
+    "You read infographics. Look only at the numbered card headers on the page — "
+    "the title bar at the top of each card. List them top to bottom, then left to "
+    "right, exactly as printed, one per line. List a header once for every time it "
+    "appears: if the same card is drawn twice, write it twice. Report nothing else."
+)
+
+
 class InspectionUnavailable(RuntimeError):
     """Raised when the page cannot be read — never silently treated as clean."""
 
@@ -106,6 +114,68 @@ def read_page_text(page: bytes) -> list[str]:
 
     lines = [b.strip(" -•\t") for b in text.splitlines()]
     return [b for b in lines if b]
+
+
+def read_card_headers(page: bytes) -> list[str]:
+    """Read the card headers, counting repeats.
+
+    A separate read because the transcription deliberately lists each distinct
+    string once, which makes a card drawn twice indistinguishable from a card
+    drawn once. A live page repeated one card twice and another three times, and
+    dropped a fourth entirely; every string on it was authorised, so the fidelity
+    check called it clean.
+    """
+    from google.genai import types
+
+    settings = get_settings()
+    try:
+        isi = [
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_bytes(data=page, mime_type="image/png"),
+                    types.Part.from_text(text="List every card header, repeats included."),
+                ],
+            )
+        ]
+        response = with_retry(
+            lambda: _client().models.generate_content(
+                model=settings.vertex_ai_model,
+                contents=isi,
+                config=types.GenerateContentConfig(
+                    system_instruction=HEADER_SYSTEM, temperature=0.0
+                ),
+            ),
+            what="Pembacaan judul kartu",
+        )
+    except Exception as exc:  # noqa: BLE001 — satu jenis kegagalan yang jelas
+        raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
+
+    baris = [b.strip(" -•\t0123456789.") for b in (response.text or "").splitlines()]
+    return [b for b in baris if b]
+
+
+def card_defects(drawn_headers: list[str], expected: list[str]) -> list[str]:
+    """Cards missing from the page, and cards drawn more than once.
+
+    A card that is missing is worse than a fabricated string: the reader has no
+    way of knowing something was left out. Neither shows up in a check that only
+    asks whether the text on the page was authorised.
+    """
+    terbaca = [normalise(h) for h in drawn_headers]
+    cacat: list[str] = []
+
+    for judul in expected:
+        bersih = normalise(judul)
+        if not bersih:
+            continue
+        jumlah = sum(1 for h in terbaca if bersih in h or h in bersih)
+        if jumlah == 0:
+            cacat.append(f"kartu “{judul}” tidak tergambar")
+        elif jumlah > 1:
+            cacat.append(f"kartu “{judul}” tergambar {jumlah} kali")
+
+    return cacat
 
 
 # Text that legitimately appears on a page without coming from the finding:

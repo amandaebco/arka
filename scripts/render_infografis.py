@@ -29,6 +29,8 @@ from app.designer.image import DrawingUnavailable, draw_page
 from app.designer.inspection import (
     InspectionUnavailable,
     authorised_strings,
+    card_defects,
+    read_card_headers,
     read_page_text,
     review_text,
 )
@@ -114,6 +116,8 @@ def main() -> int:
             print(f"  ! teks tak disetujui: “{one}”")
         for one in review.get("misprinted") or []:
             print(f"  ~ cacat cetak: {one}")
+        for one in review.get("card_defects") or []:
+            print(f"  ! struktur: {one}")
 
     page_path = trail.record_round(1, spec, prompt, page=page, review=review)
     outcome = "PUBLISHED" if not (review and review["unauthorised"]) else "PUBLISHED_WITH_FINDINGS"
@@ -140,12 +144,18 @@ def _inspect(page: bytes, content, blocks, style: str, kb) -> dict:
     except InspectionUnavailable as exc:
         return {"strings_read": 0, "unauthorised": [], "error": str(exc)}
 
+    try:
+        kartu = card_defects(read_card_headers(page), [b.judul for b in blocks])
+    except InspectionUnavailable as exc:
+        kartu = [f"struktur kartu tidak dapat diperiksa ({exc})"]
+
     karangan, cacat_cetak = review_text(drawn, authorised)
     return {
         "strings_read": len(drawn),
         "drawn": drawn,
         "unauthorised": karangan,
         "misprinted": cacat_cetak,
+        "card_defects": kartu,
     }
 
 

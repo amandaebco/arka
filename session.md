@@ -354,3 +354,77 @@ production path on demand.
 - The escalation margin (0.0252) was reached by seeding a third torque
   precedent. Weights and thresholds are published policy and were never touched.
   If the demo stops escalating, look at the data, not the formula.
+
+---
+
+## Designer / infografis (11 August, sesi terpisah)
+
+Ditulis oleh sesi lain yang berjalan bersamaan; bagian di atas bukan tulisan
+saya dan tidak saya ubah. Pekerjaan designer ada di `app/designer/`, `app/agents/
+designer.py`, dan `app/agents/qa.py`.
+
+**Belum ada satu pun yang di-commit.** Working tree memuat pekerjaan dua sesi
+bercampur. Periksa `git status` sebelum menganggap sebuah perubahan milik Anda.
+
+### Yang sudah terverifikasi di halaman nyata
+
+Dua belas perbaikan, semuanya terlihat pada gambar sungguhan (bukan hanya uji):
+penamaan besaran angka, perbandingan kekritisan ARKA lawan master data,
+gerbang keyakinan berjenjang, warna struktural, penempatan kartu deterministik,
+penyaringan bentuk berbasis data, dan sitasi yang tidak lagi berulang.
+
+Gerbang mutu kini tiga tingkat, dan penolakannya ditegakkan **kode**, bukan
+pertimbangan model:
+
+| Vonis | Akibat |
+|---|---|
+| Karangan — teks tanpa padanan di kanvas | memblokir |
+| Cacat struktur — kartu hilang atau ganda | memblokir |
+| Cacat cetak — salah eja teks berwenang | dilaporkan saja |
+
+`selesai()` menolak bila pemeriksaan halaman terakhir tidak lulus. Ini menutup
+kejadian nyata: penilai pernah menyatakan halaman layak kirim padahal
+pemeriksaannya sendiri melaporkan teks tak disetujui dan satu kartu hilang.
+
+### Penggambar
+
+```bash
+IMAGE_PROVIDER=vertex uv run python scripts/render_infografis.py --persona engineer
+uv run python scripts/render_infografis.py --prompt-saja        # tanpa biaya
+IMAGE_PROVIDER=vertex uv run python scripts/jalankan_penerbitan.py --persona engineer
+```
+
+- `openai` (bawaan, `gpt-image-2`) — belum diuji ulang sejak kredit habis.
+- `vertex` (`gemini-3-pro-image`) — terbukti terbaik: 106 teks, nol tak disetujui.
+- `gemini-2.5-flash-image` **tidak terpakai**: 133 dari 152 teks rusak total.
+
+Rasio aspek diturunkan dari `IMAGE_SIZE`, jadi kedua penyedia menggambar bentuk
+yang sama. Ini penting: digambar melebar, model menggandakan dua kartu dan
+menghilangkan satu; pada 2:3 tegak susunannya benar.
+
+### Sisa pekerjaan, berurut
+
+1. **Deploy ulang.** Cloud Run masih `arka:v2` — tertinggal dari seluruh
+   pekerjaan ini *dan* dari migrasi BigQuery. Sengaja ditunda, bukan terlupa.
+2. Prosa Indonesia panjang masih sering rusak digambar; kalimat panjang di kaki
+   halaman paling rawan. Memperpendeknya adalah perbaikan berikutnya.
+3. `donut_status` dan `gauge_rating` sudah terbuka; `kpi_target` dan
+   `gauge_rating` sebagai bentuk kartu masih tertutup karena kanvas tidak
+   membawa `target` maupun `scale_labels`.
+
+### Jebakan yang sudah memakan waktu
+
+- Uji hijau tidak membuktikan apa pun di sini. `confidence_scale()` membaca
+  kosakata temuan (`sedang`) padahal kanvas menyimpan `medium`, jadi selalu
+  mengembalikan `None` dan gerbangnya tidak pernah tergambar — tanpa satu uji
+  pun gagal. Periksa prompt atau gambar yang benar-benar dihasilkan.
+- `_mirror()` dulu membaca `os.environ`, sedangkan `.env` dimuat pydantic ke
+  `Settings`. Akibatnya jejak audit diam-diam tidak tersalin ke GCS di lokal.
+  Sekarang membaca `Settings` lebih dulu.
+- `app/synthetic/finding_contoh.py` dan jalur BigQuery menghasilkan **angka
+  berbeda untuk seal yang sama** (0,84 lawan 0,87 terhadap master data 0,30).
+  Sebelum mengoreksi angka di dokumen, pastikan dulu kalimat itu merujuk data
+  yang mana.
+- Modul `app/designer/inspection.py` menuntut `GOOGLE_CLOUD_PROJECT`, yang baru
+  terpasang ketika `app.agents` diimpor. Memakainya langsung tanpa impor itu
+  akan gagal dengan pesan yang menyesatkan.

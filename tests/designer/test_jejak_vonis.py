@@ -30,3 +30,29 @@ def test_vonis_menyusul_setelah_jejak_ditutup(tmp_path):
 def test_jejak_yang_belum_ada_tidak_menjatuhkan_pemeriksa(tmp_path):
     """Losing the evidence must never take the run down with it."""
     record_verdict(tmp_path / "belum-ada", "putusan", "layak kirim")
+
+
+def test_bucket_dibaca_dari_settings_bukan_lingkungan(monkeypatch, tmp_path):
+    """`.env` is loaded by pydantic and never reaches os.environ, so reading the
+    environment directly ignored a bucket that was configured — silently, with
+    every local trail losing its permanent copy and nothing saying so.
+    """
+    import app.designer.trail as jejak
+    from app.core.config import get_settings
+
+    monkeypatch.delenv("ARTIFACT_GCS_BUCKET", raising=False)
+    get_settings.cache_clear()
+    monkeypatch.setenv("ARTIFACT_GCS_BUCKET", "")
+
+    dipakai: list[str] = []
+    monkeypatch.setattr(
+        jejak, "_mirror",
+        lambda prefix, name, payload, ct: dipakai.append(prefix),
+    )
+
+    trail = jejak.RunTrail("ARKA-2026-0042", base=tmp_path)
+    trail.finish("PUBLISHED")
+    assert dipakai, "penyalinan tidak pernah dipanggil"
+
+    get_settings.cache_clear()
+    assert "artifact_gcs_bucket" in type(get_settings()).model_fields
