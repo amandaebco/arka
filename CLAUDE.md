@@ -277,7 +277,19 @@ script diabaikan; pemasangan runtime melebihi anggaran waktu permintaan).
 ### Cloud Run — hidup dan terbukti (7 Agt)
 
 `https://arka-110352541672.us-central1.run.app` · region `us-central1` ·
-image `us-central1-docker.pkg.dev/ebco-aihack-amanda/arka/arka:v1`
+image `us-central1-docker.pkg.dev/ebco-aihack-amanda/arka/arka:v4` ·
+revisi `arka-00007-m7q` · `max-instances=4` (11 Agt)
+
+⚠️ **Endpoint menolak semua permintaan tanpa kredensial** — IAM policy service
+kosong, jadi `curl` menjawab 403. Membukanya menuntut `run.services.setIamPolicy`,
+yang **tidak** termasuk dalam `roles/editor`; akun ini ditolak baik pada service
+maupun pada project. Perlu admin memberi `roles/run.admin`, atau menjalankan
+sendiri binding `roles/run.invoker` untuk `allUsers`. Sampai itu turun, video demo
+adalah satu-satunya bukti bahwa aplikasinya berjalan.
+
+`max-instances` diturunkan dari 100 ke 4 sebelum endpoint dibuka: seratus instance
+yang masing-masing memanggil Gemini adalah plafon biaya yang tidak seorang pun
+akan menyadarinya sampai tagihannya terbit.
 
 **Rantai penuh sudah berjalan di sana**: reporter menerbitkan PDF (88 KB, dirender
 Chromium di dalam container), penilai memeriksa, `selesai` menghentikan putaran.
