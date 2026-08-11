@@ -36,7 +36,24 @@ menyusunnya menjadi dokumen yang setiap klaimnya bisa ditelusuri ke sumber aslin
         ┌───────────────────┴──────────────────────────┐
         │  ADK Artifacts: memo · infografis · deck     │
         └──────────────────────────────────────────────┘
-```
+## Agent-Agent di ARKA
+
+ARKA mengorkestrasi 7 agent spesialis berbasis **Google ADK** dengan pembagian peran yang terisolasi secara ketat (*separation of concerns*):
+
+1. **Scout Agent** (`adk_agents/scout` / `app/agents/scout.py`):
+   Secara otonom memindai seluruh kegagalan mesin yang terbuka di armada pabrik (*fleet*) dan memutuskan kasus mana yang membutuhkan perhatian serta layak diselidiki lebih lanjut.
+2. **Investigator Agent** (`adk_agents/investigator` / `app/agents/investigator.py`):
+   Menyelidiki akar masalah (*root cause*) melalui penelusuran graf multi-hop (*GraphRAG*), mengumpulkan bukti riwayat perbaikan, dokumen inspeksi, FMEA, dan nomor batch sparepart terdistribusi.
+3. **Reporter Agent** (`adk_agents/reporter` / `app/agents/reporter.py`):
+   Memilih bentuk dokumen (Memo, Nota Dinas, Laporan Lengkap, atau Web Dashboard), menentukan struktur urutan blok informasi, dan menulis narasi pengantar eksekutif tanpa pernah mengarang angka.
+4. **Designer Agent** (`adk_agents/designer` / `app/agents/designer.py`):
+   Menentukan bentuk visualisasi dan penekanan blok (*emphasis*), lalu merender infografis kanvas 1 halaman menggunakan Playwright engine.
+5. **QA Agent / Penilai Mutu & Visual Inspector** (`app/agents/qa.py` & `app/designer/inspection.py`):
+   Menegakkan gerbang mutu (*quality gate*) berbasis **Gemini Vision AI (OCR)** untuk mentranskripsi halaman infografis dan memverifikasi akurasi teks demi mencegah halusinasi sebelum diterbitkan.
+6. **Curator Agent** (`app/agents/curator.py`):
+   Menilai kandidat fakta baru yang diekstrak dari dokumen untuk menentukan mana yang aman dimasukkan otomatis ke Knowledge Graph vs yang wajib dieskalasi ke manusia.
+7. **Tanya Jawab Agent / Interactive Q&A** (`adk_agents/tanya_jawab` / `app/agents/tanya_jawab.py`):
+   Agent interaktif yang melayani pertanyaan *reliability engineer* secara langsung mengenai riwayat aset, penelusuran graf, dan rekomendasi solusi teknis.
 
 ## Menjalankan & Penjurian
 
