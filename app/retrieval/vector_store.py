@@ -8,6 +8,8 @@ returns nothing — which is how the most valuable old records stay unreachable.
 `VECTOR_SEARCH` compares stored vectors and needs no remote-model connection, so
 this runs on plain BigQuery access. Embeddings are produced by
 `app.retrieval.embedding` at load time.
+
+Traceability: spec 003 FR-001, FR-004, FR-005 · tasks T011, T012.
 """
 
 from __future__ import annotations
@@ -127,16 +129,26 @@ def build_index(chunks: list[dict]) -> int:
     return len(rows)
 
 
-def search(question: str, limit: int = 5) -> list[SemanticHit]:
+# Relaxed recall threshold for initial candidate retrieval before reranking
+MIN_SIMILARITY_CANDIDATE = 0.50
+
+
+def search(
+    question: str, limit: int = 5, *, apply_rerank: bool = True
+) -> list[SemanticHit]:
     """Find chunks whose meaning matches the question.
 
-    Results below `MIN_SIMILARITY` are dropped rather than returned with a low
-    score, because a ranked list invites the reader to trust its top entry.
+    Fetches candidate hits from VECTOR_SEARCH, then applies the reranker layer
+    (composite similarity + keyword overlap + relative margin filtering) when
+    `apply_rerank=True`.
     """
+    from app.retrieval.reranker import rerank_hits
+
     vector = embed_one(question)
     if len(vector) != DIMENSION:  # pragma: no cover — guards a model swap
         raise ValueError(f"embedding dimension {len(vector)} != stored {DIMENSION}")
 
+    candidate_k = max(limit * 2, 10)
     sql = f"""
     SELECT base.document_id, base.title, base.document_type, base.content,
            base.page_number, 1 - distance AS similarity
@@ -152,7 +164,7 @@ def search(question: str, limit: int = 5) -> list[SemanticHit]:
         job_config=bigquery.QueryJobConfig(
             query_parameters=[
                 bigquery.ArrayQueryParameter("q", "FLOAT64", vector),
-                bigquery.ScalarQueryParameter("k", "INT64", limit),
+                bigquery.ScalarQueryParameter("k", "INT64", candidate_k),
             ]
         ),
     )
@@ -166,7 +178,13 @@ def search(question: str, limit: int = 5) -> list[SemanticHit]:
             similarity=round(float(r.similarity), 4),
         )
         for r in job.result()
+        if float(r.similarity) >= MIN_SIMILARITY_CANDIDATE
     ]
-    kept = [h for h in hits if h.similarity >= MIN_SIMILARITY]
+
+    if apply_rerank:
+        kept = rerank_hits(question, hits)[:limit]
+    else:
+        kept = [h for h in hits if h.similarity >= MIN_SIMILARITY][:limit]
+
     logger.info("semantic search kept %d of %d hits", len(kept), len(hits))
     return kept
