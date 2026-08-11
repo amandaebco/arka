@@ -21,6 +21,24 @@ Berbeda dari chatbot RAG yang merangkum dokumen, ARKA **menalar di atas knowledg
 
 ARKA bekerja **proaktif**. Ia memindai seluruh armada tanpa ada yang menunjuk kasusnya, menyaring mana yang layak diselidiki — sekaligus melaporkan yang diabaikan beserta alasannya — lalu menelusuri yang terpilih dan merangkainya menjadi dokumen siap pakai dengan setiap klaim membawa sitasinya.
 
+### Yang sudah berjalan dan terukur
+
+Setiap angka di bawah ini hasil pengukuran pada sistem berjalan, bukan target.
+
+| Kapabilitas | Wujudnya | Terukur |
+|---|---|---|
+| **Knowledge graph di BigQuery** | Daftar node dan edge atas 39 tabel kanonik, ditelusuri recursive CTE | 6.474 node · 9.975 edge · 13 label · 16 jenis relasi |
+| **Traversal multi-hop** | Kedalaman adalah parameter; jalur lengkap dikembalikan sebagai data | **4 dan 5 hop**, 1.086 dan 1.580 jalur dari satu aset |
+| **GraphRAG** | Traversal graph dan potongan dokumen ditarik bersama, bukan ditempel | 8 fakta struktural + 4 potongan, 4 sitasi, satu pertanyaan |
+| **Pencarian vektor di BigQuery** | `VECTOR_SEARCH` atas `gemini-embedding-2` | 3072 dimensi · 54 potongan terindeks |
+| **Korpus dokumen sintetis** | Laporan inspeksi yang bisa dikutip | **50 dokumen latar** + 4 dokumen jalur emas |
+| **Case keandalan** | Preseden lintas pabrik, eskalasi saat ragu | 0,9071 vs 0,8819 → eskalasi pada margin 0,0252 |
+| **Case rantai pasok** | Kekritisan dihitung ulang, radius dampak, pemakaian material tercatat | 0,8667 dihitung vs **0,30** di master data |
+
+Rantai yang sama atas data yang sama menghasilkan angka **identik** dari BigQuery maupun PostgreSQL — paritas diukur, bukan diklaim.
+
+⚠️ Satu hal yang **tidak** kami klaim: fitur **BigQuery Graph** (`CREATE PROPERTY GRAPH` + `GRAPH … MATCH`). Kami mengujinya langsung dan mengukur batasnya, lalu memilih jalan lain. Alasannya di bagian [Jalur produksi](#jalur-produksi-bigquery), dan itu temuan yang kami anggap lebih berharga daripada menyebut nama fiturnya.
+
 ---
 
 ## Latar belakang
@@ -182,9 +200,10 @@ Keluaran yang paling berguna bukan skornya, melainkan **selisihnya terhadap labe
         └──────────────────────────┬───────────────────────────┘
                                    │
         ┌──────────────────────────┴───────────────────────────┐
-        │        PostgreSQL 16 + Apache AGE 1.6                │
-        │   public (tabel kanonik) → arka_kg (proyeksi graph)  │
-        │   + pgvector — pencarian titik masuk semantik        │
+        │   BigQuery — sumber data (39 tabel kanonik)          │
+        │   graph_nodes / graph_edges → traversal recursive CTE │
+        │   VECTOR_SEARCH — pencarian titik masuk semantik     │
+        │   ── jalur lokal: PostgreSQL 16 + Apache AGE ──      │
         └──────────────────────────┬───────────────────────────┘
                                    │
                     ┌──────────────┴───────────────┐
@@ -192,11 +211,13 @@ Keluaran yang paling berguna bukan skornya, melainkan **selisihnya terhadap labe
                     └──────────────────────────────┘
 ```
 
-Penelusuran rantai deteksi berjalan di atas **tabel kanonik**, bukan Cypher. Proyeksi AGE ada dan dipakai untuk pertanyaan yang menuntut kedalaman sembarang; relasi yang dibutuhkan jalur ini semuanya berjarak satu sampai dua join, dan menambah dialek kueri kedua di jalur kritis akan membeli kedalaman yang tidak dipakai sambil menambah satu mode kegagalan — proyeksi basi yang menghasilkan jawaban salah secara diam-diam, bukan galat.
+Rantai deteksi menjawab empat pertanyaan tetap, dan keempatnya berjarak satu sampai dua join — jadi ditulis sebagai join, bukan sebagai traversal. Penelusuran yang memang berbentuk penelusuran (empat sampai lima hop, keluar ke sparepart bersama lalu turun ke pabrik lain) berjalan di lapisan terpisah atas `graph_nodes` / `graph_edges`.
+
+Pemisahan itu disengaja: memakai dialek kueri kedua di jalur kritis akan membeli kedalaman yang tidak dipakai sambil menambah satu mode kegagalan, dan **satu-satunya penyimpanan yang disentuh lapisan penalaran adalah `app/detection/store.py`** — sehingga berpindah antara BigQuery dan PostgreSQL adalah perubahan konfigurasi, bukan suntingan di banyak berkas.
 
 ### Sistem multi-agent
 
-Lima agent, masing-masing dengan satu keputusan yang jelas miliknya dan titik serah-terima yang eksplisit:
+Lima agent dirancang, **empat sudah berjalan**. Masing-masing memiliki satu keputusan yang jelas miliknya dan titik serah-terima yang eksplisit:
 
 | Agent | Keputusan | Serah-terima |
 |---|---|---|
@@ -204,9 +225,9 @@ Lima agent, masing-masing dengan satu keputusan yang jelas miliknya dan titik se
 | **Investigator** | Memutuskan kasus mana yang dikejar, seberapa dalam menelusuri, dan kapan mengeskalasi ke manusia | → Reporter |
 | **Reporter** | Memutuskan isi dokumen dan urutan prioritasnya | → memo / laporan, Designer |
 | **Designer** | Memutuskan penekanan visual dan bentuk visual tiap blok | → infografis |
-| **Curator** | Loop terpisah. Memutuskan pemetaan mana yang aman disetujui otomatis | → proyeksi ulang graph |
+| **Curator** ⚠️ *belum dibangun* | Loop terpisah. Memutuskan pemetaan mana yang aman disetujui otomatis | → proyeksi ulang graph |
 
-`Scout → Investigator → Reporter → Designer` membentuk rantai; `Curator` berjalan ortogonal.
+`Scout → Investigator → Reporter → Designer` membentuk rantai dan **keempatnya berjalan**; `Curator` dirancang ortogonal dan **belum diimplementasikan** — persetujuan pemetaan masih sepenuhnya manual (lihat batasan 5). Disebut di sini supaya arsitekturnya utuh dibaca, bukan supaya dihitung sebagai yang sudah jadi.
 
 Batas antara Reporter dan Designer dijaga ketat: pemilihan blok tetap milik Reporter, dan Designer menerimanya sebagai masukan. Spesifikasi penyajian yang mencoba menambah blok di luar pilihan Reporter ditolak validator sebelum sempat dikompilasi — dua modul tidak boleh memiliki keputusan yang sama.
 
@@ -256,17 +277,30 @@ ARKA bukan chatbot: ia memindai armada dan mengangkat temuan tanpa menunggu dita
 
 ### Knowledge graph
 
-Graph berjalan di **Apache AGE, di dalam PostgreSQL yang sama** dengan data operasional. Tidak ada database graph terpisah yang harus disinkronkan — satu titik kegagalan lebih sedikit, dan adopsi di lingkungan enterprise tidak menuntut lisensi maupun tim tambahan.
+Graph berada **di dalam BigQuery, bersama data operasionalnya** — bukan database graph terpisah yang harus disinkronkan. Satu titik kegagalan lebih sedikit, dan adopsi di lingkungan enterprise tidak menuntut lisensi, reservation, maupun tim tambahan.
+
+Wujudnya dua tabel: `graph_nodes` (6.474 baris, 13 label) dan `graph_edges` (9.975 baris, 16 jenis relasi), keduanya dibangkitkan dari kunci asing tabel kanonik. Penelusuran memakai recursive CTE, sehingga kedalaman menjadi parameter dan **jalur lengkapnya ikut kembali sebagai data** — yang membuat setiap hop bisa diperiksa, bukan sekadar dipercaya.
+
+Jalur pengembangan lokal memakai Apache AGE di dalam PostgreSQL yang sama; lapisan di atasnya tidak membedakan keduanya.
 
 Ontologi mengikuti pola reliability standar industri:
 
 ```
-Plant → ProductionLine → Equipment → Component
-Equipment → WorkOrder → Notification → {Symptom, Cause, Damage, ObjectPart}
-Equipment → FailureEvent → {Symptom, FailureMode, Cause, Damage}
-Component → SparePart → Supplier
-Document → Evidence → Claim → {Equipment, Component, FailureEvent}
+Plant  —MEMILIKI_LINE→  ProductionLine  —MEMILIKI_EQUIPMENT→  Equipment
+Equipment  —MEMILIKI_KOMPONEN→  Component
+Equipment  —MENGALAMI→  FailureEvent  ←TERDAMPAK—  Component
+FailureEvent  —{MENUNJUKKAN, DISEBABKAN_OLEH, BERMODE, MENIMBULKAN}→
+               {Symptom, Cause, FailureMode, Damage}
+Component  —MERUSAK→  Damage
+Equipment  —DIJADWALKAN_PADA→  WorkOrder  —MENANGANI→  FailureEvent
+WorkOrder  —AKTIVITAS→  MaintenanceActivity  —{MEMAKAI, DIKERJAKAN_OLEH}→
+               {SparePart, Technician}
+Component  —DIPASOK_OLEH→  SparePart
 ```
+
+**13 label node, 16 jenis relasi** — seluruhnya dibangkitkan dari kunci asing tabel kanonik, kecuali `DIPASOK_OLEH` yang mewujudkan hubungan komponen–sparepart lewat jenis komponen. Tidak ada label yang dideklarasikan tanpa isi.
+
+Dua jalur menjawab pertanyaan rantai pasok, dan bedanya penting: `DIPASOK_OLEH` menjawab *"apa lagi yang jenisnya sama"*, sedangkan `MEMAKAI` menjawab *"pekerjaan mana yang benar-benar memasangnya"* — kejadian tercatat, bukan kecocokan tipe.
 
 ### Pengaman
 
