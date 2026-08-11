@@ -334,6 +334,50 @@ async def find_documents(
     return list(seen.values())
 
 
+# Kata fungsi yang muncul di hampir setiap nama penyebab. Dibuang sebelum
+# pencocokan supaya "akibat" atau "pasca" tidak membuat setiap dokumen relevan.
+_KATA_UMUM = frozenset(
+    {
+        "akibat", "bawah", "pasca", "dengan", "untuk", "pada", "yang", "dari",
+        "atau", "dan", "saat", "oleh", "tidak", "sudah", "telah", "lebih",
+    }
+)
+
+# Panjang minimum kata yang dianggap membawa makna. Empat, bukan lima, karena
+# "seal" adalah salah satu istilah paling menentukan di domain ini.
+_PANJANG_MIN = 4
+
+# Berapa istilah yang harus sama sebelum dokumen dianggap mendukung.
+#
+# Dua, bukan satu. Satu istilah terbukti terlalu longgar pada korpus nyata:
+# laporan inspeksi mixer yang menyebut "perubahan beban batch" mencocok penyebab
+# "degradasi seal ... akibat batch material" hanya lewat kata `batch`, dan
+# menempel sebagai rujukan pada memo yang tidak ada hubungannya.
+#
+# Dua juga bukan angka yang aman diturunkan diam-diam: dokumen jalur emas
+# mencocok lewat "kepala" + "pengisi" + "seal", jadi ada ruang. Menaikkannya ke
+# tiga akan mulai membuang dokumen yang menyinggung penyebab dengan istilah
+# lain — dan membuang bukti lebih mahal daripada melampirkan yang kurang
+# relevan.
+_MIN_ISTILAH_COCOK = 2
+
+
+def _istilah(teks: str) -> set[str]:
+    """Kata bermakna dari sebuah frasa, untuk dicocokkan apa adanya."""
+    kata = "".join(c.lower() if c.isalnum() else " " for c in teks).split()
+    return {k for k in kata if len(k) >= _PANJANG_MIN and k not in _KATA_UMUM}
+
+
+def _mendukung(dokumen: DocumentRef, istilah_penyebab: set[str]) -> bool:
+    """Apakah dokumen ini menyinggung penyebab yang sedang dinilai.
+
+    Pencocokan istilah, bukan model: sitasi adalah tulang punggung Prinsip II,
+    dan rujukan yang dipilih model adalah rujukan yang bisa dikarang.
+    """
+    teks = f"{dokumen.title} {dokumen.excerpt or ''}"
+    return len(istilah_penyebab & _istilah(teks)) >= _MIN_ISTILAH_COCOK
+
+
 def group_by_cause(
     cases: list[HistoricalCase], documents: list[DocumentRef] | None = None
 ) -> list[CandidateEvidence]:
@@ -342,6 +386,13 @@ def group_by_cause(
     Ordered by cause id so that two runs over the same data produce the same
     document. Determinism here is not tidiness — it is what allows a reviewer to
     compare today's memo against last week's and trust the difference is real.
+
+    Dokumen dilampirkan **per kandidat menurut relevansi istilah**, bukan
+    diborong seluruhnya ke setiap kandidat. Perbedaannya tidak terlihat selama
+    korpusnya empat dokumen — keempatnya memang menyinggung kepala pengisi —
+    tetapi begitu estate-nya bertambah, melampirkan semuanya berarti setiap memo
+    membawa setiap laporan inspeksi yang pernah ditulis. Sitasi yang tidak
+    menyaring apa pun bukan sitasi; ia daftar isi.
     """
     grouped: dict[str, list[HistoricalCase]] = {}
     names: dict[str, str] = {}
@@ -349,18 +400,25 @@ def group_by_cause(
         grouped.setdefault(case.cause_canonical_id, []).append(case)
         names[case.cause_canonical_id] = case.cause_name
 
-    refs = tuple(documents or ())
-    return [
-        CandidateEvidence(
-            cause_canonical_id=cause_id,
-            cause_name=names[cause_id],
-            historical_cases=tuple(
-                sorted(items, key=lambda c: (c.occurred_on, c.failure_event_id), reverse=True)
-            ),
-            documents=refs,
+    semua = tuple(documents or ())
+    hasil = []
+    for cause_id, items in sorted(grouped.items()):
+        nama = names[cause_id]
+        istilah_penyebab = _istilah(nama)
+        relevan = tuple(d for d in semua if _mendukung(d, istilah_penyebab))
+        if not relevan:
+            logger.debug("tidak ada dokumen yang menyinggung %s", nama)
+        hasil.append(
+            CandidateEvidence(
+                cause_canonical_id=cause_id,
+                cause_name=nama,
+                historical_cases=tuple(
+                    sorted(items, key=lambda c: (c.occurred_on, c.failure_event_id), reverse=True)
+                ),
+                documents=relevan,
+            )
         )
-        for cause_id, items in sorted(grouped.items())
-    ]
+    return hasil
 
 
 @dataclass(frozen=True)

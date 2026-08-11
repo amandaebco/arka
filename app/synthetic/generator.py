@@ -444,9 +444,11 @@ async def bangun(
 
         tambahan: dict[str, int] = {}
         if volume_latar:
+            from app.synthetic.dokumen_latar import tulis_dokumen_latar
             from app.synthetic.volume_latar import tulis_volume_latar
 
             tambahan = await tulis_volume_latar(sesi, seed)
+            tambahan |= await tulis_dokumen_latar(sesi, seed)
 
         await sesi.commit()
 

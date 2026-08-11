@@ -380,9 +380,9 @@ tests/             Test suite
 
 **Seluruh data dalam proyek ini dibangkitkan secara sintetis.** Tidak ada data nyata milik pihak mana pun yang digunakan.
 
-Data mencakup perusahaan FMCG fiktif dengan **5 pabrik**, **505 equipment**, **3.009 work order**, dan **68 kegagalan**, dalam rentang **3 tahun**.
+Data mencakup perusahaan FMCG fiktif dengan **5 pabrik**, **505 equipment**, **3.009 work order**, **68 kegagalan**, dan **54 dokumen**, dalam rentang **3 tahun**.
 
-Angkanya terbagi dua dengan sengaja. **Jalur emas** — 5 filler model sama di 5 pabrik, 8 kegagalan, 4 dokumen — adalah data yang penalarannya diuji di atasnya, dan setiap angkanya dikalibrasi. **Volume latar** — 500 equipment dan 3.000 work order dari tipe mesin lain — ada untuk menguji penyaringnya, bukan penalarannya.
+Angkanya terbagi dua dengan sengaja. **Jalur emas** — 5 filler model sama di 5 pabrik, 8 kegagalan, 4 dokumen yang bisa dikutip — adalah data yang penalarannya diuji di atasnya, dan setiap angkanya dikalibrasi. **Volume latar** — 500 equipment, 3.000 work order, dan 50 laporan inspeksi dari tipe mesin lain — ada untuk menguji penyaringnya, bukan penalarannya.
 
 Keduanya dipisahkan secara konstruksi, bukan lewat pemeriksaan sesudahnya: model mesin, jenis komponen, dan kepemilikan work order latar dibuat tidak beririsan dengan jalur emas, sehingga volume latar **tidak punya jalur** untuk menggeser skor. Setelah volume ditambahkan, seluruh angka demo tidak bergerak satu digit pun.
 
@@ -457,7 +457,7 @@ Disampaikan terbuka:
 9. **Pemasok tier-2 dan tier-3 belum dimodelkan** — radius dampak berhenti di pemasok langsung.
 10. **Traversal multi-hop belum dipakai agent mana pun.** Lapisannya jalan dan teruji sampai lima hop, tetapi rantai deteksi masih menjawab keempat pertanyaannya lewat join SQL — dan paritas antar penyimpanan bergantung pada itu. Menyambungkannya ke radius dampak sparepart menyentuh angka yang masuk ke memo, jadi menuntut pengujian paritas ulang, bukan sekadar tes hijau.
 11. **Sintaks GQL penuh tetap di luar jangkauan.** `GRAPH … MATCH …` menuntut reservation Enterprise. Recursive CTE menghasilkan traversal yang setara di on-demand dan justru mengembalikan jalurnya, tetapi ia SQL — bukan bahasa graph, dan tidak sepadan ekspresifnya untuk pola yang rumit.
-12. **Ambang kemiripan adalah properti korpus.** `MIN_SIMILARITY = 0,60` diukur ulang terhadap `gemini-embedding-2`: dalam domain 0,6359–0,7703, di luar domain 0,4834–0,5466. Sah untuk empat dokumen, dan **wajib diukur ulang** begitu korpusnya besar.
+12. **Ambang kemiripan tidak memisahkan bersih, dan kami mengukurnya.** `MIN_SIMILARITY = 0,60` atas korpus 54 dokumen: pertanyaan dalam domain mencapai 0,5140–0,7703, pertanyaan di luar domain 0,5018–0,5692. **Kedua rentang bertumpang tindih** — satu pertanyaan dalam domain menemukan dokumen yang benar dan tetap skornya 0,5140, di bawah pertanyaan omong kosong terbaik. Pada korpus empat dokumen celahnya terlihat bersih; itu properti korpus kecilnya, bukan properti sistem. Ambang 0,60 dipertahankan sebagai pilihan **presisi di atas recall**: pertanyaan yang jauh dari kata-kata dokumennya dijawab dengan diam, bukan dengan tebakan paling mendekati. Perbaikan sebenarnya bukan konstanta yang lebih baik melainkan uji relatif — selisih hit teratas terhadap sisanya, atau rerank — karena "apakah ini yang paling cocok" dan "apakah ini cukup cocok" adalah dua pertanyaan berbeda.
 
 ---
 

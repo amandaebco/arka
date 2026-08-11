@@ -7,11 +7,25 @@ holds if exactly one place knows the difference; this is that place.
 
 Selected by `ARKA_STORE`:
 
-    postgres  (default)  PostgreSQL + Apache AGE — the proven local path
-    bigquery             BigQuery property graph — the production path
+    bigquery  (default)  The canonical mirror — all 39 tables, the source
+    postgres             PostgreSQL + Apache AGE — the local path
 
-Both return identical dataclasses, and the identical scores were verified on
-11 August against the same seeded data.
+Both return identical dataclasses, and identical scores were verified on
+11 August against the same seeded data: 0.9071 / 0.8819, margin 0.0252,
+5 precedents, 8 citations, seal criticality 0.8667.
+
+⚠️ **The default is BigQuery, but the fallback is PostgreSQL** — and that
+asymmetry is deliberate. An unrecognised value must not reach for the cloud: a
+typo in an environment variable would otherwise quietly change where production
+data is read from, and a wrong answer from the wrong store looks exactly like a
+right one. Choosing the cloud takes spelling it correctly; falling back never
+does.
+
+The synthetic generator does not go through this module — it writes to
+PostgreSQL directly, because that is where the truth is while data is being
+built. Tests *do* come through here (scout and investigator both dispatch), so
+`tests/conftest.py` pins them to PostgreSQL for the same reason: a test that
+reads BigQuery is testing the last sync, not the code under it.
 """
 
 from __future__ import annotations
@@ -27,15 +41,19 @@ POSTGRES = "postgres"
 
 
 def active_store() -> str:
-    """Which backend is configured. Unknown values fall back to PostgreSQL.
+    """Which backend is configured. BigQuery unless asked otherwise.
 
-    An unrecognised name should not silently reach for the cloud: a typo in an
-    environment variable would otherwise change where production data is read
-    from, which is not a failure mode worth having.
+    Unset means BigQuery — it is the source. A *misspelt* value means
+    PostgreSQL, because reaching for the cloud should take getting the name
+    right; see the module docstring.
     """
-    nama = (os.getenv("ARKA_STORE") or POSTGRES).strip().lower()
+    mentah = os.getenv("ARKA_STORE")
+    if mentah is None or not mentah.strip():
+        return BIGQUERY
+
+    nama = mentah.strip().lower()
     if nama not in (BIGQUERY, POSTGRES):
-        logger.warning("ARKA_STORE=%r not recognised — using %s", nama, POSTGRES)
+        logger.warning("ARKA_STORE=%r not recognised — using %s", mentah, POSTGRES)
         return POSTGRES
     return nama
 

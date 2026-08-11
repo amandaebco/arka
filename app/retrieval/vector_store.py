@@ -32,24 +32,38 @@ TABLE = "document_chunks_embedded"
 # a valid outcome; returning the least-bad match is how a system starts lying
 # confidently.
 #
-# Re-measured on 11 August against `gemini-embedding-2`, after the model change
-# invalidated the figures taken from `gemini-embedding-001`:
+# Measured on a 54-document corpus, 11 August, against `gemini-embedding-2`:
 #
-#     in-domain   0.6359  "kenapa produk merembes saat pengisian?"
-#                 0.7703  "apa penyebab torsi kepala pengisi menyimpang?"
+#     in-domain   0.7703  "apa penyebab torsi kepala pengisi menyimpang?"
 #                 0.7542  "seal bocor di mesin filler"
-#     out-domain  0.5466  "harga saham minggu ini"
-#                 0.4834  "resep rendang padang"
+#                 0.7239  "sabuk konveyor aus tidak merata"
+#                 0.6512  "kenapa arus motor mixer naik?"
+#                 0.6359  "kenapa produk merembes saat pengisian?"
+#                 0.5140  "label miring saat kecepatan tinggi"   ← found the
+#                         right document (Sensor Posisi) and still scored this
+#     out-domain  0.5692  "harga saham minggu ini"
+#                 0.5307  "jadwal kereta ke bandung"
+#                 0.5018  "resep rendang padang"
 #
-# The gap runs 0.5466 → 0.6359, so 0.60 sits inside it with room on both sides.
-# The number is unchanged from the previous model, which is a coincidence worth
-# stating plainly rather than a reason to have skipped the measurement: the new
-# model separates in-domain from out-of-domain more widely, and had it separated
-# them less, 0.60 would have started admitting noise with nothing to announce it.
+# ⚠️ **The two bands now overlap.** On four documents they did not, and the
+# earlier reading of a clean gap was a property of that corpus, not of the
+# system. At 54 documents the weakest in-domain question (0.5140) scores *below*
+# the strongest nonsense question (0.5692), so **no single threshold separates
+# them**. Lowering the floor to catch the sensor question would also admit
+# "harga saham minggu ini".
 #
-# ⚠️ Still a property of the corpus. Four documents is a small estate, and a
-# threshold tuned on four will not hold on four thousand — re-measure with this
-# same method (paraphrases in, nonsense out) as the estate grows.
+# 0.60 is kept, and what it buys is precision at the cost of recall: a question
+# phrased far from its document's wording is answered with silence rather than
+# with the least-bad match. That is the right trade for this system — a
+# reliability engineer who gets nothing asks again, while one who gets a
+# confident wrong citation may not check it — but it is a trade, not a
+# separation, and it should be described that way rather than as a calibrated
+# boundary.
+#
+# The real fix is not a better constant. It is a relative test — margin between
+# the top hit and the rest, or a rerank — because "is this the best match" and
+# "is this a good match" are different questions and a single cosine floor only
+# answers the first one badly.
 MIN_SIMILARITY = 0.60
 
 

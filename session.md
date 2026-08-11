@@ -84,6 +84,29 @@ PLT-U/FIL-207 -[MEMILIKI_KOMPONEN]-> seal -[DIPASOK_OLEH]-> SP-SEAL-8801
 **Multi-hop traversal can now be claimed in the pitch** — with the path printed,
 which is the part that makes it checkable rather than merely asserted.
 
+### BigQuery is the default store
+
+`ARKA_STORE` unset now means **bigquery**. A *misspelt* value still falls back to
+PostgreSQL — reaching for the cloud should take spelling it right, and a wrong
+answer from the wrong store looks exactly like a right one.
+
+`tests/conftest.py` pins the suite to PostgreSQL. Without it the agent tests
+went over the network: `test_scout_agent.py` setup jumped to 47s each and the
+full suite from 12s to 261s. Speed is the symptom; the reason is that PostgreSQL
+is where the generator writes, so a test against BigQuery tests the last sync
+rather than the code. ⚠️ **The BigQuery path is therefore not covered by the
+suite** — the hand-run parity check is what guards it.
+
+### Citations are filtered per candidate now
+
+`group_by_cause` used to attach **every** document to **every** candidate.
+Invisible at four documents; at 54 it would have put fifty mixer reports in a
+memo about filling heads. Documents now attach on a **two-term overlap** with
+the cause name. One term was measured to be too loose — a mixer report matched
+"degradasi seal … akibat batch material" through the single word `batch`.
+
+Golden path citations unchanged at 8.
+
 ### Embedding model is `gemini-embedding-2`
 
 Also 3072 dimensions, so the schema did not change — and that is the trap, not
@@ -92,9 +115,27 @@ rebuilt. ⚠️ **`gemini-embedding-2` ignores batching**: handed three texts it
 returns one vector, with no error. `app/retrieval/embedding.py` now sends one
 text per request and checks the count.
 
-`MIN_SIMILARITY` re-measured against the new model: in-domain 0.6359–0.7703,
-out-of-domain 0.4834–0.5466. **0.60 still sits in the gap** — unchanged by
-coincidence, not by assumption. Still a property of a four-document corpus.
+### The similarity threshold does not separate — measured, not suspected
+
+Corpus raised to **54 documents** (`app/synthetic/dokumen_latar.py`) precisely so
+`MIN_SIMILARITY` could be measured on something. The result is the useful kind
+of negative:
+
+```
+in-domain   0.7703  0.7542  0.7239  0.6512  0.6359  0.5140 ←
+out-domain  0.5692 ←  0.5307  0.5018
+```
+
+The bands **overlap**. The weakest in-domain question scored 0.5140 while
+retrieving the *correct* document, below the strongest nonsense question at
+0.5692. **No single threshold separates them.** On four documents the gap looked
+clean; that was the corpus, not the system.
+
+0.60 is kept as a **precision-over-recall** choice — silence rather than a
+confident wrong citation — and should be described that way in the pitch, not as
+a calibrated boundary. The real fix is a relative test (margin between top hit
+and the rest, or a rerank), because "best match" and "good match" are different
+questions.
 
 ### Background volume — 500 equipment, 3,000 work orders
 
