@@ -12,6 +12,8 @@ the structure around it, and a traversal pulls in the sentences that explain it.
 
 Everything in this module is deterministic. It decides *what* a question is
 about and *what* to fetch; it never decides what the answer is.
+
+Traceability: spec 003 FR-002, FR-004 · tasks T015.
 """
 
 from __future__ import annotations

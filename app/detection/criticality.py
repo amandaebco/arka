@@ -11,6 +11,8 @@ a part the register calls unimportant, which the fleet's own history says will
 stop five plants for six weeks.
 
 Every input is a recorded fact. Nothing here consults a model.
+
+Traceability: spec 001 FR-006, FR-007.
 """
 
 from __future__ import annotations

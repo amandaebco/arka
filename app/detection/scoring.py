@@ -17,6 +17,8 @@ The formula is fixed in CLAUDE.md and must stay explainable on a whiteboard:
 `Decimal` is used throughout rather than `float`: these values are printed in
 official documents, and a score that renders as 0.6499999 undermines the whole
 claim that numbers come straight from data.
+
+Traceability: spec 001 FR-002, FR-003 · tasks T002, T003.
 """
 
 from __future__ import annotations

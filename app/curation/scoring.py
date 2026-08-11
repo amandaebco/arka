@@ -22,6 +22,8 @@ tentang subjek yang sama tidak pernah boleh disetujui otomatis berapa pun
 skornya — pertentangan adalah justru keadaan yang menuntut manusia, dan
 merata-ratakannya dengan tiga komponen lain akan membuatnya bisa tertutup oleh
 bukti yang banyak. Karena itu ia juga dikembalikan sebagai penanda tersendiri.
+
+Keterlacakan: spec 004 FR-001 … FR-007.
 """
 
 from __future__ import annotations

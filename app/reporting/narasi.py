@@ -10,6 +10,8 @@ satu angka salah ketik merusak kredibilitas seluruhnya.
 
 Angka yang sah tetap muncul di dokumen: dirender langsung dari `Finding` oleh
 `app.reporting.blocks`, tanpa melewati model.
+
+Keterlacakan: spec 001 FR-010, FR-012.
 """
 
 import logging

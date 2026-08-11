@@ -13,6 +13,8 @@ They share the same knowledge and run side by side — FR-014, and the reason th
 constitution refuses to let ARKA be called a chatbot.
 
 Prompts are English; every string a reader sees is Indonesian.
+
+Traceability: spec 003 FR-006, FR-007, FR-008, FR-014 · tasks T016–T019.
 """
 
 from __future__ import annotations

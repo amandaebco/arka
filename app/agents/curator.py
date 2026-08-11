@@ -26,6 +26,8 @@ berlaku selama model menurut. Larangan yang penting ditulis di kode.
 
 Hal yang sama berlaku untuk klaim di bawah ambang tolak: model tidak dapat
 menerimanya, hanya dapat menolaknya lebih tegas.
+
+Keterlacakan: spec 004 FR-008, FR-009, FR-011 · spec 001 FR-017, FR-018.
 """
 
 from __future__ import annotations
