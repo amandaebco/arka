@@ -47,9 +47,7 @@ docker compose up -d                       # PostgreSQL (tempat generator menuli
 uv run alembic upgrade head                # skema
 
 uv run python -m app.synthetic.generator --reset --volume-latar
-uv run python scripts/migrasi_bigquery.py           # salin + bangun graph
-uv run python scripts/migrasi_bigquery.py --verify  # bandingkan kedua sisi
-uv run python scripts/migrasi_bigquery.py --index   # embedding dokumen
+uv run python scripts/migrasi_bigquery.py --full    # salin → verifikasi → indeks
 
 uv run python scripts/run_chain.py         # scout → investigator → reporter
 uv run python scripts/pindai_terjadwal.py  # pemindaian, tanpa model

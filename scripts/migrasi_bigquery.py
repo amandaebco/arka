@@ -1,10 +1,16 @@
 """Migrate every canonical table from PostgreSQL to BigQuery.
 
+    python scripts/migrasi_bigquery.py --full       # mirror, verify, index — one command
     python scripts/migrasi_bigquery.py              # mirror all tables, build graph
     python scripts/migrasi_bigquery.py --verify     # row counts, both sides
     python scripts/migrasi_bigquery.py --graph      # rebuild the graph only
     python scripts/migrasi_bigquery.py --index      # rebuild the embedding index
     python scripts/migrasi_bigquery.py --only plants,equipment
+
+Prefer `--full`. Run as three separate commands, the mirror is only as current as
+the operator's memory of the third one, and a half-finished sync fails the way we
+least want: quietly, by answering from a stale copy. `--full` stops at the first
+step that fails and refuses to index a mirror that did not verify.
 
 The target dataset is `arka` by default, not `arka_graph`: the demo still reads
 the old flattened copy, and a migration that overwrites the thing it is meant to
@@ -28,6 +34,9 @@ from app.bigquery import config, edges, sync
 async def jalankan(args: argparse.Namespace) -> int:
     print(f"Target: {config.dataset_ref()}\n")
 
+    if args.full:
+        return await jalankan_penuh(args)
+
     if args.graph:
         nodes, edge_count = edges.build()
         print(f"Graph dibangun: {nodes} node, {edge_count} edge, "
@@ -43,6 +52,19 @@ async def jalankan(args: argparse.Namespace) -> int:
         return await laporkan_verifikasi()
 
     only = tuple(t.strip() for t in args.only.split(",") if t.strip()) if args.only else ()
+    hasil = await jalankan_migrasi(only)
+    if hasil != 0:
+        return hasil
+
+    print("\nJalankan --verify untuk membandingkan jumlah baris kedua sisi,")
+    print("lalu --index untuk membangun ulang indeks embedding di dataset ini.")
+    print("Atau jalankan --full sekali, yang melakukan ketiganya dan berhenti")
+    print("pada langkah pertama yang gagal.")
+    return 0
+
+
+async def jalankan_migrasi(only: tuple[str, ...]) -> int:
+    """Copy the canonical tables, and rebuild the graph unless the copy was partial."""
     hasil = await sync.migrate(only=only)
 
     dimigrasi = [r for r in hasil if not r.skipped]
@@ -55,8 +77,40 @@ async def jalankan(args: argparse.Namespace) -> int:
         nodes, edge_count = edges.build()
         print(f"\nGraph: {nodes} node, {edge_count} edge, {len(edges.NODE_SOURCES)} label.")
 
-    print("\nJalankan --verify untuk membandingkan jumlah baris kedua sisi,")
-    print("lalu --index untuk membangun ulang indeks embedding di dataset ini.")
+    return 0
+
+
+async def jalankan_penuh(args: argparse.Namespace) -> int:
+    """Mirror, verify, then index — stopping at the first step that fails.
+
+    The order is not a preference. Verification has to sit between the other two
+    because indexing reads chunks *from* the mirror: embedding an incomplete copy
+    produces an index that describes documents the mirror does not have, and
+    nothing downstream can tell that from a good one.
+
+    Every step announces itself, so an operator who walks away knows which one
+    stopped and why.
+    """
+    only = tuple(t.strip() for t in args.only.split(",") if t.strip()) if args.only else ()
+    if only:
+        print("⚠️ --full mengabaikan --only: sebagian tabel tidak pernah lolos verifikasi.\n")
+        only = ()
+
+    print("[1/3] Menyalin tabel kanonik dan membangun graph")
+    if await jalankan_migrasi(only) != 0:
+        return 1
+
+    print("\n[2/3] Membandingkan jumlah baris kedua sisi")
+    if await laporkan_verifikasi() != 0:
+        print("\nBerhenti. Indeks TIDAK dibangun di atas mirror yang tidak cocok —")
+        print("menjawab dari salinan yang tidak lengkap adalah mode gagal yang diam.")
+        return 1
+
+    print("\n[3/3] Membangun ulang indeks embedding")
+    if bangun_indeks() != 0:
+        return 1
+
+    print("\n✅ Mirror lengkap, terverifikasi, dan terindeks. ARKA_STORE=bigquery siap dipakai.")
     return 0
 
 
@@ -108,7 +162,12 @@ async def laporkan_verifikasi() -> int:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description=__doc__)
+    p = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("--full", action="store_true",
+                   help="salin, verifikasi, lalu indeks — berhenti pada kegagalan pertama")
     p.add_argument("--verify", action="store_true", help="bandingkan jumlah baris kedua sisi")
     p.add_argument("--graph", action="store_true", help="bangun ulang node + edge list")
     p.add_argument("--index", action="store_true", help="bangun ulang indeks embedding")
