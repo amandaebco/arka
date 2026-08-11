@@ -13,11 +13,19 @@ from app.synthetic.jalur_emas import KOMPONEN_FILLER, SEMUA_KASUS
 
 
 class TestTidakMenyentuhAngka:
-    def test_tidak_ada_lapisan_penilaian_yang_membaca_tabel_ini(self):
-        """Penjagaan sesungguhnya: tabel ini tidak punya jalur ke skor.
+    def test_tidak_ada_jalur_ke_finding_yang_membaca_tabel_ini(self):
+        """Penjagaan sesungguhnya: tabel ini tidak punya jalur ke angka memo.
 
-        Kalau suatu hari `app/detection/` mulai membaca salah satunya, tes ini
-        merah dan pengaruhnya ke angka wajib diperiksa ulang sebelum dilanjutkan.
+        Yang dijaga adalah rantai yang menghasilkan `Finding` — deteksi,
+        penyusunan temuan, dan penerbitan dokumen. Kalau salah satunya mulai
+        membaca tabel ini, tes merah dan pengaruhnya ke angka wajib diperiksa
+        ulang sebelum dilanjutkan.
+
+        `app/agents/tanya_jawab.py` sengaja **tidak** ikut dijaga. Ia permukaan
+        baca-saja untuk pertanyaan manusia dan tidak pernah menulis `Finding`,
+        jadi ia justru boleh — dan memang seharusnya — menelusuri seluruh graph.
+        Memasukkannya ke daftar ini akan mencampur dua hal berbeda: "tidak boleh
+        memengaruhi angka" dan "tidak boleh menyentuh sama sekali".
         """
         from pathlib import Path
 
@@ -31,11 +39,19 @@ class TestTidakMenyentuhAngka:
         kelas = ("MaintenanceActivity", "ActivitySparePart", "ActivityTechnician", "Technician")
 
         akar = Path(__file__).resolve().parent.parent
+        dikecualikan = {akar / "app/agents/tanya_jawab.py"}
+
+        diperiksa = 0
         for paket in ("app/detection", "app/agents", "app/reporting"):
             for berkas in (akar / paket).rglob("*.py"):
+                if berkas in dikecualikan:
+                    continue
+                diperiksa += 1
                 isi = berkas.read_text()
                 for nama in (*tabel, *kelas):
                     assert nama not in isi, f"{berkas.name} menyebut {nama}"
+
+        assert diperiksa > 10, "daftar berkas menyusut — penjagaan kehilangan artinya"
 
     def test_sparepart_latar_tidak_beririsan_jenis_komponen(self):
         """Jalur kebocoran `plants_served`: satu `seal` di sini menggeser 0,8667."""
