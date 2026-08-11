@@ -12,7 +12,7 @@ Exit codes are meaningful, so a scheduler can act on them without parsing text:
 
     0  scan completed, nothing needs attention
     1  scan completed, at least one case deserves investigation
-    2  scan failed
+    2  scan failed — including a BigQuery copy that is stale against PostgreSQL
 
 The split matters for how this gets deployed. A cron entry or Cloud Scheduler
 job runs this, and only escalates to a full investigation — which does call a
@@ -25,11 +25,17 @@ import asyncio
 import json
 import sys
 
+from app.bigquery.kesegaran import wajib_segar
 from app.detection import store
 from app.detection.investigation import rank_screened, screen_case
 
 
 async def scan() -> list[dict]:
+    # Menolak menjawab dari salinan yang basi. Pemindaian terjadwal justru yang
+    # paling rentan: ia berjalan tanpa ditunggui, jadi tidak ada yang melihat
+    # bahwa jawabannya berasal dari data kemarin.
+    await wajib_segar()
+
     async with store.session() as session:
         open_cases = await store.find_open_cases(session)
         if not open_cases:

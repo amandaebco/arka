@@ -20,6 +20,7 @@ from google.genai import types
 
 from app.agents.investigator import investigator_agent
 from app.agents.reporter import reporter_agent
+from app.bigquery.kesegaran import wajib_segar
 
 APP_NAME = "arka_chain"
 
@@ -34,6 +35,11 @@ def build_chain() -> SequentialAgent:
 
 
 async def run(tag: str | None) -> None:
+    # Sebelum satu pun model dipanggil. Menerbitkan memo dari data basi lebih
+    # mahal daripada gagal di sini: memo tidak tahu ia salah, dan pembacanya
+    # tidak punya cara membedakannya dari memo yang benar.
+    await wajib_segar()
+
     runner = InMemoryRunner(agent=build_chain(), app_name=APP_NAME)
     session = await runner.session_service.create_session(
         app_name=APP_NAME, user_id="demo"
