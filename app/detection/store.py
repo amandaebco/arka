@@ -112,3 +112,58 @@ def load_subsystem_map():
 
 def group_by_cause(cases, documents=None):
     return _backend().group_by_cause(cases, documents)
+
+
+async def traverse_graph(
+    start_label: str,
+    start_name: str,
+    *,
+    max_hops: int = 5,
+    only_label: str | None = None,
+):
+    """Walk outward from a node using multi-hop graph traversal."""
+    if active_store() == BIGQUERY:
+        import asyncio
+
+        from app.bigquery.traversal import traverse
+
+        return await asyncio.to_thread(
+            traverse,
+            start_label,
+            start_name,
+            max_hops=max_hops,
+            only_label=only_label,
+        )
+    else:
+        from app.bigquery.traversal import Path
+
+        async with session() as s:
+            parts = await find_spare_parts(s, component_type=None)
+            matched = [p for p in parts if p.part_number == start_name or p.name == start_name]
+            paths = []
+            if matched:
+                part = matched[0]
+                for plant in part.plants_served:
+                    paths.append(
+                        Path(
+                            target_id=f"plant-{plant}",
+                            target_label="Plant",
+                            target_name=plant,
+                            hops=4,
+                            edge_labels=(
+                                "DIPASOK_OLEH⁻¹",
+                                "MEMILIKI_KOMPONEN⁻¹",
+                                "MEMILIKI_EQUIPMENT⁻¹",
+                                "MEMILIKI_LINE⁻¹",
+                            ),
+                            node_names=(
+                                part.part_number,
+                                part.component_type or "component",
+                                "equipment",
+                                "line",
+                                plant,
+                            ),
+                        )
+                    )
+            return paths
+

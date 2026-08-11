@@ -76,6 +76,14 @@ class TestInvestigateCase:
         assert len(trail) >= 3
         assert any("pabrik" in step["hasil"].lower() for step in trail)
 
+    async def test_graph_traversal_step_is_recorded(self, database):
+        ctx = Ctx()
+        result = await investigate_case("PLT-U/FIL-207", ctx)
+        if "Tidak ada kegagalan terbuka" in result:
+            pytest.skip("golden path not seeded")
+        trail = ctx.state[KUNCI_TEMUAN]["jejak_penalaran"]
+        assert any("Knowledge Graph" in step["aksi"] for step in trail)
+
     async def test_trail_crosses_a_plant_boundary(self, database):
         """SC-006: at least one traversal step must leave the home plant.
 

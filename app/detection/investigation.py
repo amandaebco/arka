@@ -14,6 +14,7 @@ import logging
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from app.detection.criticality import dynamic_criticality, procurement_shortfall
 from app.detection.repository import (
@@ -23,6 +24,9 @@ from app.detection.repository import (
     OpenCase,
     SparePartFacts,
 )
+
+if TYPE_CHECKING:
+    from app.bigquery.traversal import Path
 from app.detection.scoring import (
     THRESHOLD_IGNORE,
     THRESHOLD_REPORT,
@@ -192,14 +196,13 @@ def _spare_parts(
     leader: ScoredCandidate | None,
     parts: list[SparePartFacts],
     plants_involved: tuple[str, ...],
+    graph_paths: list[Path] | None = None,
 ) -> list[SparepartKritis]:
     """Criticality for parts implicated by the leading candidate.
 
     Parts are selected through the component type they serve — a recorded link,
-    not a guess from the name. The plants affected come from the same link
-    rather than from the precedent list, so the figure answers "how much of the
-    fleet fits this part" instead of "where has it already failed". Those are
-    different questions, and only the first one sizes the exposure.
+    not a guess from the name. The plants affected come from multi-hop graph
+    traversal or recorded links.
     """
     if leader is None or not open_case.component_code:
         return []
@@ -212,6 +215,18 @@ def _spare_parts(
 
     cases = leader.evidence.historical_cases
     downtime = sum(c.downtime_minutes or 0 for c in cases)
+
+    plants_from_graph = ()
+    if graph_paths:
+        plants_from_graph = tuple(
+            sorted(
+                {
+                    p.target_name
+                    for p in graph_paths
+                    if p.target_name and p.target_label == "Plant"
+                }
+            )
+        )
 
     return [
         SparepartKritis(
@@ -226,7 +241,9 @@ def _spare_parts(
             static_criticality=Decimal(str(part.static_criticality or 0)),
             lead_time_minggu=part.lead_time_weeks,
             jumlah_vendor=part.vendor_count,
-            pabrik_terdampak=list(part.plants_served or plants_involved),
+            pabrik_terdampak=list(
+                plants_from_graph or part.plants_served or plants_involved
+            ),
         )
         for part in matched
     ]
@@ -316,6 +333,7 @@ def build_finding(
     scored: list[ScoredCandidate],
     *,
     spare_parts: list[SparePartFacts] | None = None,
+    graph_paths: list[Path] | None = None,
     trail: list[LangkahPenalaran] | None = None,
     days_until_maintenance: int | None = None,
     today: date | None = None,
@@ -349,7 +367,9 @@ def build_finding(
         precedents.extend(_precedents(elsewhere, s.evidence.documents))
         plants.update(c.plant for c in elsewhere)
 
-    parts = _spare_parts(open_case, leader, spare_parts or [], tuple(sorted(plants)))
+    parts = _spare_parts(
+        open_case, leader, spare_parts or [], tuple(sorted(plants)), graph_paths=graph_paths
+    )
 
     finding = Finding(
         finding_id=f"ARKA-{open_case.canonical_id}",

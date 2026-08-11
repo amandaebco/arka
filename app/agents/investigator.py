@@ -136,6 +136,38 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
         )
 
         parts = await store.find_spare_parts(session)
+        code = case.component_code.lower() if case.component_code else ""
+        matched_parts = [
+            p for p in parts if code and (p.component_type or "").lower() == code
+        ]
+
+        graph_paths = []
+        for part in matched_parts:
+            try:
+                paths = await store.traverse_graph(
+                    start_label="SparePart",
+                    start_name=part.part_number,
+                    max_hops=5,
+                    only_label="Plant",
+                )
+                if paths:
+                    graph_paths.extend(paths)
+            except Exception as err:  # noqa: BLE001
+                logger.warning("Graph traversal failed for %s: %s", part.part_number, err)
+
+        if graph_paths:
+            plants_reached = sorted({p.target_name for p in graph_paths if p.target_name})
+            trail.append(
+                LangkahPenalaran(
+                    urutan=len(trail) + 1,
+                    aksi="Traversal multi-hop Knowledge Graph dari SparePart ke Plant",
+                    hasil=(
+                        f"Ditemukan {len(graph_paths)} jalur traversal "
+                        f"menghubungkan sparepart ke pabrik: {', '.join(plants_reached)}"
+                    ),
+                    jumlah_simpul=len(graph_paths),
+                )
+            )
 
         # Compare the material lead time against the next maintenance window.
         # Neither planner sees both numbers; this is the one conflict ARKA can
@@ -145,7 +177,7 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
         if jendela:
             trail.append(
                 LangkahPenalaran(
-                    urutan=5,
+                    urutan=len(trail) + 1,
                     aksi="Membandingkan lead time material dengan perawatan terjadwal",
                     hasil=f"Perawatan berikutnya dijadwalkan {jendela}",
                     jumlah_simpul=1,
@@ -156,6 +188,7 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
             case,
             scored,
             spare_parts=parts,
+            graph_paths=graph_paths,
             trail=trail,
             days_until_maintenance=sisa_hari,
         )
