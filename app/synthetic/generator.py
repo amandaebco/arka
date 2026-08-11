@@ -512,6 +512,11 @@ def main() -> None:
         action="store_true",
         help="Tambahkan ~500 equipment dan ~3.000 work order di sekitar jalur emas",
     )
+    parser.add_argument(
+        "--bigquery",
+        action="store_true",
+        help="Direct ingestion/sync ke BigQuery setelah data sintetis dibangun",
+    )
     argumen = parser.parse_args()
 
     cacah = asyncio.run(
@@ -519,6 +524,15 @@ def main() -> None:
     )
     for nama, jumlah in cacah.items():
         print(f"  {nama:12} {jumlah}")
+
+    if argumen.bigquery:
+        print("\nMenjalankan Direct BigQuery Ingestion Sync...")
+        from app.bigquery.edges import build as build_edges
+        from app.bigquery.sync import migrate
+
+        asyncio.run(migrate())
+        nodes, edges_cnt = build_edges()
+        print(f"Direct BigQuery Sync selesai: {nodes} nodes, {edges_cnt} edges.")
 
 
 if __name__ == "__main__":
