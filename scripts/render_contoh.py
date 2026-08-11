@@ -1,11 +1,18 @@
-"""Render ketiga jenis dokumen dari temuan contoh ke `out/`.
+"""Render ketiga jenis dokumen ke `out/`, dari temuan contoh atau dari graph.
 
-Alat waktu-pengembangan: melihat hasil lapisan pelaporan tanpa DB, tanpa
-investigator, dan tanpa memanggil model. Jalankan:
+Alat waktu-pengembangan: melihat hasil lapisan pelaporan tanpa investigator dan
+tanpa memanggil model. Jalankan:
 
     uv run python scripts/render_contoh.py            # HTML + PDF, nama tetap
     uv run python scripts/render_contoh.py --arsip    # + salinan bertimestamp
     uv run python scripts/render_contoh.py --tanpa-pdf
+    uv run python scripts/render_contoh.py --dari-graph              # kasus hidup terkuat
+    uv run python scripts/render_contoh.py --dari-graph PLT-U/FIL-207
+
+`--dari-graph` membaca kegagalan yang benar-benar terbuka di penyimpanan aktif,
+sehingga angka di dokumen adalah angka yang sama dengan yang dilaporkan rantai.
+Tanpa itu, setiap dokumen yang pernah ditunjukkan ke orang lain membawa angka
+temuan contoh — mirip, tetapi bukan angka yang sedang dibicarakan.
 
 Nama berkas utama sengaja tetap (`out/memo.html`): tautan di IDE tidak basi dan
 perintah di dokumentasi tidak berubah. Render bersifat deterministik, jadi
@@ -39,9 +46,20 @@ KONTEKS = KonteksDokumen(
 
 
 
-async def render_semua(dengan_pdf: bool, dir_arsip: Path | None) -> None:
-    temuan = finding_contoh()
-    print(f"Temuan {temuan.finding_id} · {len(temuan.semua_sitasi())} sitasi")
+async def render_semua(
+    dengan_pdf: bool, dir_arsip: Path | None, dari_graph: str | None | bool = None
+) -> None:
+    if dari_graph is None:
+        temuan = finding_contoh()
+        asal = "contoh"
+    else:
+        from app.detection.temuan_langsung import temuan_untuk
+
+        tag = dari_graph if isinstance(dari_graph, str) else None
+        temuan = await temuan_untuk(tag)
+        asal = "graph"
+
+    print(f"Temuan {temuan.finding_id} ({asal}) · {len(temuan.semua_sitasi())} sitasi")
 
     for id_jenis in JENIS:
         html = render_dokumen_html(temuan, jenis=id_jenis, konteks=KONTEKS)
@@ -83,6 +101,15 @@ def main() -> None:
         action="store_true",
         help="Lewati render PDF — lebih cepat saat menyetel template",
     )
+    parser.add_argument(
+        "--dari-graph",
+        nargs="?",
+        const=True,
+        default=None,
+        metavar="TAG",
+        help="Rakit temuan dari kegagalan terbuka di penyimpanan aktif, bukan dari contoh. "
+             "Tanpa TAG, dipakai kasus dengan kandidat terkuat",
+    )
     argumen = parser.parse_args()
 
     DIR_KELUARAN.mkdir(exist_ok=True)
@@ -91,7 +118,13 @@ def main() -> None:
         dir_arsip = DIR_KELUARAN / "riwayat" / datetime.now().strftime("%Y%m%d-%H%M%S")
         dir_arsip.mkdir(parents=True, exist_ok=True)
 
-    asyncio.run(render_semua(dengan_pdf=not argumen.tanpa_pdf, dir_arsip=dir_arsip))
+    asyncio.run(
+        render_semua(
+            dengan_pdf=not argumen.tanpa_pdf,
+            dir_arsip=dir_arsip,
+            dari_graph=argumen.dari_graph,
+        )
+    )
 
 
 if __name__ == "__main__":
