@@ -48,4 +48,8 @@ EXPOSE 8080
 # sebagai satu string koma mendaftarkan satu origin harfiah yang tidak pernah
 # cocok, dan gagalnya berupa 403 pada POST lintas origin — bukan pesan yang
 # menyebut CORS sama sekali.
-CMD ["sh", "-c", "set -- ; for o in $(echo \"${ALLOW_ORIGINS:-}\" | tr ',' ' '); do set -- \"$@\" --allow_origins=\"$o\"; done; exec adk api_server adk_agents --host 0.0.0.0 --port ${PORT:-8080} ${ARTIFACT_GCS_BUCKET:+--artifact_service_uri=gs://$ARTIFACT_GCS_BUCKET} \"$@\""]
+# `app.api` membungkus aplikasi ADK dan menambahkan pembacaan deterministik di
+# sampingnya (`/api/...`). Rute ADK tetap utuh; yang bertambah adalah jalur yang
+# tidak memanggil model, karena antarmuka butuh angka dalam milidetik sedangkan
+# investigasi butuh seratus detik. `ALLOW_ORIGINS` dibaca di dalam modul itu.
+CMD ["sh", "-c", "exec uvicorn app.api:app --host 0.0.0.0 --port ${PORT:-8080}"]
