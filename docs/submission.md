@@ -34,6 +34,7 @@ Setiap angka di bawah ini hasil pengukuran pada sistem berjalan, bukan target.
 | **Korpus dokumen sintetis** | Laporan inspeksi yang bisa dikutip | **50 dokumen latar** + 4 dokumen jalur emas |
 | **Case keandalan** | Preseden lintas pabrik, eskalasi saat ragu | 0,9071 vs 0,8819 → eskalasi pada margin 0,0252 |
 | **Case rantai pasok** | Kekritisan dihitung ulang, radius dampak, pemakaian material tercatat | 0,8667 dihitung vs **0,30** di master data |
+| **Kurasi pengetahuan** | Kandidat fakta dinilai deterministik; Curator memutuskan mana yang aman diterima tanpa manusia | 1 diterima · 1 ditolak · **3 dieskalasi** dari 5 kandidat |
 
 Rantai yang sama atas data yang sama menghasilkan angka **identik** dari BigQuery maupun PostgreSQL — paritas diukur, bukan diklaim.
 
@@ -217,7 +218,7 @@ Pemisahan itu disengaja: memakai dialek kueri kedua di jalur kritis akan membeli
 
 ### Sistem multi-agent
 
-Lima agent dirancang, **empat sudah berjalan**. Masing-masing memiliki satu keputusan yang jelas miliknya dan titik serah-terima yang eksplisit:
+Lima agent, masing-masing dengan satu keputusan yang jelas miliknya dan titik serah-terima yang eksplisit:
 
 | Agent | Keputusan | Serah-terima |
 |---|---|---|
@@ -225,9 +226,9 @@ Lima agent dirancang, **empat sudah berjalan**. Masing-masing memiliki satu kepu
 | **Investigator** | Memutuskan kasus mana yang dikejar, seberapa dalam menelusuri, dan kapan mengeskalasi ke manusia | → Reporter |
 | **Reporter** | Memutuskan isi dokumen dan urutan prioritasnya | → memo / laporan, Designer |
 | **Designer** | Memutuskan penekanan visual dan bentuk visual tiap blok | → infografis |
-| **Curator** ⚠️ *belum dibangun* | Loop terpisah. Memutuskan pemetaan mana yang aman disetujui otomatis | → proyeksi ulang graph |
+| **Curator** | Loop terpisah. Memutuskan kandidat fakta mana yang aman diterima tanpa manusia | → `review_status` klaim |
 
-`Scout → Investigator → Reporter → Designer` membentuk rantai dan **keempatnya berjalan**; `Curator` dirancang ortogonal dan **belum diimplementasikan** — persetujuan pemetaan masih sepenuhnya manual (lihat batasan 5). Disebut di sini supaya arsitekturnya utuh dibaca, bukan supaya dihitung sebagai yang sudah jadi.
+`Scout → Investigator → Reporter → Designer` membentuk rantai; `Curator` berjalan ortogonal — ia tidak menjawab pertanyaan, melainkan menjaga apa yang boleh masuk ke pengetahuan yang dipakai menjawabnya.
 
 Batas antara Reporter dan Designer dijaga ketat: pemilihan blok tetap milik Reporter, dan Designer menerimanya sebagai masukan. Spesifikasi penyajian yang mencoba menambah blok di luar pilihan Reporter ditolak validator sebelum sempat dikompilasi — dua modul tidak boleh memiliki keputusan yang sama.
 
@@ -503,7 +504,7 @@ Disampaikan terbuka:
 2. **Runtime utama adalah Cloud Run**, dan di sana rantai penuh berjalan: memindai armada, menyelidiki, menerbitkan PDF, serta menjawab pertanyaan bebas — seluruhnya membaca dari BigQuery. Jalur deploy ke Agent Engine sudah dibuktikan — agent hidup, menjawab, dan memanggil tool — dan resepnya tersimpan di `scripts/deploy_hello.py` serta `scripts/deploy_sumber.py`. Yang belum terpecahkan: Agent Engine dengan container sendiri (`image_spec`) berhasil dibangun tetapi tidak mengekspos permukaan query, karena container kami melayani `adk api_server` sementara runtime itu menuntut kontrak HTTP-nya sendiri. Karena render PDF menuntut Chromium yang hanya ada di image kami, runtime yang dipakai adalah Cloud Run.
 3. **Urutan penelusuran bersifat tetap.** Yang diputuskan model adalah kasus mana yang dikejar, seberapa dalam, dan kapan berhenti — bukan rute traversalnya. Ini pilihan sadar demi jejak yang dapat diaudit, dan menjadi batasan yang jujur untuk disebut.
 4. **Lapisan ingestion belum generik.** Saat ini data ditulis langsung ke tabel kanonik; setiap sistem sumber baru memerlukan konektor tersendiri.
-5. **Curator belum dibangun.** Persetujuan pemetaan masih sepenuhnya manual.
+5. **Curator memutuskan dari bukti tekstual, belum dari pemetaan katalog.** Ia menilai kandidat fakta beserta kutipan penopangnya dan memutuskan mana yang aman diterima tanpa manusia. Yang belum: pemetaan identifier antar sistem sumber — `asset_identifiers` masih kosong karena tidak ada lapisan ingestion yang mengisinya (lihat batasan 4).
 6. **Biaya per investigasi belum diukur secara sistematis.** Yang sudah dipisahkan: pemindaian armada tidak memanggil model sama sekali, sehingga biaya hanya muncul saat ada yang benar-benar diselidiki.
 7. **Skala pengujian menengah, bukan produksi.** 505 equipment dan 3.009 work order — cukup untuk membuktikan penyaringan bekerja (24 kegagalan terbuka dipindai, 22 ditolak) dan traversal tetap cepat, tetapi masih dua kali lipat lebih kecil dari estate nyata. Perilaku pada ratusan ribu baris belum diuji.
 8. **Pemasangan sparepart tercatat, tetapi nomor batch material belum.** `activity_spare_parts` mencatat pekerjaan mana yang memakai part apa, berapa banyak, dan kapan — sehingga "apa lagi yang memakai part ini" dijawab dari kejadian, bukan dari kecocokan jenis komponen. Yang belum ada adalah **nomor batch**: pertanyaan "unit mana lagi yang memakai batch material yang sama" masih berhenti di tingkat part.

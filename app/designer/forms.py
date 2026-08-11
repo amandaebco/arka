@@ -23,6 +23,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Any
 
+from app.designer.aggregate import distribution
 from app.designer.content import CanvasItem
 
 # Patterns that furnish the page rather than fill a card. They are composed
@@ -58,6 +59,10 @@ def _numeric(value: str) -> bool:
 FIELD_TESTS: dict[str, Callable[[Sequence[CanvasItem]], bool]] = {
     "measured": lambda items: all(_numeric(i.value) for i in items),
     "reference": lambda items: all(_numeric(i.reference) for i in items),
+    # Sebuah donut menuntut potongannya berjumlah utuh; `distribution` hanya
+    # mengembalikan pengelompokan yang mencakup seluruh butir kartu.
+    "parts": lambda items: distribution(items) is not None,
+    "total": lambda items: distribution(items) is not None,
     "bucket_labels": lambda items: all(i.label for i in items),
     "counts": lambda items: all(_numeric(i.quantity) for i in items),
     "focus_statement": lambda items: all(i.text for i in items),
@@ -72,9 +77,7 @@ FIELD_TESTS: dict[str, Callable[[Sequence[CanvasItem]], bool]] = {
 }
 
 # Fields the canvas has no equivalent for at all.
-UNSUPPLIED = frozenset(
-    {"parts", "total", "current_rating", "scale_labels", "target", "direction"}
-)
+UNSUPPLIED = frozenset({"current_rating", "scale_labels", "target", "direction"})
 
 
 def _fits(pattern: dict[str, Any], items: Sequence[CanvasItem]) -> bool:
@@ -91,7 +94,12 @@ def _fits(pattern: dict[str, Any], items: Sequence[CanvasItem]) -> bool:
         return False
 
     if needs.get("numeric_values") and not all(_numeric(i.value) for i in items):
-        return False
+        # Angka sebuah donut adalah hitungan potongannya, bukan nilai tiap butir.
+        # Menuntut nilai per butir di sini akan menutup pola yang angkanya justru
+        # kita hitung sendiri.
+        dari_hitungan = "parts" in (needs.get("required_fields") or [])
+        if not (dari_hitungan and distribution(items) is not None):
+            return False
 
     for field in needs.get("required_fields") or []:
         if field in UNSUPPLIED:

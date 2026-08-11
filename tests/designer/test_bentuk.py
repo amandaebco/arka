@@ -68,3 +68,30 @@ def test_kekritisan_dibawa_sebagai_perbandingan(kb):
 
     assert all(i.reference and i.reference_label for i in item)
     assert "comparison" in applicable_forms(item, kb)
+
+
+def test_sitasi_berulang_menjadi_satu_baris_per_sumber(kb):
+    """A finding cites one document once per claim it supports. A real
+    investigation arrived with 24 citations that were four documents repeated
+    six times each — 24 identical rows, past every pattern's capacity."""
+    from datetime import date
+
+    from app.designer.content import build_content
+    from app.reporting.blocks import Blok
+    from app.reporting.finding import Sitasi
+
+    berulang = [
+        Sitasi(canonical_id="DOC-1", judul="Laporan Inspeksi", tipe_dokumen="inspection_report",
+               tanggal=date(2025, 1, 1), lokator="hlm. 1")
+        for _ in range(6)
+    ]
+    berbeda = Sitasi(canonical_id="DOC-1", judul="Laporan Inspeksi",
+                     tipe_dokumen="inspection_report", tanggal=date(2025, 1, 1), lokator="hlm. 9")
+
+    blok = Blok(id="sitasi", judul="Dokumen Sumber", tersedia=True,
+                data={"sitasi": [*berulang, berbeda]})
+    item = build_content([blok]).items("sitasi")
+
+    # Enam kutipan ke halaman yang sama adalah satu sumber; halaman 9 adalah bukti lain.
+    assert len(item) == 2
+    assert {i.value for i in item} == {"hlm. 1", "hlm. 9"}

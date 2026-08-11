@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.designer import renderer
+from app.designer.aggregate import confidence_scale, distribution
 from app.designer.content import CanvasContent, CanvasItem
 from app.designer.inspection import SEVERITY_WORDS
 from app.designer.presentation import PresentationSpec
@@ -340,6 +341,17 @@ def _one_card(
     if form:
         pola = kb.get_visualization(form)
         baris.append(f"   Render as {pola['name']}: {pola['preferred_placement']}.")
+        if form == "donut_status":
+            # Potongannya dihitung di sini, bukan dihitung ulang oleh halaman.
+            hitungan = distribution(item)
+            if hitungan:
+                bagian, total = hitungan
+                rincian = ", ".join(f'"{nama}" = {jumlah}' for nama, jumlah in bagian)
+                baris.append(
+                    f"   Parts, already counted — use these figures exactly and compute "
+                    f"nothing: {rincian}. Total {total}. They sum to the total; if what "
+                    f"you draw does not, you have changed the data."
+                )
         for aturan in pola.get("rules") or []:
             baris.append(f"   - {aturan}")
 
@@ -388,6 +400,24 @@ def _confidence_block(isi: CanvasContent, kb: Any, warna: dict[str, Any]) -> str
             f'Confidence is shown with the token "{entri["token"]}" and the words '
             f'"{arti}". Never show a percentage.'
         )
+
+        # Gerbang berjenjang: seluruh jenjang digambar, bukan hanya yang berlaku.
+        # Skalanya ditetapkan sistem, jadi halaman tidak perlu mengarang jenjang
+        # untuk mengisi busurnya — dan tidak boleh.
+        skala = confidence_scale(isi.keyakinan)
+        if skala:
+            jenjang, sekarang = skala
+            kata = [
+                (pola["confidence_scale"][g].get("meaning_id")
+                 or pola["confidence_scale"][g].get("meaning_en"))
+                for g in jenjang
+            ]
+            baris.append(
+                "Draw it as a graded scale showing every grade in order, weakest "
+                "first: " + ", ".join(f'"{k}"' for k in kata) + ". Put the pointer on "
+                f'"{arti}" and write those words beside it. Show no grade beyond '
+                "these three, and no numeric scale of any kind."
+            )
     if isi.perlu_eskalasi:
         baris.append(
             "An escalation marker is shown: this finding awaits a human decision, "

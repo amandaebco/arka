@@ -7,7 +7,7 @@ rediscover the hard way.
 ## Where things stand
 
 - Branch `feat/rantai-pelaporan`, working tree clean.
-- **377 tests green**, ruff clean on tracked files.
+- **441 tests green**, ruff clean.
 - Full chain live on Cloud Run at
   `https://arka-110352541672.us-central1.run.app` (authenticated; a browser
   without a token gets 403, which looks like it is down but is not).
@@ -20,6 +20,7 @@ ARKA_STORE=postgres python scripts/run_chain.py   # same chain, local store
 python scripts/pindai_terjadwal.py                # scheduled scan, no model calls
 python scripts/migrasi_bigquery.py                # mirror all 39 tables + graph
 python -m app.synthetic.generator --reset --volume-latar
+python scripts/kurasi.py                          # curate candidates, no model
 ```
 
 BigQuery is the default store. Both entry points refuse to run when the mirror
@@ -155,6 +156,7 @@ better documents rather than a better number.
 
 ```bash
 python -m app.synthetic.generator --reset --volume-latar
+python scripts/kurasi.py                          # curate candidates, no model
 ```
 
 Optional, not the default: tests run on the golden path and should not pay for
@@ -255,10 +257,47 @@ re-measured** as the estate grows.
 
 ---
 
+### Curator is built — the fifth agent
+
+`app/curation/scoring.py` scores a candidate fact from the evidence supporting
+it: quote count, extraction confidence, the authority of the document type, and
+agreement. `app/agents/curator.py` decides which of those are safe to accept
+without a human. Same split as detection — the number is code's, the policy is
+the agent's.
+
+```bash
+python scripts/kurasi.py              # report only, writes nothing
+python scripts/kurasi.py --terapkan   # apply the safe decisions
+```
+
+Five candidates, four shapes, four different outcomes:
+
+```
+✓ KLAIM-SEAL-KUAT     0.9260  setujui   three quotes from reviewed documents
+✗ KLAIM-TANPA-BUKTI   0.1500  tolak     no evidence at all
+→ KLAIM-HIDUP-SEAL    0.6233  eskalasi  contradicted by KLAIM-HIDUP-TORSI
+→ KLAIM-HIDUP-TORSI   0.6173  eskalasi  contradicted by KLAIM-HIDUP-SEAL
+→ KLAIM-NOZEL-TIPIS   0.5817  eskalasi  between the two thresholds
+```
+
+**Two refusals are enforced in code, not in the prompt**: a contradicted claim
+and a claim below the rejection threshold cannot be accepted through this path
+whatever the model asks. A prompt holds only while the model complies, and the
+prohibitions that matter are the ones that hold when it does not.
+
+`--terapkan` is not the default. Curation changes the knowledge the whole system
+answers from; running it by accident must change nothing.
+
+⚠️ Curator judges **textual claims**, not catalogue mappings.
+`asset_identifiers` is empty because no ingestion layer fills it.
+
+---
+
 ## Not built
 
-- **Curator** — the fifth agent. Approval of mappings is entirely manual. The
-  cut order in `CLAUDE.md` allows it to become a batch script.
+- **Ingestion.** No connector, no parser, no OCR. `asset_identifiers` is empty
+  because nothing fills it, which is also why Curator judges textual claims
+  rather than catalogue mappings.
 - **Traversal is not wired into any agent.** `app/bigquery/traversal.py` works
   and is tested, but the detection chain still answers its four questions with
   joins, and parity depends on that. Connecting it to the spare-part impact

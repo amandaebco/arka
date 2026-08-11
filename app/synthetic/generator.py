@@ -29,12 +29,16 @@ from app.models import (
     ActivityTarget,
     ActivityTechnician,
     Cause,
+    Claim,
+    ClaimEvidence,
+    ClaimReview,
     Component,
     Damage,
     Document,
     DocumentChunk,
     DocumentVersion,
     Equipment,
+    Evidence,
     FailureEvent,
     FailureEventCause,
     FailureEventFailureMode,
@@ -76,6 +80,12 @@ logger = logging.getLogger(__name__)
 # Urutan penghapusan = kebalikan ketergantungan. Ditulis eksplisit supaya
 # `--reset` tidak bergantung pada ON DELETE CASCADE yang mungkin berubah.
 URUTAN_HAPUS = (
+    # Klaim lebih dulu: buktinya menunjuk potongan dokumen, dan tinjauannya
+    # menunjuk klaim.
+    ClaimReview,
+    ClaimEvidence,
+    Claim,
+    Evidence,
     DocumentChunk,
     DocumentVersion,
     Document,
@@ -471,6 +481,11 @@ async def bangun(
         from app.synthetic.aktivitas import tulis_semua as tulis_aktivitas
 
         aktivitas = await tulis_aktivitas(sesi, seed, volume_latar=volume_latar)
+
+        # Setelah dokumen ada, karena kandidat klaim mengutip potongannya.
+        from app.synthetic.klaim import tulis_kandidat
+
+        aktivitas |= await tulis_kandidat(sesi, seed)
 
         await sesi.commit()
 

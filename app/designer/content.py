@@ -257,15 +257,35 @@ def _recommendations(data: dict) -> list[CanvasItem]:
 
 
 def _citations(data: dict) -> list[CanvasItem]:
-    return [
-        CanvasItem(
-            label=s.tipe_dokumen,
-            text=s.judul,
-            date=s.tanggal.isoformat() if s.tanggal else "",
-            value=s.lokator or "",
+    """One row per source, not one row per citation record.
+
+    A finding cites the same document once for every claim it supports, so a
+    real investigation arrived with 24 citations that were four documents
+    repeated six times each. Printed literally that is 24 identical rows, past
+    the capacity of every visualisation pattern and unreadable besides.
+
+    Collapsing by document and locator drops nothing: the memo still carries
+    every citation against its own claim, and the page shows which sources the
+    finding rests on. Two citations into different pages of one document stay
+    separate, because those are genuinely different evidence.
+    """
+    seen: set[tuple[str, str]] = set()
+    items: list[CanvasItem] = []
+
+    for s in data.get("sitasi") or []:
+        kunci = (s.canonical_id, s.lokator or "")
+        if kunci in seen:
+            continue
+        seen.add(kunci)
+        items.append(
+            CanvasItem(
+                label=s.tipe_dokumen,
+                text=s.judul,
+                date=s.tanggal.isoformat() if s.tanggal else "",
+                value=s.lokator or "",
+            )
         )
-        for s in data.get("sitasi") or []
-    ]
+    return items
 
 
 BUILDERS: dict[IdBlok, Any] = {
