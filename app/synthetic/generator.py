@@ -51,6 +51,7 @@ from app.models import (
     WorkOrderFailureEvent,
     WorkOrderNotification,
 )
+from app.retrieval.chunking import potong
 from app.synthetic.jalur_emas import (
     DOKUMEN,
     GEJALA,
@@ -388,8 +389,11 @@ async def tulis_perawatan_terjadwal(
 async def tulis_dokumen(sesi: AsyncSession, seed: int) -> None:
     """Laporan inspeksi yang bisa dikutip.
 
-    Satu potongan per dokumen sudah cukup untuk sitasi; pemotongan halus baru
-    perlu kalau pencarian semantik menuntutnya.
+    Dipotong dengan mekanisme yang sama dengan dokumen latar. Dokumen jalur emas
+    pendek dan biasanya tetap utuh satu potongan — `potong()` mengembalikan
+    dokumen di bawah ambang apa adanya — tetapi jalurnya tetap satu, sehingga
+    dokumen jalur emas yang suatu saat dipanjangkan tidak diam-diam menjadi
+    satu-satunya yang tidak terpotong.
     """
     for berkas in DOKUMEN:
         dokumen = Document(
@@ -414,18 +418,19 @@ async def tulis_dokumen(sesi: AsyncSession, seed: int) -> None:
         )
         sesi.add(versi)
 
-        sesi.add(
-            DocumentChunk(
-                id=id_stabil(seed, f"potongan:{berkas.canonical_id}"),
-                document_version_id=versi.id,
-                chunk_index=0,
-                content=berkas.isi,
-                content_hash=_hash(berkas.isi),
-                start_offset=0,
-                end_offset=len(berkas.isi),
-                page_number=1,
+        for bagian in potong(berkas.isi):
+            sesi.add(
+                DocumentChunk(
+                    id=id_stabil(seed, f"potongan:{berkas.canonical_id}:{bagian.indeks}"),
+                    document_version_id=versi.id,
+                    chunk_index=bagian.indeks,
+                    content=bagian.isi,
+                    content_hash=_hash(bagian.isi),
+                    start_offset=bagian.start_offset,
+                    end_offset=bagian.end_offset,
+                    page_number=1,
+                )
             )
-        )
 
     await sesi.flush()
 

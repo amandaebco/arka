@@ -30,7 +30,7 @@ Setiap angka di bawah ini hasil pengukuran pada sistem berjalan, bukan target.
 | **Knowledge graph di BigQuery** | Daftar node dan edge atas 39 tabel kanonik, ditelusuri recursive CTE | 6.471 node · 10.094 edge · 13 label · 16 jenis relasi |
 | **Traversal multi-hop** | Kedalaman adalah parameter; jalur lengkap dikembalikan sebagai data, dan agent tanya-jawab memakainya lewat tool `telusuri_graph` | **4 dan 5 hop**, 1.086 dan 1.580 jalur dari satu aset |
 | **GraphRAG** | Traversal graph dan potongan dokumen ditarik bersama, bukan ditempel | 8 fakta struktural + 4 potongan, 4 sitasi, satu pertanyaan |
-| **Pencarian vektor di BigQuery** | `VECTOR_SEARCH` atas `gemini-embedding-2` | 3072 dimensi · 54 potongan terindeks |
+| **Pencarian vektor di BigQuery** | `VECTOR_SEARCH` atas `gemini-embedding-2`, dokumen dipotong di batas paragraf dengan tumpang tindih | 3072 dimensi · **104 potongan** dari 54 dokumen |
 | **Korpus dokumen sintetis** | Laporan inspeksi yang bisa dikutip | **50 dokumen latar** + 4 dokumen jalur emas |
 | **Case keandalan** | Preseden lintas pabrik, eskalasi saat ragu | 0,9071 vs 0,8819 → eskalasi pada margin 0,0252 |
 | **Case rantai pasok** | Kekritisan dihitung ulang, radius dampak, pemakaian material tercatat | 0,8667 dihitung vs **0,30** di master data |
@@ -320,7 +320,7 @@ Prinsip ini mengikuti praktik yang berlaku di lingkungan industri: knowledge gra
 | Runtime agent | Cloud Run · Vertex AI Agent Engine |
 | Keluaran dokumen | ADK Artifacts (`GcsArtifactService`) |
 | Model penalaran | Gemini di Vertex AI |
-| Knowledge graph | BigQuery (edge list + recursive CTE) · Apache AGE 1.6 di jalur lokal |
+| Knowledge graph | BigQuery (edge list + recursive CTE) · Apache AGE 1.6.0-rc0 di jalur lokal |
 | Pencarian semantik | BigQuery `VECTOR_SEARCH` · `gemini-embedding-2` (3072 dimensi) |
 | Database | BigQuery (sumber) · PostgreSQL 16 (generator sintetis, tes) |
 | Backend | FastAPI, SQLAlchemy (async), Alembic |
@@ -510,7 +510,7 @@ Disampaikan terbuka:
 9. **Pemasok tier-2 dan tier-3 belum dimodelkan** — radius dampak berhenti di pemasok langsung.
 10. **Traversal dipakai agent tanya-jawab, belum oleh rantai deteksi.** Retriever memiliki tool `telusuri_graph` dan memutuskan sendiri dari mana berjalan dan sejauh apa; jawabannya mengutip jalurnya utuh. Yang **belum**: rantai deteksi masih menghitung radius dampak sparepart lewat join SQL, bukan traversal. Menggantinya menyentuh masukan langsung ke kekritisan 0,8667, jadi menuntut pengujian paritas ulang — bukan sekadar tes hijau — dan itu tidak dikerjakan di hari submission.
 11. **Sintaks GQL penuh tetap di luar jangkauan.** `GRAPH … MATCH …` menuntut reservation Enterprise. Recursive CTE menghasilkan traversal yang setara di on-demand dan justru mengembalikan jalurnya, tetapi ia SQL — bukan bahasa graph, dan tidak sepadan ekspresifnya untuk pola yang rumit.
-12. **Ambang kemiripan tidak memisahkan bersih, dan kami mengukurnya.** `MIN_SIMILARITY = 0,60` atas korpus 54 dokumen: pertanyaan dalam domain mencapai 0,5140–0,7703, pertanyaan di luar domain 0,5018–0,5692. **Kedua rentang bertumpang tindih** — satu pertanyaan dalam domain menemukan dokumen yang benar dan tetap skornya 0,5140, di bawah pertanyaan omong kosong terbaik. Pada korpus empat dokumen celahnya terlihat bersih; itu properti korpus kecilnya, bukan properti sistem. Ambang 0,60 dipertahankan sebagai pilihan **presisi di atas recall**: pertanyaan yang jauh dari kata-kata dokumennya dijawab dengan diam, bukan dengan tebakan paling mendekati. Perbaikan sebenarnya bukan konstanta yang lebih baik melainkan uji relatif — selisih hit teratas terhadap sisanya, atau rerank — karena "apakah ini yang paling cocok" dan "apakah ini cukup cocok" adalah dua pertanyaan berbeda.
+12. **Ambang kemiripan nyaris memisahkan, dan kami mengukur tiap langkahnya.** `MIN_SIMILARITY = 0,60` atas korpus 54 dokumen / 104 potongan: dalam domain 0,5889–0,7703, luar domain 0,4834–0,5896. Pada ambang itu, **enam dari tujuh** pertanyaan dalam domain lolos dan **tiga dari tiga** pertanyaan omong kosong ditolak. Celahnya menyempit dalam dua langkah terukur — **−0,0552** saat satu dokumen satu potongan, **−0,0383** setelah dipotong per paragraf, **−0,0007** setelah bagian pembuka divariasikan per jenis mesin. Langkah terakhir menyingkap kesalahan kami sendiri: lima puluh laporan berbagi paragraf pembuka yang sama, sehingga yang terukur adalah pengulangan templat, bukan kemampuan mencari. **Kedua perbaikan menyentuh korpusnya, bukan modelnya** — dan itu pelajarannya: ambang kemiripan melaporkan korpus tempat ia diukur. Rentangnya masih **bersinggungan** (0,5889 di bawah 0,5896), jadi 0,60 tetap disajikan sebagai pilihan **presisi di atas recall**, bukan batas yang dihasilkan data. Perbaikan sebenarnya uji relatif — selisih hit teratas terhadap sisanya, atau rerank.
 
 ---
 

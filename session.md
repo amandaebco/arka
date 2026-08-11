@@ -117,27 +117,39 @@ rebuilt. ⚠️ **`gemini-embedding-2` ignores batching**: handed three texts it
 returns one vector, with no error. `app/retrieval/embedding.py` now sends one
 text per request and checks the count.
 
-### The similarity threshold does not separate — measured, not suspected
+### Chunking, and what it did to the similarity floor
 
-Corpus raised to **54 documents** (`app/synthetic/dokumen_latar.py`) precisely so
-`MIN_SIMILARITY` could be measured on something. The result is the useful kind
-of negative:
+Documents were one chunk each — 54 documents, 54 chunks, `chunk_index` never
+above 0. `app/retrieval/chunking.py` now splits on paragraph boundaries, falls
+back to sentences, overlaps 120 characters, and fills `start_offset` /
+`end_offset` against the source so a citation can be traced to its position.
+Columns that existed since the first migration and had always held 0 and
+`len(text)`.
+
+The floor was then re-measured at each step, and the numbers are the point:
 
 ```
-in-domain   0.7703  0.7542  0.7239  0.6512  0.6359  0.5140 ←
-out-domain  0.5692 ←  0.5307  0.5018
+gap = weakest in-domain − strongest out-of-domain
+
+-0.0552   four documents, one chunk each
+-0.0383   chunked
+-0.0007   boilerplate varied per machine type
 ```
 
-The bands **overlap**. The weakest in-domain question scored 0.5140 while
-retrieving the *correct* document, below the strongest nonsense question at
-0.5692. **No single threshold separates them.** On four documents the gap looked
-clean; that was the corpus, not the system.
+The last step matters most and was self-inflicted. Every background report
+opened with the *same* context and method paragraphs, so fifty near-identical
+opening chunks flattened the corpus and the measurement was reading template
+repetition, not retrieval. Varying them per machine type moved the bands almost
+into separation.
 
-0.60 is kept as a **precision-over-recall** choice — silence rather than a
-confident wrong citation — and should be described that way in the pitch, not as
-a calibrated boundary. The real fix is a relative test (margin between top hit
-and the rest, or a rerank), because "best match" and "good match" are different
-questions.
+At 0.60 the floor now admits six of seven in-domain questions and rejects all
+three nonsense ones — nine of ten. ⚠️ The bands still **touch**: 0.5889
+in-domain sits below 0.5896 out-of-domain. Present 0.60 as a
+precision-over-recall choice, never as a boundary the data produced.
+
+**Both improvements were to the corpus, not the model.** A similarity floor
+reports the corpus it was measured on, and a bad floor is usually fixed with
+better documents rather than a better number.
 
 ### Background volume — 500 equipment, 3,000 work orders
 

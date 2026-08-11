@@ -162,6 +162,7 @@ def _summary(data: dict) -> list[CanvasItem]:
                 text=top.nama,
                 value=as_number(top.skor.total),
                 quantity=as_number(top.skor.total),
+                value_label=SKALA["kandidat"],
             )
         )
     if data.get("perlu_eskalasi"):

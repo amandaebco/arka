@@ -170,7 +170,7 @@ async def test_eskalasi_wajib_terlihat_di_awal(finding, selected):
 def test_angka_bertelanjang_diberi_nama_di_kanvas(content):
     """A 0..1 figure with no caption is an open question, and the page answers it
     by inventing one — a live run captioned criticality “Kritikalitas”."""
-    for block in ("kandidat_penyebab", "sparepart_kritis"):
+    for block in ("ringkasan", "kandidat_penyebab", "sparepart_kritis"):
         for item in content.items(block):
             if item.value:
                 assert item.value_label, f"{block}: “{item.value}” tanpa nama"

@@ -32,38 +32,43 @@ TABLE = "document_chunks_embedded"
 # a valid outcome; returning the least-bad match is how a system starts lying
 # confidently.
 #
-# Measured on a 54-document corpus, 11 August, against `gemini-embedding-2`:
+# Measured on a 54-document, 104-chunk corpus, 11 August, `gemini-embedding-2`:
 #
 #     in-domain   0.7703  "apa penyebab torsi kepala pengisi menyimpang?"
 #                 0.7542  "seal bocor di mesin filler"
-#                 0.7239  "sabuk konveyor aus tidak merata"
-#                 0.6512  "kenapa arus motor mixer naik?"
+#                 0.7483  "sabuk konveyor aus tidak merata"
+#                 0.6418  "kenapa arus motor mixer naik?"
+#                 0.6379  "kardus terlepas dari lengan robot"
 #                 0.6359  "kenapa produk merembes saat pengisian?"
-#                 0.5140  "label miring saat kecepatan tinggi"   ← found the
-#                         right document (Sensor Posisi) and still scored this
-#     out-domain  0.5692  "harga saham minggu ini"
-#                 0.5307  "jadwal kereta ke bandung"
-#                 0.5018  "resep rendang padang"
+#                 0.5889  "label miring saat kecepatan tinggi"   ← below the floor
+#     out-domain  0.5896  "harga saham minggu ini"               ← above that one
+#                 0.5335  "jadwal kereta ke bandung"
+#                 0.4834  "resep rendang padang"
 #
-# ⚠️ **The two bands now overlap.** On four documents they did not, and the
-# earlier reading of a clean gap was a property of that corpus, not of the
-# system. At 54 documents the weakest in-domain question (0.5140) scores *below*
-# the strongest nonsense question (0.5692), so **no single threshold separates
-# them**. Lowering the floor to catch the sensor question would also admit
-# "harga saham minggu ini".
+# At 0.60 this admits six of seven in-domain questions and rejects all three
+# nonsense ones — nine of ten correct. Usable, and honestly described as usable
+# rather than as calibrated.
 #
-# 0.60 is kept, and what it buys is precision at the cost of recall: a question
-# phrased far from its document's wording is answered with silence rather than
-# with the least-bad match. That is the right trade for this system — a
-# reliability engineer who gets nothing asks again, while one who gets a
-# confident wrong citation may not check it — but it is a trade, not a
-# separation, and it should be described that way rather than as a calibrated
-# boundary.
+# ⚠️ The bands still **touch**: the weakest in-domain question sits 0.0007 below
+# the strongest nonsense one. No threshold separates them perfectly, and one
+# more sample either way would change which side each lands on. Do not present
+# 0.60 as a boundary derived from the data; it is a precision-over-recall
+# choice, and the trade is silence rather than a confident wrong citation.
 #
-# The real fix is not a better constant. It is a relative test — margin between
-# the top hit and the rest, or a rerank — because "is this the best match" and
-# "is this a good match" are different questions and a single cosine floor only
-# answers the first one badly.
+# The gap closed in two measured steps, both worth knowing:
+#   -0.0552  four documents, one chunk each
+#   -0.0383  chunked (app/retrieval/chunking.py) — chunks match one idea
+#   -0.0007  boilerplate varied per machine type — fifty near-identical opening
+#            chunks had been flattening the corpus, so the measurement had been
+#            measuring template repetition rather than retrieval
+#
+# Both steps improved the corpus, not the model. That is the lesson: a
+# similarity floor reports the corpus it was measured on, and the fix for a bad
+# floor is usually better documents, not a better number.
+#
+# The remaining fix is a relative test — margin between the top hit and the rest,
+# or a rerank — because "is this the best match" and "is this a good match" are
+# different questions and one cosine floor answers only the first.
 MIN_SIMILARITY = 0.60
 
 
