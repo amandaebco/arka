@@ -103,7 +103,9 @@ uv run alembic upgrade head                # Schema migration
 uv run python -m app.synthetic.generator --reset --volume-latar
 uv run python scripts/migrasi_bigquery.py --full    # Copy -> Verify -> Index
 
-uv run python scripts/run_chain.py         # Run Scout -> Investigator -> Reporter
+uv run python scripts/run_chain.py         # Run Investigator -> Reporter (headless)
+# The full Scout -> Investigator -> Reporter chain is served as one agent:
+#   uv run adk api_server adk_agents      # then call the `arka` agent
 uv run python scripts/pindai_terjadwal.py  # Scheduled scan
 ```
 
