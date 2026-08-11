@@ -53,7 +53,10 @@ NODE_SOURCES: dict[str, tuple[str, str]] = {
     "Damage": ("damages", "damage_type"),
     "SparePart": ("spare_parts", "part_number"),
     "WorkOrder": ("work_orders", "canonical_id"),
-    "MaintenanceActivity": ("maintenance_activities", "activity_type"),
+    # `activity_code`, bukan `activity_type`: jalur adalah keluaran yang dibaca
+    # manusia, dan tiga langkah yang semuanya bernama "penggantian" tidak
+    # memberi tahu pekerjaan mana yang dimaksud.
+    "MaintenanceActivity": ("maintenance_activities", "activity_code"),
     "Technician": ("technicians", "name"),
 }
 

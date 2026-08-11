@@ -171,8 +171,32 @@ Memeriksa 20 kegagalan terbuka.
 
 Two of twenty is a far better demonstration of the filter than two of three.
 
-Scale, measured: 4,689 rows, 4,630 graph nodes, 4,671 edges. Traversal from one
-equipment returns 1,086 paths at four hops and 1,580 at five, in seconds.
+Scale, measured: 9,152 rows, 6,474 graph nodes, 9,975 edges.
+
+### Every label the graph advertises now has rows
+
+Before: 13 node labels declared, 11 with data; `AKTIVITAS`, `MEMAKAI`,
+`DIKERJAKAN_OLEH`, and `BERMODE` had **zero** rows. A graph that advertises more
+than it holds is found out on the first traversal.
+
+`app/synthetic/aktivitas.py` fills maintenance activities, technicians, spare
+part consumption, and failure-mode links. All 13 labels and all 16 edge types
+now carry rows.
+
+What this buys is not tidiness. Spare parts used to reach components **only
+through `component_type`** — a string match, not a history. Consumption is now
+recorded, so the supply-chain question is answered from events:
+
+```
+SP-SEAL-8801 -[MEMAKAI⁻¹]-> ACT-PRESEDEN-BARAT -[AKTIVITAS⁻¹]-> WO-PRESEDEN-BARAT
+SP-SEAL-8801 -[DIPASOK_OLEH⁻¹]-> seal -[MEMILIKI_KOMPONEN⁻¹]-> PLT-B/FIL-204
+             -[MEMILIKI_EQUIPMENT⁻¹]-> Lini Pengisian 1 — Pabrik Barat
+             -[MEMILIKI_LINE⁻¹]-> Pabrik Barat
+```
+
+Safe because nothing in `app/detection/`, `app/agents/`, or `app/reporting/`
+reads these tables — checked before writing, and `tests/test_aktivitas.py` reads
+those packages and fails if any of them ever starts to.
 
 ---
 

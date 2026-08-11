@@ -25,6 +25,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import session_factory
 from app.models import (
+    ActivitySparePart,
+    ActivityTarget,
+    ActivityTechnician,
     Cause,
     Component,
     Damage,
@@ -34,13 +37,16 @@ from app.models import (
     Equipment,
     FailureEvent,
     FailureEventCause,
+    FailureEventFailureMode,
     FailureEventSymptom,
     FailureMode,
+    MaintenanceActivity,
     MaintenanceNotification,
     Plant,
     ProductionLine,
     SparePart,
     Symptom,
+    Technician,
     WorkOrder,
     WorkOrderFailureEvent,
     WorkOrderNotification,
@@ -75,9 +81,15 @@ URUTAN_HAPUS = (
     WorkOrderNotification,
     WorkOrderFailureEvent,
     MaintenanceNotification,
+    ActivitySparePart,
+    ActivityTechnician,
+    ActivityTarget,
+    MaintenanceActivity,
     WorkOrder,
+    Technician,
     Damage,
     FailureEventCause,
+    FailureEventFailureMode,
     FailureEventSymptom,
     FailureEvent,
     Component,
@@ -450,6 +462,11 @@ async def bangun(
             tambahan = await tulis_volume_latar(sesi, seed)
             tambahan |= await tulis_dokumen_latar(sesi, seed)
 
+        # Setelah pekerjaan latar ada, karena aktivitas menempel padanya.
+        from app.synthetic.aktivitas import tulis_semua as tulis_aktivitas
+
+        aktivitas = await tulis_aktivitas(sesi, seed, volume_latar=volume_latar)
+
         await sesi.commit()
 
     return {
@@ -458,6 +475,7 @@ async def bangun(
         "kasus": len(SEMUA_KASUS),
         "dokumen": len(DOKUMEN),
         "sparepart": 1 + len(SPAREPART_LAIN),
+        **aktivitas,
         **tambahan,
     }
 

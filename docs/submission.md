@@ -380,7 +380,7 @@ tests/             Test suite
 
 **Seluruh data dalam proyek ini dibangkitkan secara sintetis.** Tidak ada data nyata milik pihak mana pun yang digunakan.
 
-Data mencakup perusahaan FMCG fiktif dengan **5 pabrik**, **505 equipment**, **3.009 work order**, **68 kegagalan**, dan **54 dokumen**, dalam rentang **3 tahun**.
+Data mencakup perusahaan FMCG fiktif dengan **5 pabrik**, **505 equipment**, **3.009 work order**, **1.835 aktivitas perawatan**, **68 kegagalan**, dan **54 dokumen**, dalam rentang **3 tahun**.
 
 Angkanya terbagi dua dengan sengaja. **Jalur emas** — 5 filler model sama di 5 pabrik, 8 kegagalan, 4 dokumen yang bisa dikutip — adalah data yang penalarannya diuji di atasnya, dan setiap angkanya dikalibrasi. **Volume latar** — 500 equipment, 3.000 work order, dan 50 laporan inspeksi dari tipe mesin lain — ada untuk menguji penyaringnya, bukan penalarannya.
 
@@ -425,7 +425,7 @@ Equipment dicapai lewat komponennya **dan** secara langsung, jadi graph ini konv
 
 ### Jalan keluarnya: edge list + recursive CTE
 
-Graph disimpan sebagai daftar edge terpadu (**4.630 node, 4.671 edge, 13 label**) dan ditelusuri dengan recursive CTE — jalan penuh di on-demand, tanpa reservation.
+Graph disimpan sebagai daftar edge terpadu (**6.474 node, 9.975 edge, 13 label node, 16 jenis edge**) dan ditelusuri dengan recursive CTE — jalan penuh di on-demand, tanpa reservation.
 
 Kedalaman menjadi parameter, bukan sifat skema, dan **jalurnya dikembalikan sebagai data**:
 
@@ -453,7 +453,7 @@ Disampaikan terbuka:
 5. **Curator belum dibangun.** Persetujuan pemetaan masih sepenuhnya manual.
 6. **Biaya per investigasi belum diukur secara sistematis.** Yang sudah dipisahkan: pemindaian armada tidak memanggil model sama sekali, sehingga biaya hanya muncul saat ada yang benar-benar diselidiki.
 7. **Skala pengujian menengah, bukan produksi.** 505 equipment dan 3.009 work order — cukup untuk membuktikan penyaringan bekerja (20 kegagalan terbuka dipindai, 18 ditolak) dan traversal tetap cepat, tetapi masih dua kali lipat lebih kecil dari estate nyata. Perilaku pada ratusan ribu baris belum diuji.
-8. **Tautan sparepart ke komponen** dimodelkan lewat jenis komponen, belum lewat riwayat pemakaian material pada work order.
+8. **Pemasangan sparepart tercatat, tetapi nomor batch material belum.** `activity_spare_parts` mencatat pekerjaan mana yang memakai part apa, berapa banyak, dan kapan — sehingga "apa lagi yang memakai part ini" dijawab dari kejadian, bukan dari kecocokan jenis komponen. Yang belum ada adalah **nomor batch**: pertanyaan "unit mana lagi yang memakai batch material yang sama" masih berhenti di tingkat part.
 9. **Pemasok tier-2 dan tier-3 belum dimodelkan** — radius dampak berhenti di pemasok langsung.
 10. **Traversal multi-hop belum dipakai agent mana pun.** Lapisannya jalan dan teruji sampai lima hop, tetapi rantai deteksi masih menjawab keempat pertanyaannya lewat join SQL — dan paritas antar penyimpanan bergantung pada itu. Menyambungkannya ke radius dampak sparepart menyentuh angka yang masuk ke memo, jadi menuntut pengujian paritas ulang, bukan sekadar tes hijau.
 11. **Sintaks GQL penuh tetap di luar jangkauan.** `GRAPH … MATCH …` menuntut reservation Enterprise. Recursive CTE menghasilkan traversal yang setara di on-demand dan justru mengembalikan jalurnya, tetapi ia SQL — bukan bahasa graph, dan tidak sepadan ekspresifnya untuk pola yang rumit.
