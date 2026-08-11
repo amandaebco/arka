@@ -8,7 +8,7 @@
 
 ## Status
 
-🚧 Dalam pengembangan. Dokumen submission lengkap menyusul.
+✅ **Siap untuk Submission & Penjurian EBCO AI Hackathon 2026.**
 
 ## Ringkasan
 
@@ -38,8 +38,17 @@ menyusunnya menjadi dokumen yang setiap klaimnya bisa ditelusuri ke sumber aslin
         └──────────────────────────────────────────────┘
 ```
 
-## Menjalankan
+## Menjalankan & Penjurian
 
+### 🚀 One-Command Bootstrap (Sangat Direkomendasikan)
+Untuk kemudahan pengujian dan penjurian, jalankan skrip bootstrap otomatis berikut:
+
+```bash
+bash scripts/bootstrap.sh
+```
+Skrip ini secara otomatis melakukan pengecekan dependensi, konfigurasi `.env`, inisialisasi kontainer PostgreSQL (Apache AGE + pgvector), migrasi skema database, dan pembentukan dataset sintetis dalam satu langkah.
+
+### Jalur Manual
 ```bash
 cp .env.example .env                       # isi kredensial
 uv sync                                    # dependensi
@@ -55,6 +64,17 @@ uv run python scripts/pindai_terjadwal.py  # pemindaian, tanpa model
 
 Sumber data bawaannya **BigQuery** (`ARKA_STORE=postgres` untuk memaksa jalur lokal).
 Kedua titik masuk menolak jalan bila salinan BigQuery tidak sepadan dengan PostgreSQL.
+
+## Fitur Kunci & Pemenuhan Kriteria Submission
+
+1. **GraphRAG & BigQuery Knowledge Graph**: Mengintegrasikan 39 tabel kanonik BigQuery dengan tabel `graph_nodes` dan `graph_edges` untuk eksekusi query relasional dan graf terpadu.
+2. **VectorDB Retrieval**: Menggunakan `pgvector` di PostgreSQL lokal dan `VECTOR_SEARCH` di BigQuery untuk pencarian semantik berkinerja tinggi.
+3. **Korpus Dokumen Sintetis**: Menghasilkan **50 dokumen latar inspeksi teknis** terstruktur (`app/synthetic/dokumen_latar.py`).
+4. **Penelusuran Graf Multi-Hop**: Mendukung pencarian berantai **4 hingga 5 hop** dari *Asset $\rightarrow$ Work Order $\rightarrow$ Notification $\rightarrow$ SparePart $\rightarrow$ Plant Lain*.
+5. **Cakupan Skenario Kasus**:
+   - **Reliability Case**: Investigasi akar masalah keandalan mesin, analisis riwayat perbaikan, FMEA, dan catatan teknisi.
+   - **Supply Chain Case**: Pelacakan batch sparepart terdistribusi (*batch tracking*) untuk mendeteksi cacat vendor lintas pabrik (`specs/006-batch-sparepart-tracking`).
+6. **Multi-Tier Caching Layer & Performance Optimization**: Modul caching terpusat (`app/core/cache.py`) berbasis TTL yang menghemat panggilan database dan konsumsi token LLM.
 
 ## Infografis
 
@@ -104,12 +124,20 @@ jejak dicerminkan ke GCS agar tidak ikut hilang bersama instance Cloud Run.
 
 **Seluruh data dibangkitkan secara sintetis.** Tidak ada data nyata milik pihak manapun.
 
+## Rencana Pengembangan & Improvement Masa Depan
+
+1. **IoT / SCADA Telemetry Streaming (Real-time Prescriptive Alert)**: Menghubungkan ARKA ke aliran data sensor IoT via Google Cloud Pub/Sub untuk memicu pemindaian otomatis sebelum kegagalan mesin terjadi.
+2. **Multi-Modal Technical Drawing Parsing**: Menggunakan kemampuan penglihatan Gemini untuk membaca diagram P&ID, skematik CAD, dan citra termal untuk diekstrak secara otomatis menjadi struktur graf.
+3. **Human-in-the-Loop (HITL) Active Learning**: Menyediakan antarmuka konfirmasi bagi chief reliability engineer untuk memverifikasi temuan agent, di mana feedback dituliskan kembali ke Knowledge Graph (`VERIFIED_BY_ENGINEER`).
+4. **Direct Connectors untuk SAP PM & IBM Maximo**: Menyediakan konektor native zero-ETL untuk otomatisasi sinkronisasi data dari sistem ERP/CMMS industri.
+5. **Closed-Loop Execution**: Memungkinkan ARKA untuk membuat draft Work Order otomatis di SAP atau memesan alokasi batch sparepart setelah laporan disetujui manajemen.
+
 ## Pengembangan
 
 Proyek ini memakai **Spec-Driven Development** ([GitHub Spec Kit](https://github.com/github/spec-kit)).
-Spesifikasi ada di `.specify/`; alurnya `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`.
+Spesifikasi ada di `.specify/` dan `specs/`; alurnya `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`.
 
 ```bash
-pytest
-ruff check .
+uv run pytest
+uv run ruff check .
 ```
