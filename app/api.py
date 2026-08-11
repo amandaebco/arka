@@ -27,6 +27,7 @@ same deterministic core, so they cannot drift apart.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import time
@@ -89,12 +90,34 @@ async def sehat() -> dict:
 
 
 # Pemindaian menyentuh BigQuery delapan kali dan berbiaya puluhan detik, sedangkan
-# armada tidak berubah dalam hitungan menit. Hasilnya disimpan sebentar — dengan
-# `dihitung_pada` selalu ikut dikembalikan, supaya "cepat" tidak pernah berarti
-# "diam-diam menampilkan keadaan setengah jam lalu".
-UMUR_CACHE_DETIK = float(os.getenv("ARKA_CACHE_ARMADA", "180"))
+# armada tidak berubah dalam hitungan menit. Menghitungnya saat halaman dibuka
+# adalah pilihan yang salah dua kali: pengunjung pertama menunggu setengah menit,
+# dan instance Cloud Run yang baru bangun mengulanginya lagi dari nol.
+#
+# Jadi pemindaian dijadwalkan, bukan dipicu tampilan. Hasilnya ditulis ke satu
+# berkas dan dibaca langsung; `dihitung_pada` ikut di dalamnya, sehingga umur
+# jawaban selalu terlihat pembaca alih-alih disembunyikan di balik kata "cepat".
+BERKAS_PINDAI = os.getenv("ARKA_BERKAS_PINDAI", "/tmp/arka-pindai.json")  # noqa: S108
+UMUR_CACHE_DETIK = float(os.getenv("ARKA_CACHE_ARMADA", "900"))
 _cache: dict = {"pada": 0.0, "isi": None}
 _kunci = asyncio.Lock()
+
+
+def _muat_tersimpan() -> dict | None:
+    """Baca pemindaian terjadwal yang terakhir ditulis, kalau ada."""
+    try:
+        with open(BERKAS_PINDAI, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def _simpan(hasil: dict) -> None:
+    try:
+        with open(BERKAS_PINDAI, "w", encoding="utf-8") as f:
+            json.dump(hasil, f)
+    except OSError as exc:  # noqa: BLE001 — gagal menyimpan bukan gagal memindai
+        logger.warning("Hasil pemindaian tidak tersimpan: %s", exc)
 
 
 @app.get("/api/armada")
@@ -104,16 +127,41 @@ async def armada(segarkan: bool = False) -> dict:
     Yang diabaikan ikut dikembalikan beserta alasannya. Daftar yang hanya memuat
     temuan menarik tidak bisa dibantah; yang memuat penolakan bisa.
 
-    `?segarkan=true` memaksa perhitungan ulang.
+    Urutannya: memori, lalu pemindaian terjadwal yang tersimpan, baru menghitung
+    sendiri. `?segarkan=true` melewati keduanya.
     """
     async with _kunci:
         umur = time.monotonic() - _cache["pada"]
         if _cache["isi"] is not None and not segarkan and umur < UMUR_CACHE_DETIK:
             return {**_cache["isi"], "umur_detik": round(umur, 1)}
+
+        if not segarkan:
+            tersimpan = _muat_tersimpan()
+            if tersimpan:
+                _cache.update(pada=time.monotonic(), isi=tersimpan)
+                return {**tersimpan, "umur_detik": 0.0, "sumber": "terjadwal"}
+
         hasil = await _pindai()
-        _cache["pada"] = time.monotonic()
-        _cache["isi"] = hasil
-        return {**hasil, "umur_detik": 0.0}
+        _cache.update(pada=time.monotonic(), isi=hasil)
+        _simpan(hasil)
+        return {**hasil, "umur_detik": 0.0, "sumber": "dihitung"}
+
+
+@app.post("/api/armada/pindai")
+async def pindai_sekarang() -> dict:
+    """Titik masuk penjadwal: hitung ulang dan simpan.
+
+    Dipanggil Cloud Scheduler, bukan oleh tampilan. Memisahkan ini dari `GET`
+    berarti pemindaian berjalan pada jadwal yang dipilih manusia, dan halaman
+    tinggal membaca hasilnya — yang juga membuat klaim "ARKA memindai armada
+    tiap pagi tanpa diminta" jadi benar secara harfiah.
+    """
+    async with _kunci:
+        hasil = await _pindai()
+        _cache.update(pada=time.monotonic(), isi=hasil)
+        _simpan(hasil)
+    return {"status": "selesai", "dihitung_pada": hasil["dihitung_pada"],
+            "diperiksa": hasil["diperiksa"], "layak": len(hasil["layak"])}
 
 
 async def _pindai() -> dict:
@@ -151,7 +199,9 @@ async def _pindai() -> dict:
             "equipment_tag": c.open_case.equipment_tag,
             "pabrik": c.open_case.plant,
             "model": c.open_case.equipment_model,
-            "gejala": list(c.open_case.symptom_codes),
+            # Nama, bukan kode. Kode adalah cara penyimpanan menyebut gejala;
+            # yang dibaca manusia di layar harus kalimat yang ia kenali.
+            "gejala": list(c.open_case.symptom_names or c.open_case.symptom_codes),
             "terbuka_sejak": c.open_case.started_on.isoformat(),
             "skor": str(c.verdict.top_score),
             "keputusan": c.verdict.decision.value,
