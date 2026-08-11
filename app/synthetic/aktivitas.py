@@ -157,6 +157,7 @@ async def tulis_aktivitas_jalur_emas(
                     spare_part_id=parts[part_number].id,
                     quantity=Decimal("1.000"),
                     unit="pcs",
+                    batch_number=f"LOT-202602-{part_number.replace('SP-', '')}",
                 )
             )
             pemakaian += 1

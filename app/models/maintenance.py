@@ -278,6 +278,7 @@ class ActivitySparePart(Base):
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(12, 3))
     unit: Mapped[str] = mapped_column(String(30))
+    batch_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     activity: Mapped[MaintenanceActivity] = relationship(back_populates="spare_part_usages")
     spare_part: Mapped[SparePart] = relationship(back_populates="activity_usages")
