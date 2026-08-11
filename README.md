@@ -62,8 +62,8 @@ uv run python scripts/run_chain.py         # scout → investigator → reporter
 uv run python scripts/pindai_terjadwal.py  # pemindaian, tanpa model
 ```
 
-Sumber data bawaannya **BigQuery** (`ARKA_STORE=postgres` untuk memaksa jalur lokal).
-Kedua titik masuk menolak jalan bila salinan BigQuery tidak sepadan dengan PostgreSQL.
+> **Catatan Arsitektur Database:**
+> Sumber data utama dan arsitektur produksi ARKA adalah **100% BigQuery Murni (Cloud Native)** di GCP — mencakup 39 tabel kanonik, Knowledge Graph (`graph_nodes` & `graph_edges`), serta `VECTOR_SEARCH` bawaan. Berkat **Direct BigQuery Ingestion (Spec 007)**, data dapat diserap langsung ke BigQuery tanpa melalui database perantara. PostgreSQL lokal (Apache AGE) hanya berfungsi sebagai *optional offline dev fallback* untuk kebutuhan pengujian tanpa jaringan GCP.
 
 ## Fitur Kunci & Pemenuhan Kriteria Submission
 
