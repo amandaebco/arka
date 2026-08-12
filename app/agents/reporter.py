@@ -20,7 +20,7 @@ from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types
 
-from app.core.config import get_settings
+from app.core.model import pilih_model
 from app.reporting.blocks import URUTAN_BAKU, susun_blok
 from app.reporting.cloud_storage import unggah_dashboard_ke_cloud_storage
 from app.reporting.dokumen import JENIS, KonteksDokumen, ambil_jenis
@@ -274,7 +274,7 @@ async def terbitkan_dokumen(
 
 reporter_agent = LlmAgent(
     name="reporter",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(),
     description=(
         "Menyusun dokumen investigasi dari temuan — memo, nota dinas, atau laporan: "
         "memilih jenis, blok, urutan, dan menulis narasi. "

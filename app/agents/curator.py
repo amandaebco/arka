@@ -37,7 +37,7 @@ import logging
 from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext
 
-from app.core.config import get_settings
+from app.core.model import pilih_model
 from app.curation.repository import (
     catat_keputusan,
     kandidat_belum_ditinjau,
@@ -189,7 +189,7 @@ async def ringkas_kurasi(tool_context: ToolContext) -> str:
 
 curator_agent = LlmAgent(
     name="curator",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(),
     description=(
         "Decides which candidate facts are safe to accept into the knowledge "
         "graph without a human, and which must be escalated."

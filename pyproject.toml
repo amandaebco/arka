@@ -34,6 +34,7 @@ dependencies = [
     # secara transitif lewat aiplatform, sehingga ada di venv tetapi tidak di
     # image — dan baru ketahuan setelah deploy.
     "google-cloud-bigquery>=3.30",
+    "litellm>=1.96.2",
 ]
 
 [project.optional-dependencies]

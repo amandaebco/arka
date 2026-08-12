@@ -21,7 +21,7 @@ from datetime import date
 from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext
 
-from app.core.config import get_settings
+from app.core.model import pilih_model
 from app.detection import store
 from app.detection.investigation import build_finding, score_candidates
 from app.reporting.finding import LangkahPenalaran
@@ -219,7 +219,7 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
 
 investigator_agent = LlmAgent(
     name="investigator",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(),
     description=(
         "Investigates an open equipment failure by tracing it to resolved cases "
         "in other plants, and decides when the evidence needs a human ruling."

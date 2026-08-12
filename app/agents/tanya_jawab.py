@@ -25,7 +25,7 @@ import logging
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.tools.tool_context import ToolContext
 
-from app.core.config import get_settings
+from app.core.model import pilih_model
 from app.retrieval.graphrag import as_prompt_context, retrieve
 
 logger = logging.getLogger(__name__)
@@ -171,7 +171,7 @@ async def telusuri_graph(
 
 retriever_agent = LlmAgent(
     name="retriever",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(),
     description=(
         "Decides what to retrieve for a question — semantic document search "
         "combined with graph traversal around what it finds."
@@ -220,7 +220,7 @@ Reply in Indonesian, briefly.
 
 answerer_agent = LlmAgent(
     name="answerer",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(),
     description=(
         "Answers a reliability question from retrieved evidence, with citations, "
         "and says plainly when the evidence does not support an answer."

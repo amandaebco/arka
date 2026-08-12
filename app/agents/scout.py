@@ -23,7 +23,7 @@ import logging
 from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext
 
-from app.core.config import get_settings
+from app.core.model import pilih_model
 from app.detection import store
 from app.detection.investigation import rank_screened, screen_case
 from app.detection.scoring import THRESHOLD_IGNORE
@@ -134,7 +134,7 @@ async def explain_skip(equipment_tag: str, tool_context: ToolContext) -> str:
 
 scout_agent = LlmAgent(
     name="scout",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(),
     description=(
         "Scans open failures across the fleet and decides which deserve "
         "investigation, reporting what it skipped and why."

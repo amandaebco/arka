@@ -39,7 +39,7 @@ from app.agents.designer import (
     knowledge_base,
 )
 from app.agents.reporter import KUNCI_TEMUAN, reporter_agent
-from app.core.config import get_settings
+from app.core.model import pilih_model
 from app.designer.content import build_content, is_composed_label
 from app.designer.inspection import (
     InspectionUnavailable,
@@ -465,7 +465,7 @@ def minta_perbaikan(masukan: str, tool_context: ToolContext) -> str:
 
 penilai_agent = LlmAgent(
     name="penilai",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(butuh_vision=True),
     description="Memeriksa mutu dokumen investigasi sebelum diserahkan ke manusia.",
     tools=[periksa_dokumen, selesai, minta_perbaikan],
     instruction=f"""
@@ -507,7 +507,7 @@ Bahasa Indonesia, ringkas, spesifik. Sebut blok atau bagian yang kamu maksud.
 # menduplikasi keputusan yang sama.
 penilai_visual_agent = LlmAgent(
     name="penilai_visual",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(butuh_vision=True),
     description="Memeriksa mutu infografis sebelum diserahkan ke manusia.",
     tools=[periksa_infografis, periksa_teks_tergambar, selesai, minta_perbaikan],
     instruction=f"""

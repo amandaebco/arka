@@ -42,6 +42,20 @@ class Settings(BaseSettings):
     vertex_ai_timeout_seconds: float = Field(default=15.0, gt=0, le=60)
     vertex_ai_fallback_enabled: bool = True
 
+    # Penyedia model teks untuk agent yang menalar. `gemini` memanggil Vertex
+    # seperti biasa; `deepseek` memanggil lewat LiteLLM dan menuntut
+    # DEEPSEEK_API_KEY. Nilai yang tidak dikenal jatuh ke `gemini`, bukan ke
+    # penyedia luar — salah ketik tidak boleh diam-diam memindahkan ke mana
+    # kalimat investigasi dikirim.
+    #
+    # ⚠️ Penilai mutu (`app/agents/qa.py`) TIDAK ikut penyedia ini. Ia membaca
+    # halaman hasil render lewat vision, dan penyedia teks-saja tidak bisa
+    # melakukannya. Memindahkannya berarti mematikan penjaga anti-rekayasa
+    # angka tanpa satu pun tes menjadi merah.
+    text_provider: str = "gemini"
+    deepseek_api_key: str = Field(default="", repr=False)
+    deepseek_model: str = "deepseek-chat"
+
     # Penggambar infografis. Satu-satunya jalur di ARKA yang memanggil penyedia
     # di luar Google — dipilih sadar untuk memperluas keragaman tumpukan, dan
     # isinya terbatas pada nilai yang sudah ada di `Finding`

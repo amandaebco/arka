@@ -22,7 +22,7 @@ from google.adk.tools.tool_context import ToolContext
 from google.genai import types
 
 from app.agents.reporter import KUNCI_TEMUAN
-from app.core.config import get_settings
+from app.core.model import pilih_model
 from app.designer.composer import compose_prompt
 from app.designer.content import build_content
 from app.designer.forms import applicable_forms
@@ -275,7 +275,7 @@ def _read_map(mentah: str | None, label: str) -> dict:
 
 designer_agent = LlmAgent(
     name="designer",
-    model=get_settings().vertex_ai_model,
+    model=pilih_model(),
     description=(
         "Memutuskan penekanan visual dan bentuk visual tiap blok, "
         "lalu menerbitkan infografis satu halaman."
