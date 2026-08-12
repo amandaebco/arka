@@ -234,7 +234,7 @@ langsung dan langkah ini hilang.
 
 | Modul | Peran |
 |---|---|
-| `app/retrieval/embedding.py` | Embedding `gemini-embedding-001`, 3072 dimensi |
+| `app/retrieval/embedding.py` | Embedding `gemini-embedding-2`, 3072 dimensi |
 | `app/retrieval/vector_store.py` | `VECTOR_SEARCH` di BigQuery |
 | `app/retrieval/graphrag.py` | Menggabungkan traversal graph + potongan dokumen |
 | `app/agents/tanya_jawab.py` | `retriever` (apa yang diambil) + `answerer` (apa yang didukung bukti) |
@@ -280,12 +280,26 @@ script diabaikan; pemasangan runtime melebihi anggaran waktu permintaan).
 image `us-central1-docker.pkg.dev/ebco-aihack-amanda/arka/arka:v4` ·
 revisi `arka-00007-m7q` · `max-instances=4` (11 Agt)
 
-⚠️ **Endpoint menolak semua permintaan tanpa kredensial** — IAM policy service
-kosong, jadi `curl` menjawab 403. Membukanya menuntut `run.services.setIamPolicy`,
-yang **tidak** termasuk dalam `roles/editor`; akun ini ditolak baik pada service
-maupun pada project. Perlu admin memberi `roles/run.admin`, atau menjalankan
-sendiri binding `roles/run.invoker` untuk `allUsers`. Sampai itu turun, video demo
-adalah satu-satunya bukti bahwa aplikasinya berjalan.
+✅ **Endpoint sudah publik** (12 Agt) — binding `allUsers` / `roles/run.invoker`
+terpasang, jadi `curl` dilayani tanpa kredensial. Catatan 403 yang lama sudah
+tidak berlaku.
+
+🛑 **Tapi seluruh GCP mati sejak 12 Agt: billing project dilepas.**
+`billingEnabled: false`, `billingAccountName: ''`. Akibatnya berantai dan
+tidak satu pun bisa diakali dari sini:
+
+| | |
+|---|---|
+| Cloud Run (`arka`, `arka-web`) | 500 |
+| Cloud Storage (one-pager, dashboard) | 403 `UserProjectAccountProblem` |
+| `gcloud run deploy` | `BILLING_DISABLED` |
+| Cloud Scheduler API | `SERVICE_DISABLED` |
+| BigQuery, Vertex (Gemini) | ikut mati |
+
+Memulihkannya perlu **Billing Admin** — di luar `roles/editor`. Sampai itu turun:
+one-pager disajikan dari **GitHub Pages**, dan rantai dijalankan **lokal** dengan
+`ARKA_STORE=postgres`. Image `arka:v8` (memuat rute `app/api.py`) sudah ter-build
+dan ter-push, menunggu di Artifact Registry — belum pernah ter-deploy.
 
 `max-instances` diturunkan dari 100 ke 4 sebelum endpoint dibuka: seratus instance
 yang masing-masing memanggil Gemini adalah plafon biaya yang tidak seorang pun
@@ -400,6 +414,15 @@ katalog 200.000+ mapping yang **sengaja kotor** (typo ala OCR, tag ambigu, ~8% W
 
 - Python 3.12 · `uv` · ruff line-length 100 · pytest asyncio auto
 - Model: **`gemini-3.6-flash`**, lokasi **`global`** (bukan region)
+- Penyedia model teks dipilih `TEXT_PROVIDER` — `gemini` (bawaan) atau `deepseek`
+  (lewat LiteLLM). Semua agent memanggil `app/core/model.py`; **jangan** menyebut
+  nama model langsung di berkas agent lagi. Nilai tak dikenal jatuh ke Gemini.
+  DeepSeek menyajikan `deepseek-v4-flash` dan `deepseek-v4-pro` — diuji hidup 12 Agt,
+  tool calling jalan. ⚠️ `app/agents/qa.py` **tidak ikut**: ia membaca halaman
+  lewat vision, dan penyedia teks-saja akan mematikan penjaga itu diam-diam.
+- Repo publik: **https://github.com/amandaebco/arka** (akun `amandaebco`, SSH alias
+  `github-ebco`). One-pager terbit lewat GitHub Pages dari `main` folder `/docs`:
+  https://amandaebco.github.io/arka/onepager.html
 - Project GCP: **`ebco-aihack-amanda`** — satu sumber kebenaran di `.env`;
   `Settings` membacanya, `terapkan_env_vertex()` menyalinnya ke `os.environ`
   karena `google-genai` membaca lingkungan, bukan objek Settings
