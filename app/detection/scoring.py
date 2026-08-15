@@ -200,6 +200,15 @@ class Verdict:
     margin: Decimal | None
     reason: str
 
+    # Whether there was anything to judge at all. Without this the two reasons
+    # for ignoring a case collapse into one number: a case with no candidates
+    # scores 0.0000, and so does nothing else — so a reader sees "assessed,
+    # risk nil" where the truth is "nothing to assess".
+    #
+    # The distinction is not cosmetic. Absence of evidence reads as health, and
+    # the equipment nobody records is exactly the equipment nobody is watching.
+    assessable: bool = True
+
     @property
     def needs_human(self) -> bool:
         return self.decision is Decision.ESCALATE
@@ -220,6 +229,7 @@ def decide(scores: Sequence[Decimal]) -> Verdict:
             runner_up_score=None,
             margin=None,
             reason="Tidak ada kandidat penyebab yang dapat dinilai.",
+            assessable=False,
         )
 
     ranked = sorted((Decimal(s).quantize(_QUANTUM) for s in scores), reverse=True)

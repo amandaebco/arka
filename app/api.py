@@ -206,16 +206,34 @@ async def _pindai() -> dict:
             "skor": str(c.verdict.top_score),
             "keputusan": c.verdict.decision.value,
             "alasan": c.verdict.reason,
+            # Membedakan "sudah dinilai, hasilnya rendah" dari "tidak ada yang
+            # bisa dinilai". Keduanya berskor 0,0000, dan tanpa penanda ini
+            # pembaca menyimpulkan yang pertama padahal yang terjadi kedua.
+            "dapat_dinilai": c.verdict.assessable,
         }
         for c in rank_screened(disaring)
     ]
     layak = [b for b in baris if b["keputusan"] != "ignore"]
+    diabaikan = [b for b in baris if b["keputusan"] == "ignore"]
+    tanpa_bukti = [b for b in diabaikan if not b["dapat_dinilai"]]
     return {
         "dihitung_pada": datetime.now(UTC).isoformat(timespec="seconds"),
         "store": store.active_store(),
         "diperiksa": len(baris),
         "layak": layak,
-        "diabaikan": [b for b in baris if b["keputusan"] == "ignore"],
+        "diabaikan": diabaikan,
+        # Cakupan adalah keluaran kelas satu, bukan catatan kaki. Armada yang
+        # tidak bisa dinilai adalah pekerjaan yang menunggu, dan menyembunyikannya
+        # membuat skor atas sebagian kecil armada terbaca seolah berlaku untuk
+        # seluruhnya.
+        "cakupan": {
+            "diperiksa": len(baris),
+            "dapat_dinilai": len(baris) - len(tanpa_bukti),
+            "tanpa_bukti": len(tanpa_bukti),
+            "persen_dapat_dinilai": (
+                round(100.0 * (len(baris) - len(tanpa_bukti)) / len(baris), 1) if baris else 0.0
+            ),
+        },
     }
 
 

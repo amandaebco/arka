@@ -147,6 +147,21 @@ class TestDecide:
         assert v.decision is Decision.IGNORE
         assert v.top_score == Decimal("0.0000")
 
+    def test_no_candidates_is_marked_unassessable(self):
+        """Nothing to judge must not read as judged-and-safe.
+
+        Both outcomes carry a score of 0.0000, so the flag is the only thing
+        separating "no evidence exists" from "the evidence was weak". A reader
+        who cannot tell them apart concludes the fleet is healthier than it is —
+        and the equipment nobody records is the equipment nobody watches.
+        """
+        assert decide([]).assessable is False
+
+    def test_weak_candidates_are_still_assessable(self):
+        v = decide([Decimal("0.40"), Decimal("0.38")])
+        assert v.decision is Decision.IGNORE
+        assert v.assessable is True
+
     def test_single_strong_candidate_reports(self):
         v = decide([Decimal("0.80")])
         assert v.decision is Decision.REPORT
