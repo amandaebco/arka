@@ -77,9 +77,22 @@ async def session():
         yield None
         return
 
+    from sqlalchemy import text
+
     from app.db.session import session_factory
 
     async with session_factory() as s:
+        # A pathological query must fail rather than hang. Without a ceiling, a
+        # scan that goes wrong holds its backend open indefinitely: the caller
+        # times out, retries, and each abandoned attempt keeps scanning — the
+        # pile-up that ends with a database nobody can query and a restart as
+        # the only cure.
+        #
+        # `SET LOCAL` scopes to the current transaction and resets when the
+        # connection returns to the pool, so this cannot leak into other work.
+        # Thirty seconds is far above the measured scan (0.03-0.16s across 5,000
+        # equipment); anything near it means something is wrong, not busy.
+        await s.execute(text("SET LOCAL statement_timeout = '30s'"))
         yield s
 
 

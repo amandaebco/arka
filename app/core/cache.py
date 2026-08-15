@@ -10,7 +10,8 @@ import functools
 import hashlib
 import json
 import time
-from typing import Any, Callable, Dict, Optional, Tuple
+from collections.abc import Callable
+from typing import Any
 
 
 class TTLCache:
@@ -19,11 +20,11 @@ class TTLCache:
     def __init__(self, default_ttl: int = 3600, maxsize: int = 1000):
         self.default_ttl = default_ttl
         self.maxsize = maxsize
-        self._store: Dict[str, Tuple[Any, float]] = {}
+        self._store: dict[str, tuple[Any, float]] = {}
         self.hits = 0
         self.misses = 0
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         if key in self._store:
             value, expiry = self._store[key]
             if time.time() < expiry:
@@ -34,7 +35,7 @@ class TTLCache:
         self.misses += 1
         return None
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         if len(self._store) >= self.maxsize:
             self._evict_expired_or_oldest()
         expiry = time.time() + (ttl if ttl is not None else self.default_ttl)
@@ -49,7 +50,7 @@ class TTLCache:
         self._cleanup_expired()
         return len(self._store)
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         total = self.hits + self.misses
         hit_ratio = (self.hits / total) if total > 0 else 0.0
         return {
@@ -88,7 +89,7 @@ def _make_key(prefix: str, func_name: str, args: tuple, kwargs: dict) -> str:
     return f"{prefix}:{func_name}:{digest}" if prefix else f"{func_name}:{digest}"
 
 
-def cached(cache_instance: Optional[TTLCache] = None, ttl: Optional[int] = None, prefix: str = ""):
+def cached(cache_instance: TTLCache | None = None, ttl: int | None = None, prefix: str = ""):
     """Decorator to cache return values of sync and async functions."""
     target_cache = cache_instance or general_cache
 
