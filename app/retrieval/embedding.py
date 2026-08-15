@@ -46,14 +46,49 @@ DIMENSION = 3072
 BATCH = 1
 
 
+GEMINI = "gemini"
+OPENAI = "openai"
+
+
+def active_model() -> str:
+    """The model name that produced — or will produce — the stored vectors.
+
+    Written into every indexed row. Two providers both returning 3,072
+    dimensions is exactly why the name has to travel with the vector.
+    """
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    if settings.embed_provider.strip().lower() == OPENAI:
+        return settings.embed_model_openai
+    return MODEL
+
+
 def embed(texts: list[str]) -> list[list[float]]:
     """Embed a batch of texts. Order of the result matches the input."""
-    from google import genai
-
-    from app.core.config import terapkan_env_vertex
+    from app.core.config import get_settings
 
     if not texts:
         return []
+
+    provider = get_settings().embed_provider.strip().lower()
+    if provider == OPENAI:
+        vectors = _embed_openai(texts)
+    else:
+        if provider != GEMINI:
+            logger.warning(
+                "EMBED_PROVIDER=%r is not recognised — using Gemini.", provider
+            )
+        vectors = _embed_gemini(texts)
+
+    logger.info("embedded %d texts with %s", len(vectors), active_model())
+    return vectors
+
+
+def _embed_gemini(texts: list[str]) -> list[list[float]]:
+    from google import genai
+
+    from app.core.config import terapkan_env_vertex
 
     # `google-genai` reads the environment, not `Settings`. Without this bridge a
     # caller that never imports `app.agents` — a migration script, for one — falls
@@ -61,8 +96,40 @@ def embed(texts: list[str]) -> list[list[float]]:
     # Vertex credentials.
     terapkan_env_vertex()
     client = genai.Client()
-    vectors = [_embed_one_request(client, t) for t in texts]
-    logger.info("embedded %d texts", len(vectors))
+    return [_embed_one_request(client, t) for t in texts]
+
+
+def _embed_openai(texts: list[str]) -> list[list[float]]:
+    """Embed through OpenAI, one text per request.
+
+    Batching is available here — unlike the Gemini path, which returns one
+    vector however many texts it is handed — but the loop is kept so both
+    providers fail the same way and the dimension check below applies per text.
+    """
+    from openai import OpenAI
+
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise RuntimeError(
+            "EMBED_PROVIDER=openai but no OpenAI key is set. "
+            "Set OPENAI_API_KEY (or IMAGE_API_KEY) in .env."
+        )
+
+    client = OpenAI(api_key=settings.openai_api_key)
+    model = settings.embed_model_openai
+    vectors: list[list[float]] = []
+    for text in texts:
+        response = client.embeddings.create(model=model, input=text)
+        if len(response.data) != 1:  # pragma: no cover — guards an API change
+            raise ValueError(f"{model} returned {len(response.data)} embeddings for one text")
+        vector = list(response.data[0].embedding)
+        if len(vector) != DIMENSION:
+            raise ValueError(
+                f"{model} returned {len(vector)} dimensions, expected {DIMENSION}"
+            )
+        vectors.append(vector)
     return vectors
 
 

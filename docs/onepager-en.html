@@ -782,8 +782,8 @@
           <p class="why">Tested directly: <code>CREATE PROPERTY GRAPH</code> works on <i>on-demand</i> pricing, but <code>GRAPH … MATCH</code> syntax requires a BigQuery Enterprise reservation. ARKA traverses the graph with <i>recursive CTEs</i> instead, producing identical figures.</p>
         </div>
         <div class="lcard">
-          <p class="said">The 0.60 vector similarity threshold belongs to this corpus.</p>
-          <p class="why">Measured over 54 documents: questions phrased differently score 0.61–0.72, while out-of-domain questions reach 0.56. The threshold must be re-measured for any new production corpus.</p>
+          <p class="said">The similarity threshold belongs to a model-and-corpus pair.</p>
+          <p class="why">Measured over 54 documents with the same ten questions. On <code>text-embedding-3-large</code>, rephrased questions score 0.4736–0.6099 while out-of-domain questions stop at 0.3366 : a threshold of <b>0.40</b> admits seven of seven and rejects three of three. On <code>gemini-embedding-2</code> the numbers run higher (threshold 0.60) yet the two bands touch, so one legitimate question was rejected along with the noise. Cosine values are not comparable across models; the separation is. The threshold must be re-measured for every new model-and-corpus pair.</p>
         </div>
         <div class="lcard">
           <p class="said">All data here is synthetic.</p>

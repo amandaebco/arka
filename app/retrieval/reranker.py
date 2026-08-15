@@ -28,8 +28,41 @@ WEIGHT_KEYWORD = 0.35
 # Relative margin threshold: candidate must achieve at least 70% of the top hit's composite score
 MIN_RELATIVE_MARGIN = 0.70
 
-# Absolute floor for composite score to reject pure noise
+# Absolute floor for composite score to reject pure noise.
+#
+# Composite is 0.65·cosine + 0.35·keyword, so it inherits the cosine scale — and
+# cosine scales differ per embedding model. Measured over the same ten questions
+# used for `MIN_SIMILARITY`, 15 August:
+#
+#     `gemini-embedding-2`      floor 0.55, reachable on that model's scale
+#     `text-embedding-3-large`  weakest in-domain 0.3779, strongest nonsense
+#                               0.3063 ("harga saham minggu ini") -- gap +0.0716
+#
+# A floor of 0.55 is reachable on the first and unreachable on the second, which
+# is how a model swap silently rejected every paraphrased question while the
+# search itself still looked healthy. 0.34 sits midway in the measured gap:
+# it admits "kenapa produk merembes saat pengisian?", the paraphrase the whole
+# design exists to catch, and rejects all three nonsense questions.
+MIN_COMPOSITE_BY_MODEL = {
+    "gemini-embedding-2": 0.55,
+    "text-embedding-3-large": 0.34,
+}
+
+# Kept for callers that pass an explicit value; the default is resolved per model.
 MIN_COMPOSITE_SCORE = 0.55
+
+
+def min_composite_score() -> float:
+    """The composite floor measured for whichever model is producing vectors."""
+    from app.retrieval.embedding import active_model
+
+    model = active_model()
+    if model not in MIN_COMPOSITE_BY_MODEL:  # pragma: no cover — guards a model swap
+        raise ValueError(
+            f"No composite floor measured for {model!r}. Measure it against the "
+            "corpus before trusting retrieval; see the table above."
+        )
+    return MIN_COMPOSITE_BY_MODEL[model]
 
 # Key domain terms that receive extra relevance weight during keyword matching
 DOMAIN_TERMS = frozenset(
@@ -96,10 +129,12 @@ def rerank_hits(
     question: str,
     hits: list[SemanticHit],
     *,
-    min_composite: float = MIN_COMPOSITE_SCORE,
+    min_composite: float | None = None,
     min_relative_margin: float = MIN_RELATIVE_MARGIN,
 ) -> list[SemanticHit]:
     """Rerank and filter candidate hits using composite scoring and relative margin testing."""
+    if min_composite is None:
+        min_composite = min_composite_score()
     if not hits:
         return []
 

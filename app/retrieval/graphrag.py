@@ -24,7 +24,8 @@ from dataclasses import dataclass, field
 from google.cloud import bigquery
 
 from app.bigquery import config
-from app.retrieval.vector_store import SemanticHit, search
+from app.retrieval.semantic import search
+from app.retrieval.vector_store import SemanticHit
 
 logger = logging.getLogger(__name__)
 

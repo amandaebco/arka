@@ -781,8 +781,8 @@
           <p class="why">Pengujian langsung menunjukkan: <code>CREATE PROPERTY GRAPH</code> berjalan pada mode <i>on-demand</i>, namun sintaks <code>GRAPH … MATCH</code> memerlukan reservasi BigQuery Enterprise. Penelusuran graf di ARKA dieksekusi via <i>Recursive CTE</i> dengan hasil angka yang identik.</p>
         </div>
         <div class="lcard">
-          <p class="said">Ambang Kemiripan Vektor (0,60) Spesifik untuk Korpus Ini.</p>
-          <p class="why">Diuji atas 54 dokumen: pertanyaan dengan variasi kata mencapai skor 0,61–0,72, sedangkan pertanyaan di luar domain bernilai 0,56. Nilai ambang batas ini wajib dikalibrasi ulang untuk korpus produksi baru.</p>
+          <p class="said">Ambang Kemiripan Vektor Milik Pasangan Model &amp; Korpus.</p>
+          <p class="why">Diukur atas 54 dokumen dengan sepuluh pertanyaan yang sama. Pada <code>text-embedding-3-large</code>, pertanyaan dengan variasi kata mencapai 0,4736–0,6099 sementara pertanyaan di luar domain berhenti di 0,3366 : ambang <b>0,40</b> meloloskan tujuh dari tujuh dan menolak tiga dari tiga. Pada <code>gemini-embedding-2</code> angkanya lebih tinggi (ambang 0,60) tetapi kedua pita justru bersentuhan, sehingga satu pertanyaan sah ikut tertolak. Nilai cosine antar model tidak sebanding; yang dibandingkan adalah pemisahannya. Ambang ini wajib diukur ulang untuk setiap pasangan model dan korpus baru.</p>
         </div>
         <div class="lcard">
           <p class="said">Seluruh Data yang Digunakan Adalah Sintetis.</p>

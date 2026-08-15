@@ -71,7 +71,62 @@ TABLE = "document_chunks_embedded"
 # The remaining fix is a relative test — margin between the top hit and the rest,
 # or a rerank — because "is this the best match" and "is this a good match" are
 # different questions and one cosine floor answers only the first.
-MIN_SIMILARITY = 0.60
+#
+# ---------------------------------------------------------------------------
+#
+# Measured again on the same corpus, 15 August, `text-embedding-3-large`, after
+# the index moved to pgvector. Same ten questions, same documents, different
+# model — and the bands that touched under Gemini now separate cleanly:
+#
+#     in-domain   0.6099  "seal bocor di mesin filler"
+#                 0.5863  "apa penyebab torsi kepala pengisi menyimpang?"
+#                 0.5689  "sabuk konveyor aus tidak merata"
+#                 0.5533  "label miring saat kecepatan tinggi"
+#                 0.5463  "kenapa arus motor mixer naik?"
+#                 0.5175  "kardus terlepas dari lengan robot"
+#                 0.4736  "kenapa produk merembes saat pengisian?"   ← weakest
+#     out-domain  0.3366  "harga saham minggu ini"                   ← strongest
+#                 0.2401  "jadwal kereta ke bandung"
+#                 0.2238  "resep rendang padang"
+#
+# Gap: +0.1371, against -0.0007 under `gemini-embedding-2`. Every in-domain
+# question now outranks every nonsense one, so 0.40 sits roughly midway with
+# ~0.07 of room on each side and admits all seven while rejecting all three.
+#
+# The absolute numbers are lower than Gemini's and that means nothing on its
+# own: cosine values are not comparable across models. Only the separation is.
+#
+# ⚠️ A threshold belongs to a (model, corpus) pair, never to the system. The map
+# below exists so swapping `EMBED_PROVIDER` cannot silently keep a floor that was
+# measured against different vectors — the failure that leaves search working,
+# plausible, and wrong.
+MIN_SIMILARITY_BY_MODEL = {
+    "gemini-embedding-2": 0.60,
+    "text-embedding-3-large": 0.40,
+}
+
+
+def min_similarity() -> float:
+    """The floor measured for whichever model is producing vectors now."""
+    from app.retrieval.embedding import active_model
+
+    model = active_model()
+    if model not in MIN_SIMILARITY_BY_MODEL:  # pragma: no cover — guards a model swap
+        raise ValueError(
+            f"No similarity floor measured for {model!r}. Measure it against the "
+            "corpus before trusting retrieval; see the table above."
+        )
+    return MIN_SIMILARITY_BY_MODEL[model]
+
+
+def min_similarity_candidate() -> float:
+    """Relaxed floor for candidate retrieval, before reranking.
+
+    Kept proportional to the measured floor rather than fixed: a constant 0.50
+    sat *above* the 0.40 floor once the model changed, which silently discarded
+    every candidate the reranker was supposed to judge.
+    """
+    return round(min_similarity() - 0.10, 4)
 
 
 @dataclass(frozen=True)
@@ -129,10 +184,6 @@ def build_index(chunks: list[dict]) -> int:
     return len(rows)
 
 
-# Relaxed recall threshold for initial candidate retrieval before reranking
-MIN_SIMILARITY_CANDIDATE = 0.50
-
-
 def search(
     question: str, limit: int = 5, *, apply_rerank: bool = True
 ) -> list[SemanticHit]:
@@ -149,6 +200,8 @@ def search(
         raise ValueError(f"embedding dimension {len(vector)} != stored {DIMENSION}")
 
     candidate_k = max(limit * 2, 10)
+    floor = min_similarity()
+    floor_candidate = min_similarity_candidate()
     sql = f"""
     SELECT base.document_id, base.title, base.document_type, base.content,
            base.page_number, 1 - distance AS similarity
@@ -178,13 +231,13 @@ def search(
             similarity=round(float(r.similarity), 4),
         )
         for r in job.result()
-        if float(r.similarity) >= MIN_SIMILARITY_CANDIDATE
+        if float(r.similarity) >= floor_candidate
     ]
 
     if apply_rerank:
         kept = rerank_hits(question, hits)[:limit]
     else:
-        kept = [h for h in hits if h.similarity >= MIN_SIMILARITY][:limit]
+        kept = [h for h in hits if h.similarity >= floor][:limit]
 
     logger.info("semantic search kept %d of %d hits", len(kept), len(hits))
     return kept

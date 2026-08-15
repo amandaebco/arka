@@ -220,8 +220,9 @@ menghasilkan `0.9071` / `0.8819`, eskalasi pada margin `0.0252`, 5 preseden,
 4 sitasi — identik dari kedua penyimpanan.
 
 Yang **bisa** dialihkan: scout, investigator, `scripts/pindai_terjadwal.py`.
-Yang **selalu BigQuery**: GraphRAG, `VECTOR_SEARCH`, agent tanya-jawab — embedding
-hanya ada di sana.
+Yang **dulu selalu BigQuery** — GraphRAG, pencarian vektor, agent tanya-jawab —
+**sudah tidak lagi sejak 15 Agt**: indeksnya ada di pgvector, dan seluruh rantai
+bisa berjalan tanpa GCP. Lihat bagian retrieval di bawah.
 Yang **selalu PostgreSQL**: generator sintetis (sumber kebenaran) dan tes.
 
 ⚠️ **Data BigQuery adalah salinan**, diisi `scripts/uji_bigquery_graph.py` dari
@@ -234,20 +235,38 @@ langsung dan langkah ini hilang.
 
 | Modul | Peran |
 |---|---|
-| `app/retrieval/embedding.py` | Embedding `gemini-embedding-2`, 3072 dimensi |
-| `app/retrieval/vector_store.py` | `VECTOR_SEARCH` di BigQuery |
+| `app/retrieval/embedding.py` | `EMBED_PROVIDER` — `gemini` (`gemini-embedding-2`) atau `openai` (`text-embedding-3-large`), dua-duanya 3072 dimensi |
+| `app/retrieval/vector_store.py` | `VECTOR_SEARCH` di BigQuery + peta ambang terukur |
+| `app/retrieval/pgvector_store.py` | Pencarian `<=>` di PostgreSQL — kontrak identik |
+| `app/retrieval/semantic.py` | Memilih backend lewat `ARKA_STORE`, seperti lapisan deteksi |
 | `app/retrieval/graphrag.py` | Menggabungkan traversal graph + potongan dokumen |
 | `app/agents/tanya_jawab.py` | `retriever` (apa yang diambil) + `answerer` (apa yang didukung bukti) |
 
-**Embedding dibuat di luar BigQuery**, bukan lewat `ML.GENERATE_EMBEDDING`: fungsi
-itu menuntut koneksi remote model yang service account-nya harus diberi akses
-Vertex, dan akun ini tidak boleh `setIamPolicy`. `VECTOR_SEARCH` sendiri tidak
-butuh koneksi apa pun.
+**Embedding dibuat di luar penyimpanan**, bukan lewat `ML.GENERATE_EMBEDDING`:
+fungsi itu menuntut koneksi remote model yang service account-nya harus diberi
+akses Vertex, dan akun ini tidak boleh `setIamPolicy`.
 
-⚠️ **Ambang kemiripan 0,60 adalah properti korpus, bukan properti model.** Diukur
-atas empat dokumen: pertanyaan dalam kata-kata berbeda mencapai 0,61–0,72,
-pertanyaan di luar domain masih 0,56. **Wajib diukur ulang** begitu dokumennya
-banyak.
+Isi indeks pgvector: `ARKA_STORE=postgres uv run python scripts/build_pgvector_index.py`
+(104 potongan dari 54 dokumen). Tabelnya diganti utuh tiap kali, tidak pernah
+ditambahi — indeks yang mencampur dua model tidak bisa dibedakan dari indeks sehat.
+
+⚠️ **Ambang bukan milik sistem, melainkan milik pasangan (model, korpus).**
+Diukur ulang 15 Agt atas sepuluh pertanyaan yang sama:
+
+| | cosine | komposit | hasil |
+|---|---|---|---|
+| `gemini-embedding-2` | 0,60 | 0,55 | 9/10 — dua pita **bersentuhan** (−0,0007) |
+| `text-embedding-3-large` | **0,40** | **0,34** | **10/10** — jarak +0,1371 |
+
+Angka absolut antar model **tidak sebanding**; yang dibandingkan pemisahannya.
+Peta `MIN_SIMILARITY_BY_MODEL` dan `MIN_COMPOSITE_BY_MODEL` **menolak jalan**
+untuk model tanpa pengukuran — jangan menambahkan entri tanpa mengukur.
+
+⚠️ Dua jebakan yang ditemukan saat pindah model, keduanya kegagalan diam:
+lantai kandidat (dulu tetap 0,50) pernah berada **di atas** ambang akhir 0,40
+sehingga membuang semua kandidat; dan `MIN_COMPOSITE_SCORE = 0,55` mustahil
+dicapai pada skala OpenAI, sehingga parafrase "produk merembes" ditolak
+sementara pencarian tetap terlihat sehat.
 
 ### Deploy Agent Engine — sudah terbukti jalan (7 Agt)
 

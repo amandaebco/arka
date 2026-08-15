@@ -54,7 +54,11 @@ class Settings(BaseSettings):
     # angka tanpa satu pun tes menjadi merah.
     text_provider: str = "gemini"
     deepseek_api_key: str = Field(default="", repr=False)
-    deepseek_model: str = "deepseek-chat"
+    # `deepseek-chat` masih dilayani sebagai alias, tetapi tidak muncul di daftar
+    # model API mereka — diperiksa 12 Agt, yang tersaji hanya `deepseek-v4-flash`
+    # dan `deepseek-v4-pro`. Bawaan yang bersandar pada alias akan mati diam-diam
+    # pada hari alias itu dicabut.
+    deepseek_model: str = "deepseek-v4-flash"
 
     # Penggambar infografis. Satu-satunya jalur di ARKA yang memanggil penyedia
     # di luar Google — dipilih sadar untuk memperluas keragaman tumpukan, dan
@@ -66,6 +70,27 @@ class Settings(BaseSettings):
     # Salinan permanen jejak penerbitan. Kosong berarti jejak hanya ada di disk
     # lokal — di Cloud Run itu berarti hilang bersama instance-nya.
     artifact_gcs_bucket: str = ""
+
+    # Penyedia embedding, terpisah dari `text_provider` karena keduanya bisa
+    # berbeda: DeepSeek tidak punya API embedding sama sekali. `gemini` memakai
+    # `gemini-embedding-2`; `openai` memakai `text-embedding-3-large`.
+    #
+    # ⚠️ Vektor dari dua penyedia TIDAK sebanding, dan keduanya kebetulan
+    # berdimensi 3.072 — jadi menukarnya tanpa membangun ulang indeks tidak
+    # memunculkan error apa pun. Pencarian tetap berhasil, jaraknya tetap masuk
+    # akal, dan setiap hasilnya omong kosong. Ganti penyedia berarti wajib
+    # `scripts/build_pgvector_index.py` ulang **dan** mengukur ulang
+    # `MIN_SIMILARITY` di `app/retrieval/vector_store.py`.
+    embed_provider: str = "gemini"
+    embed_model_openai: str = "text-embedding-3-large"
+
+    # Satu kunci OpenAI untuk gambar dan embedding: saldonya memang satu kolam.
+    # `IMAGE_API_KEY` tetap diterima karena itu nama yang sudah dipakai `.env`.
+    openai_api_key: str = Field(
+        default="",
+        repr=False,
+        validation_alias=AliasChoices("OPENAI_API_KEY", "IMAGE_API_KEY"),
+    )
 
     image_provider: str = "openai"
     image_api_key: str = Field(default="", repr=False)
@@ -94,6 +119,11 @@ _ENV_VERTEX = (
     "GOOGLE_CLOUD_PROJECT",
     "GOOGLE_CLOUD_LOCATION",
     "GOOGLE_GENAI_USE_VERTEXAI",
+    # Jalur kunci AI Studio: dipakai ketika `GOOGLE_GENAI_USE_VERTEXAI=false`.
+    # Tanpa disalin ke lingkungan, mengisinya di `.env` tidak berpengaruh sama
+    # sekali dan `google-genai` menjawab "No API key was provided" — kegagalan
+    # yang terbaca seolah kuncinya salah, padahal ia tidak pernah terbaca.
+    "GOOGLE_API_KEY",
 )
 
 
