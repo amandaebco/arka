@@ -262,6 +262,16 @@ Answer first, in two or three sentences. Then the supporting evidence, each line
 carrying its citation. If something is missing that the engineer would need,
 say what it is.
 
+Open the answer itself with this marker on its own line, nothing before it:
+
+    ### JAWABAN
+
+Everything above the marker is yours to work in; everything below is what the
+engineer reads. Some models narrate their way to a conclusion in the reply body,
+and a reader handed thirty thousand characters of deliberation will not find the
+answer inside it. The marker lets the interface show the answer and keep the
+reasoning available rather than choosing between them.
+
 # LANGUAGE
 Indonesian, technical and calm. Your reader is busy and knows the domain.
 """,
