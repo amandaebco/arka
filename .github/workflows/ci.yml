@@ -28,7 +28,11 @@ jobs:
         run: uv python install
 
       - name: Sync dependencies
-        run: uv sync --frozen
+        # `--extra dev` wajib: ruff dan pytest hidup di extra `dev`, dan
+        # `uv sync` tanpa itu memasang dependensi runtime saja. Hasilnya langkah
+        # Lint gagal bukan karena kodenya kotor, melainkan karena linternya tidak
+        # ada -- kegagalan yang menuduh orang yang salah.
+        run: uv sync --frozen --extra dev
 
       - name: Lint
         run: uv run ruff check app tests scripts
