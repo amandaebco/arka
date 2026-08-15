@@ -5,7 +5,9 @@ penalarannya benar, tapi tidak membuktikan apa pun tentang skala: penyaring
 Scout yang menolak satu kasus dari tiga tidak sama meyakinkannya dengan
 penyaring yang menolak puluhan dari ratusan.
 
-Modul ini menambahkan ~500 equipment dan ~3.000 work order di sekitarnya.
+Modul ini menambahkan ~5.000 equipment dan ~20.000 work order di sekitarnya.
+Skalanya yang membuat corong Scout bisa dibantah: memindai ribuan lalu
+menyodorkan dua adalah klaim yang bisa diperiksa, memindai lima tidak.
 
 ## Kenapa ini tidak bisa menggeser angka demo
 
@@ -54,8 +56,8 @@ from app.synthetic.jalur_emas import (
 logger = logging.getLogger(__name__)
 
 # Berapa banyak, dan sebaran waktunya.
-JUMLAH_EQUIPMENT = 500
-JUMLAH_WORK_ORDER = 3_000
+JUMLAH_EQUIPMENT = 5_000
+JUMLAH_WORK_ORDER = 20_000
 RENTANG_HARI = 365 * 3
 
 # ~6 work order per unit selama tiga tahun. Rasio ini yang dipilih, bukan

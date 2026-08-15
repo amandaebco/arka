@@ -170,6 +170,23 @@ PLT-S/FIL-118  0,2821 → diabaikan (di bawah ambang 0,50)
 Sparepart seal: ARKA 0,8667 vs master data 0,30 → selisih 0,5667
 ```
 
+⚠️ **Skornya meluruh perlahan terhadap tanggal hari ini.** `recency()` menghitung
+umur kasus terhadap waktu sekarang, jadi digit keempat bergerak sendiri tanpa ada
+yang mengubah kode: 0,9073 (10 Agt) → 0,9066 (15 Agt), −0,0007 dalam lima hari.
+Diukur ulang 15 Agt setelah volume latar naik ke 5.000 equipment:
+
+```
+PNY-SEAL-DEGRADASI    0,9066     margin 0,0253 → ESKALASI (tetap)
+PNY-TORSI-MENYIMPANG  0,8813
+PLT-G/FIL-412         0,7399 → laporkan
+Preseden 5 · sitasi 4 · sparepart 0,8667 (tidak bergeser sama sekali)
+```
+
+Yang **tidak** meluruh: kekritisan sparepart, jumlah preseden, jumlah sitasi.
+Jadi kalau salah satu dari ketiganya berubah, itu regresi sungguhan — bukan waktu.
+Kalau selisih dengan angka di atas jauh lebih besar daripada beberapa per sepuluh
+ribu, curigai kode, bukan kalender.
+
 Kalibrasi eskalasi butuh preseden torsi ketiga — dengan dua, marginnya 0,0919 dan
 eskalasi tidak pernah terpicu. **Yang disetel datanya; bobot dan ambang tidak
 pernah disentuh**, karena keduanya kebijakan yang diterbitkan.

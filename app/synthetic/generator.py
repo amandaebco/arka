@@ -477,6 +477,12 @@ async def bangun(
             tambahan = await tulis_volume_latar(sesi, seed)
             tambahan |= await tulis_dokumen_latar(sesi, seed)
 
+            # Setelah work order latar ada, karena notifikasi menempel padanya
+            # dan work order yatim dibuat dengan melepas equipment-nya.
+            from app.synthetic.dirty_data import tulis_data_kotor
+
+            tambahan |= await tulis_data_kotor(sesi, seed)
+
         # Setelah pekerjaan latar ada, karena aktivitas menempel padanya.
         from app.synthetic.aktivitas import tulis_semua as tulis_aktivitas
 
