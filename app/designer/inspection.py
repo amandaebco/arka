@@ -75,6 +75,51 @@ def _client():
     )
 
 
+def _baca_openai(page: bytes, perintah: str, sistem: str) -> str:
+    """Read a page through OpenAI, for when Vertex is not reachable.
+
+    Same contract as the Gemini path: hand over the image, get transcribed text.
+    The reader must not judge, so temperature stays at zero here too — a reader
+    that paraphrases is a reader that invents, and the whole point of this
+    module is catching strings that were never authorised.
+    """
+    import base64
+
+    from openai import OpenAI
+
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise InspectionUnavailable(
+            "VISION_PROVIDER=openai tetapi kunci OpenAI kosong "
+            "(setel OPENAI_API_KEY atau IMAGE_API_KEY)"
+        )
+
+    b64 = base64.b64encode(page).decode("ascii")
+    klien = OpenAI(api_key=settings.openai_api_key)
+    respons = klien.chat.completions.create(
+        model=settings.vision_model_openai,
+        temperature=0.0,
+        messages=[
+            {"role": "system", "content": sistem},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": perintah},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64}"},
+                    },
+                ],
+            },
+        ],
+    )
+    return (respons.choices[0].message.content or "").strip()
+
+
+def _pakai_openai() -> bool:
+    return get_settings().vision_provider.strip().lower() == "openai"
+
+
 def read_page_text(page: bytes) -> list[str]:
     """Transcribe every visible string on the page.
 
@@ -82,6 +127,17 @@ def read_page_text(page: bytes) -> list[str]:
     result and an unreadable page must never look the same to the caller, or a
     broken reader would silently certify every page as clean.
     """
+    if _pakai_openai():
+        try:
+            text = _baca_openai(page, "Transcribe every visible string.", SYSTEM)
+        except InspectionUnavailable:
+            raise
+        except Exception as exc:  # noqa: BLE001 — satu jenis kegagalan yang jelas
+            raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
+        if not text:
+            raise InspectionUnavailable("pembaca halaman tidak mengembalikan teks apa pun")
+        return [b for b in (x.strip(" -•\t") for x in text.splitlines()) if b]
+
     from google.genai import types
 
     settings = get_settings()
@@ -125,6 +181,15 @@ def read_card_headers(page: bytes) -> list[str]:
     dropped a fourth entirely; every string on it was authorised, so the fidelity
     check called it clean.
     """
+    if _pakai_openai():
+        try:
+            text = _baca_openai(page, "List every card header, repeats included.", HEADER_SYSTEM)
+        except InspectionUnavailable:
+            raise
+        except Exception as exc:  # noqa: BLE001 — satu jenis kegagalan yang jelas
+            raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
+        return [b for b in (x.strip(" -•\t0123456789.") for x in text.splitlines()) if b]
+
     from google.genai import types
 
     settings = get_settings()

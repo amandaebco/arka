@@ -90,8 +90,16 @@ class TestKeputusanPenilai:
 
 
 class TestRantaiPenerbitan:
-    def test_batas_putaran_tiga(self):
-        assert qa.reporter_terjaga.max_iterations == qa.MAKS_PUTARAN == 3
+    def test_batas_putaran_mengikuti_setelan(self):
+        """Batasnya setelan, tetapi lingkarnya harus benar-benar memakainya.
+
+        Dulu tes ini mematok angka 3. Begitu batasnya jadi `QA_MAX_ROUNDS`,
+        mematok angka berarti tes gagal setiap kali seseorang memilih hemat —
+        menghukum konfigurasi yang sah. Yang perlu dijaga bukan nilainya,
+        melainkan bahwa lingkar perbaikan tidak mengabaikannya.
+        """
+        assert qa.reporter_terjaga.max_iterations == qa.MAKS_PUTARAN
+        assert 1 <= qa.MAKS_PUTARAN <= 5
 
     def test_urutan_sub_agent(self):
         # Reporter menerbitkan lebih dulu, penilai memeriksa sesudahnya.
