@@ -114,6 +114,38 @@ class TestExplainSkip:
         ]
         assert "Bukti lemah" in await explain_skip("PLT-S/FIL-118", ctx)
 
+    async def test_an_unassessable_case_is_not_called_low_scoring(self):
+        """Nothing to weigh is not the same as weighed and found weak.
+
+        Both skips carry a score of 0.0000, so the wording is the only thing
+        keeping them apart. If this reads as "below the threshold", the fleet
+        nobody records looks like the fleet nobody needs to worry about.
+        """
+        ctx = Ctx()
+        ctx.state["kasus_diabaikan"] = [
+            {
+                "equipment_tag": "PLT-T/FIL-303",
+                "top_score": "0.0000",
+                "reason": "Tidak ada kandidat penyebab yang dapat dinilai.",
+                "dapat_dinilai": False,
+            }
+        ]
+        jawaban = await explain_skip("PLT-T/FIL-303", ctx)
+        assert "tidak dapat dinilai" in jawaban
+        assert "ambang pengabaian" not in jawaban
+
+    async def test_a_weak_case_is_still_reported_as_below_the_threshold(self):
+        ctx = Ctx()
+        ctx.state["kasus_diabaikan"] = [
+            {
+                "equipment_tag": "PLT-S/FIL-118",
+                "top_score": "0.2821",
+                "reason": "Kandidat terkuat berada di bawah ambang pengabaian.",
+                "dapat_dinilai": True,
+            }
+        ]
+        assert "ambang pengabaian" in await explain_skip("PLT-S/FIL-118", ctx)
+
     async def test_says_so_when_the_case_was_shortlisted(self):
         ctx = Ctx()
         ctx.state[KUNCI_KASUS] = [{"equipment_tag": "PLT-U/FIL-207"}]
@@ -172,3 +204,25 @@ class TestScanFleet:
     async def test_summary_reports_the_skipped_count(self, scanned):
         _, summary = scanned
         assert "diabaikan" in summary or "Tidak ada kegagalan terbuka" in summary
+
+    async def test_skipped_cases_carry_whether_they_could_be_assessed(self, scanned):
+        ctx, _ = scanned
+        skipped = ctx.state.get("kasus_diabaikan") or []
+        if not skipped:
+            pytest.skip("golden path not seeded")
+        assert all("dapat_dinilai" in entry for entry in skipped)
+
+    async def test_summary_keeps_the_two_kinds_of_skip_apart(self, scanned):
+        """The count alone is not the disclosure; the reason is.
+
+        A summary that merges them tells the reader a number of cases were
+        judged safe when some of them were never judged at all.
+        """
+        ctx, summary = scanned
+        skipped = ctx.state.get("kasus_diabaikan") or []
+        if not skipped:
+            pytest.skip("golden path not seeded")
+        if any(not e["dapat_dinilai"] for e in skipped):
+            assert "tidak dapat dinilai" in summary
+        if any(e["dapat_dinilai"] for e in skipped):
+            assert "di bawah ambang" in summary

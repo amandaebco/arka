@@ -39,7 +39,9 @@ async def scan_fleet(tool_context: ToolContext) -> str:
 
     Scores each open failure against resolved cases on the same equipment model
     in other plants. Cases below the ignore threshold are left out, and their
-    count is reported so the filter can be questioned.
+    count is reported so the filter can be questioned. Cases with nothing to
+    weigh at all are counted separately: they were not judged low-risk, they
+    were not judged.
 
     Args:
         tool_context: Injected by ADK.
@@ -84,6 +86,12 @@ async def scan_fleet(tool_context: ToolContext) -> str:
             "equipment_tag": c.open_case.equipment_tag,
             "top_score": str(c.verdict.top_score),
             "reason": c.verdict.reason,
+            # Two skips that look identical are not identical. A case with no
+            # candidates scores 0.0000, and so does a case that was weighed and
+            # found weak — collapsing them lets "nothing to assess" read as
+            # "assessed, risk nil", which is the reading that hides exactly the
+            # equipment nobody is watching.
+            "dapat_dinilai": c.verdict.assessable,
         }
         for c in skipped
     ]
@@ -101,8 +109,15 @@ async def scan_fleet(tool_context: ToolContext) -> str:
         lines.append(
             "Tidak ada yang melewati ambang. Tidak ada temuan yang perlu diteruskan."
         )
-    if skipped:
-        lines.append(f"{len(skipped)} diabaikan karena bukti di bawah ambang.")
+    dinilai_lemah = [c for c in skipped if c.verdict.assessable]
+    tanpa_bukti = [c for c in skipped if not c.verdict.assessable]
+    if dinilai_lemah:
+        lines.append(f"{len(dinilai_lemah)} dinilai lalu diabaikan karena bukti di bawah ambang.")
+    if tanpa_bukti:
+        lines.append(
+            f"{len(tanpa_bukti)} tidak dapat dinilai — tidak ada kandidat penyebab "
+            f"untuk ditimbang, bukan berarti sehat."
+        )
     return "\n".join(lines)
 
 
@@ -121,9 +136,15 @@ async def explain_skip(equipment_tag: str, tool_context: ToolContext) -> str:
     skipped = tool_context.state.get("kasus_diabaikan") or []
     for entry in skipped:
         if entry["equipment_tag"] == equipment_tag:
+            if entry.get("dapat_dinilai", True):
+                return (
+                    f"{equipment_tag} tidak diteruskan. Kandidat terkuatnya berada di "
+                    f"bawah ambang pengabaian. {entry['reason']}"
+                )
             return (
-                f"{equipment_tag} tidak diteruskan. Kandidat terkuatnya berada di "
-                f"bawah ambang pengabaian. {entry['reason']}"
+                f"{equipment_tag} tidak dapat dinilai: tidak ada kandidat penyebab "
+                f"yang bisa ditimbang, jadi kasus ini belum diperiksa — bukan "
+                f"dinyatakan aman. {entry['reason']}"
             )
 
     shortlisted = tool_context.state.get(KUNCI_KASUS) or []
@@ -163,6 +184,11 @@ lower the bar to produce a result. If nothing clears the threshold (currently
 2. Report what you examined, what cleared the bar, and how many you set aside.
    Always mention the skipped count — a filter nobody can question is a filter
    nobody should trust.
+   Keep the two kinds of skip apart, exactly as the tool reports them: cases
+   weighed and found weak, and cases that could not be assessed because there
+   was no candidate cause to weigh. Never describe the second kind as low risk,
+   safe, or healthy — it is fleet you cannot yet see, and saying so is part of
+   the answer.
 3. If asked about a specific case that was set aside, call `explain_skip`.
 4. Hand the shortlist onward without ranking it further; the order is already
    decided by evidence strength and how long each case has waited.
