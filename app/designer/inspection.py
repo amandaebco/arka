@@ -75,7 +75,7 @@ def _client():
     )
 
 
-def _baca_openai(page: bytes, perintah: str, sistem: str) -> str:
+def _read_via_openai(page: bytes, prompt: str, system: str) -> str:
     """Read a page through OpenAI, for when Vertex is not reachable.
 
     Same contract as the Gemini path: hand over the image, get transcribed text.
@@ -90,21 +90,21 @@ def _baca_openai(page: bytes, perintah: str, sistem: str) -> str:
     settings = get_settings()
     if not settings.openai_api_key:
         raise InspectionUnavailable(
-            "VISION_PROVIDER=openai tetapi kunci OpenAI kosong "
-            "(setel OPENAI_API_KEY atau IMAGE_API_KEY)"
+            "VISION_PROVIDER=openai but the OpenAI key is empty "
+            "(set OPENAI_API_KEY or IMAGE_API_KEY)"
         )
 
     b64 = base64.b64encode(page).decode("ascii")
-    klien = OpenAI(api_key=settings.openai_api_key)
-    respons = klien.chat.completions.create(
+    client = OpenAI(api_key=settings.openai_api_key)
+    response = client.chat.completions.create(
         model=settings.vision_model_openai,
         temperature=0.0,
         messages=[
-            {"role": "system", "content": sistem},
+            {"role": "system", "content": system},
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": perintah},
+                    {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
                         "image_url": {"url": f"data:image/png;base64,{b64}"},
@@ -113,10 +113,10 @@ def _baca_openai(page: bytes, perintah: str, sistem: str) -> str:
             },
         ],
     )
-    return (respons.choices[0].message.content or "").strip()
+    return (response.choices[0].message.content or "").strip()
 
 
-def _pakai_openai() -> bool:
+def _using_openai() -> bool:
     return get_settings().vision_provider.strip().lower() == "openai"
 
 
@@ -127,12 +127,12 @@ def read_page_text(page: bytes) -> list[str]:
     result and an unreadable page must never look the same to the caller, or a
     broken reader would silently certify every page as clean.
     """
-    if _pakai_openai():
+    if _using_openai():
         try:
-            text = _baca_openai(page, "Transcribe every visible string.", SYSTEM)
+            text = _read_via_openai(page, "Transcribe every visible string.", SYSTEM)
         except InspectionUnavailable:
             raise
-        except Exception as exc:  # noqa: BLE001 — satu jenis kegagalan yang jelas
+        except Exception as exc:  # noqa: BLE001 — one explicit failure type
             raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
         if not text:
             raise InspectionUnavailable("pembaca halaman tidak mengembalikan teks apa pun")
@@ -159,7 +159,7 @@ def read_page_text(page: bytes) -> list[str]:
                     system_instruction=SYSTEM, temperature=0.0
                 ),
             ),
-            what="Pembacaan halaman",
+            what="Page transcription",
         )
     except Exception as exc:  # noqa: BLE001 — turned into one explicit failure type
         raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
@@ -181,12 +181,14 @@ def read_card_headers(page: bytes) -> list[str]:
     dropped a fourth entirely; every string on it was authorised, so the fidelity
     check called it clean.
     """
-    if _pakai_openai():
+    if _using_openai():
         try:
-            text = _baca_openai(page, "List every card header, repeats included.", HEADER_SYSTEM)
+            text = _read_via_openai(
+            page, "List every card header, repeats included.", HEADER_SYSTEM
+        )
         except InspectionUnavailable:
             raise
-        except Exception as exc:  # noqa: BLE001 — satu jenis kegagalan yang jelas
+        except Exception as exc:  # noqa: BLE001 — one explicit failure type
             raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
         return [b for b in (x.strip(" -•\t0123456789.") for x in text.splitlines()) if b]
 
@@ -211,13 +213,13 @@ def read_card_headers(page: bytes) -> list[str]:
                     system_instruction=HEADER_SYSTEM, temperature=0.0
                 ),
             ),
-            what="Pembacaan judul kartu",
+            what="Card header transcription",
         )
-    except Exception as exc:  # noqa: BLE001 — satu jenis kegagalan yang jelas
+    except Exception as exc:  # noqa: BLE001 — one explicit failure type
         raise InspectionUnavailable(f"{type(exc).__name__}: {exc}") from exc
 
-    baris = [b.strip(" -•\t0123456789.") for b in (response.text or "").splitlines()]
-    return [b for b in baris if b]
+    lines = [b.strip(" -•\t0123456789.") for b in (response.text or "").splitlines()]
+    return [b for b in lines if b]
 
 
 def card_defects(drawn_headers: list[str], expected: list[str]) -> list[str]:
