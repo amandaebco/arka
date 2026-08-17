@@ -95,7 +95,14 @@ async def _rakit(sesi, kasus) -> Finding:
     jejak.append(
         LangkahPenalaran(
             urutan=3,
-            aksi="Menghitung skor kemiripan secara deterministik",
+            # "Kemiripan" keliru dan menyesatkan: tidak ada kemiripan vektor di
+                # sini. Yang dihitung irisan gejala kanonik, kecocokan komponen,
+                # jumlah pengulangan, dan kebaruan -- semuanya bisa dihitung ulang
+                # dengan tangan, dan itu justru klaimnya.
+                aksi=(
+                    "Menghitung skor bukti pengulangan — irisan gejala, "
+                    "kecocokan komponen, korroborasi, kebaruan"
+                ),
             hasil=f"Preseden berasal dari pabrik: {', '.join(pabrik)}",
             jumlah_simpul=len(pabrik),
         )

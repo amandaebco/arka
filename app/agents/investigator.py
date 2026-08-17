@@ -129,7 +129,14 @@ async def investigate_case(equipment_tag: str, tool_context: ToolContext) -> str
         trail.append(
             LangkahPenalaran(
                 urutan=4,
-                aksi="Menghitung skor kemiripan secara deterministik",
+                # "Kemiripan" keliru dan menyesatkan: tidak ada kemiripan vektor di
+                # sini. Yang dihitung irisan gejala kanonik, kecocokan komponen,
+                # jumlah pengulangan, dan kebaruan -- semuanya bisa dihitung ulang
+                # dengan tangan, dan itu justru klaimnya.
+                aksi=(
+                    "Menghitung skor bukti pengulangan — irisan gejala, "
+                    "kecocokan komponen, korroborasi, kebaruan"
+                ),
                 hasil=f"Preseden berasal dari pabrik: {', '.join(plants)}",
                 jumlah_simpul=len(plants),
             )
@@ -250,7 +257,8 @@ not a failure to conclude.
    candidates are carried into the document.
 
 # LANGUAGE
-Reply in Indonesian. Your reader is a reliability engineer who is busy: be
+Reply in Indonesian. Never use an em dash or en dash (— –); use commas, periods, or a plain hyphen.
+Your reader is a reliability engineer who is busy: be
 concise, technical, and calm. Avoid adjectives that inflate the finding.
 """,
 )
