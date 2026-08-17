@@ -7,10 +7,17 @@ investigator, and without an agent session. Run it as:
     uv run python scripts/render_infografis.py --persona engineer
     uv run python scripts/render_infografis.py --prompt-saja    # no drawing call
     uv run python scripts/render_infografis.py --tanpa-periksa  # skip page reading
+    uv run python scripts/render_infografis.py --html           # render, do not draw
 
 Everything up to the prompt is deterministic, so `--prompt-saja` is the cheap way
 to inspect what the drawing provider will be asked for. Only the last two steps
 cost money and time.
+
+`--html` takes the other route entirely: the same specification is rendered by
+`poster_html`, then photographed by the browser that already renders the PDF.
+No provider is called, so there is nothing to inspect afterwards — text that was
+never redrawn cannot be misspelled. The page comes out at `--skala` times the
+CSS size, which is where the resolution a drawing model cannot reach comes from.
 
 Each run writes its own folder under `out/infografis/`, never overwriting an
 earlier one. The drawing is not reproducible, so the record is what makes a
@@ -35,6 +42,7 @@ from app.designer.inspection import (
     review_text,
 )
 from app.designer.knowledge import DesignKnowledgeBase
+from app.designer.poster_html import render_poster
 from app.designer.presentation import PresentationSpec, normalise, validate
 from app.designer.trail import RunTrail
 from app.reporting.blocks import susun_blok
@@ -46,6 +54,8 @@ def main() -> int:
     parser.add_argument("--persona", default=DEFAULT_PERSONA, choices=sorted(PERSONA))
     parser.add_argument("--prompt-saja", action="store_true")
     parser.add_argument("--tanpa-periksa", action="store_true")
+    parser.add_argument("--html", action="store_true", help="render lewat poster_html, tanpa model")
+    parser.add_argument("--skala", type=int, default=2, help="pengali resolusi untuk --html")
     args = parser.parse_args()
 
     kb = DesignKnowledgeBase.load()
@@ -88,6 +98,9 @@ def main() -> int:
             print(f"  - {one}")
         return 1
 
+    if args.html:
+        return _render_html(trail, spec, content, titles, args.skala, finding, selected, style)
+
     prompt = compose_prompt(spec, content, titles, kb)
 
     print(f"Temuan   : {finding.finding_id} — {finding.equipment_tag}")
@@ -129,6 +142,48 @@ def main() -> int:
               f"{len(review['unauthorised'])} tak disetujui")
     print(f"Jejak    : {trail_path.parent}")
     return 0
+
+
+def _render_html(trail, spec, content, titles, skala: int, finding, selected, style: str) -> int:
+    """Render the poster as HTML, then photograph it at `skala` times CSS size."""
+    import asyncio
+
+    html = render_poster(content, spec, titles)
+    page = asyncio.run(_photograph(html, skala))
+
+    print(f"Temuan   : {finding.finding_id} — {finding.equipment_tag}")
+    print(f"Persona  : {style}")
+    print(f"Kartu    : {len(selected)} — {', '.join(selected)}")
+
+    page_path = trail.record_round(1, spec, "", page=page, review={"path": "html", "scale": skala})
+    trail_path = trail.finish("PUBLISHED")
+    html_path = page_path.with_suffix(".html")
+    html_path.write_text(html, encoding="utf-8")
+
+    print(f"Halaman  : {page_path} ({len(page):,} bita, {skala}×)")
+    print(f"Sumber   : {html_path}")
+    print(f"Jejak    : {trail_path.parent}")
+    return 0
+
+
+async def _photograph(html: str, skala: int) -> bytes:
+    """Full-page screenshot at `skala` device pixels per CSS pixel.
+
+    The poster sets its own width, so the viewport only has to be wide enough not
+    to force a narrower layout; the height comes from `full_page`.
+    """
+    from playwright.async_api import async_playwright
+
+    async with async_playwright() as p:
+        peramban = await p.chromium.launch()
+        try:
+            halaman = await peramban.new_page(
+                viewport={"width": 1304, "height": 1200}, device_scale_factor=skala
+            )
+            await halaman.set_content(html, wait_until="load")
+            return await halaman.screenshot(full_page=True)
+        finally:
+            await peramban.close()
 
 
 def _inspect(page: bytes, content, blocks, style: str, kb) -> dict:
