@@ -84,6 +84,19 @@ class Settings(BaseSettings):
     embed_provider: str = "gemini"
     embed_model_openai: str = "text-embedding-3-large"
 
+    # Penyedia untuk penilai mutu, yang membaca halaman hasil render lewat
+    # vision. Terpisah dari `text_provider` karena penyedia teks-saja (DeepSeek)
+    # tidak bisa menggantikannya sama sekali: yang mati kalau salah pilih adalah
+    # penjaga anti-rekayasa angka, dan matinya tidak membuat satu tes pun merah.
+    vision_provider: str = "gemini"
+    vision_model_openai: str = "gpt-4o"
+
+    # Batas putaran perbaikan dokumen. Satu berarti penilai bisa menolak tetapi
+    # reporter tidak pernah dapat giliran membetulkan — hemat, tetapi yang
+    # terbukti hanya kemampuan memeriksa, bukan kemampuan pulih. Dua adalah
+    # yang termurah yang masih memperlihatkan keduanya.
+    qa_max_rounds: int = Field(default=3, ge=1, le=5)
+
     # Satu kunci OpenAI untuk gambar dan embedding: saldonya memang satu kolam.
     # `IMAGE_API_KEY` tetap diterima karena itu nama yang sudah dipakai `.env`.
     openai_api_key: str = Field(

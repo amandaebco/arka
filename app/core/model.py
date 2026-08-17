@@ -38,6 +38,26 @@ def pilih_model(*, butuh_vision: bool = False) -> Any:
     settings = get_settings()
 
     if butuh_vision:
+        provider = settings.vision_provider.strip().lower()
+        if provider == "openai":
+            if not settings.openai_api_key:
+                raise RuntimeError(
+                    "VISION_PROVIDER=openai but no OpenAI key is set. "
+                    "Set OPENAI_API_KEY (or IMAGE_API_KEY) in .env."
+                )
+
+            from google.adk.models.lite_llm import LiteLlm
+
+            return LiteLlm(
+                model=f"openai/{settings.vision_model_openai}",
+                api_key=settings.openai_api_key,
+            )
+
+        if provider != GEMINI:
+            logger.warning(
+                "VISION_PROVIDER=%r is not recognised — falling back to Gemini.",
+                settings.vision_provider,
+            )
         return settings.vertex_ai_model
 
     provider = settings.text_provider.strip().lower()

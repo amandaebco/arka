@@ -38,4 +38,7 @@ jobs:
         run: uv run ruff check app tests scripts
 
       - name: Test
-        run: uv run pytest -q
+        # `-rA` mencetak ringkasan tiap tes yang gagal langsung di log Actions.
+        # Tanpa itu langkah ini hanya melaporkan "exit code 1", dan kegagalan
+        # yang tidak bisa direproduksi di laptop jadi mustahil dikejar.
+        run: uv run pytest -q -rA --tb=short

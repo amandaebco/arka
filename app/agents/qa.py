@@ -39,6 +39,7 @@ from app.agents.designer import (
     knowledge_base,
 )
 from app.agents.reporter import KUNCI_TEMUAN, reporter_agent
+from app.core.config import get_settings
 from app.core.model import pilih_model
 from app.designer.content import build_content, is_composed_label
 from app.designer.inspection import (
@@ -66,9 +67,15 @@ KUNCI_MASUKAN = "masukan_qa"
 # yang bisa dilangkahi pertimbangan model bukan imbangan.
 KUNCI_HALAMAN_LULUS = "halaman_lulus"
 
-# Batas putaran. Tiga sudah cukup: satu untuk terbit, satu untuk perbaikan,
-# satu cadangan. Lebih dari itu biasanya pertanda cacatnya bukan di dokumen.
-MAKS_PUTARAN = 3
+# Batas putaran, dibaca dari `QA_MAX_ROUNDS`. Tiga adalah bawaannya: satu untuk
+# terbit, satu untuk perbaikan, satu cadangan. Lebih dari itu biasanya pertanda
+# cacatnya bukan di dokumen.
+#
+# ⚠️ Disetel ke 1 berarti penilai bisa menolak tetapi reporter tidak pernah
+# mendapat giliran membetulkan — hemat panggilan model, tetapi yang terbukti
+# tinggal kemampuan memeriksa. Penjaga yang menolak lalu tidak pernah terlihat
+# memulihkan keadaan hanya membuktikan separuh dirinya.
+MAKS_PUTARAN = get_settings().qa_max_rounds
 
 
 
