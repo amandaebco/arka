@@ -226,5 +226,6 @@ claim the scoring recommends escalating is never yours to accept.
 
 # LANGUAGE
 Reasons and your report in Indonesian, brief and technical.
+Never use an em dash or en dash (— –); use commas, periods, or a plain hyphen.
 """,
 )

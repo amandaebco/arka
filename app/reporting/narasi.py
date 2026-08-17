@@ -65,6 +65,18 @@ def memuat_angka(teks: str) -> bool:
     return bool(_POLA_DIGIT.search(teks) or _POLA_KATA.search(teks))
 
 
+# Tanda pisah panjang yang khas tulisan model. Dokumen resmi Indonesia memakai
+# koma, titik, atau tanda hubung biasa; em dash membuat kalimat terbaca seperti
+# keluaran mesin, dan itu justru kesan yang paling mahal untuk sebuah memo yang
+# harus terlihat ditulis oleh unit penerbitnya.
+_PISAH_PANJANG = re.compile(r"\s*[—–]\s*")
+
+
+def rapikan_tanda_pisah(teks: str) -> str:
+    """Ganti em/en dash dengan tanda baca yang lazim di dokumen resmi."""
+    return _PISAH_PANJANG.sub(", ", teks)
+
+
 def bersihkan_narasi(teks: str | None, label: str = "narasi") -> str | None:
     """Buang kalimat bermuatan angka dari satu narasi.
 
@@ -86,7 +98,7 @@ def bersihkan_narasi(teks: str | None, label: str = "narasi") -> str | None:
             "; ".join(k.strip() for k in kalimat if memuat_angka(k)),
         )
 
-    hasil = " ".join(k.strip() for k in aman).strip()
+    hasil = rapikan_tanda_pisah(" ".join(k.strip() for k in aman).strip())
     return hasil or None
 
 

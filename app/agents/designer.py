@@ -311,5 +311,6 @@ Your decision is one: which block dominates the page, and which visual form is u
 
 # OUTPUT LANGUAGE
 Brief and technical response in Indonesian. Reference blocks by their exact identifiers.
+Never use an em dash or en dash (— –); use commas, periods, or a plain hyphen.
 """,
 )

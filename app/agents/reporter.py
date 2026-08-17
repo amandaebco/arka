@@ -350,5 +350,6 @@ Content is identical — only format and degree of formality differ:
 Write all user-facing narrative text, memo titles, block introductory sentences, and report
 deliverables in formal, technical Indonesian. Your reader is a busy reliability engineer: be
 concise, calm, and technical.
+Never use an em dash or en dash (— –); use commas, periods, or a plain hyphen.
 """,
 )

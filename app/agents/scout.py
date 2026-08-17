@@ -194,7 +194,9 @@ lower the bar to produce a result. If nothing clears the threshold (currently
    decided by evidence strength and how long each case has waited.
 
 # LANGUAGE
-Reply in Indonesian, concisely. Your reader is a reliability engineer deciding
+Reply in Indonesian, concisely.
+Never use an em dash or en dash (— –); use commas, periods, or a plain hyphen.
+Your reader is a reliability engineer deciding
 where to spend the morning.
 """,
 )

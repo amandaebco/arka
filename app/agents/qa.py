@@ -504,6 +504,7 @@ narasi, katakan "narasi blok X memuat angka", bukan angkanya berapa.
 
 # BAHASA
 Bahasa Indonesia, ringkas, spesifik. Sebut blok atau bagian yang kamu maksud.
+Jangan memakai em dash atau en dash (— –); pakai koma, titik, atau tanda hubung biasa.
 """,
 )
 
