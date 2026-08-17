@@ -142,6 +142,27 @@ def _citations(documents: tuple[DocumentRef, ...]) -> list[Sitasi]:
     ]
 
 
+def _sitasi_khusus(
+    case: HistoricalCase, documents: tuple[DocumentRef, ...]
+) -> list[Sitasi]:
+    """Documents that name this precedent's plant or equipment tag.
+
+    Matching is on the document's own words — title first, then excerpt — so a
+    reader can verify the link by reading the sentence that made it. Nothing is
+    inferred: a document that never names the plant stays a general reference
+    for the finding rather than being attached to a case it may not describe.
+    """
+    penanda = [t for t in (case.plant, case.equipment_tag) if t]
+    if not penanda:
+        return []
+    cocok = [
+        doc
+        for doc in documents
+        if any(t.lower() in f"{doc.title} {doc.excerpt or ''}".lower() for t in penanda)
+    ]
+    return _citations(tuple(cocok))
+
+
 def _precedents(cases: list[HistoricalCase], documents: tuple[DocumentRef, ...]) -> list[Preseden]:
     """Precedents, newest first, carrying the proven fix.
 
@@ -154,9 +175,11 @@ def _precedents(cases: list[HistoricalCase], documents: tuple[DocumentRef, ...])
             failure_event_id=case.failure_event_id,
             pabrik=case.plant,
             equipment_tag=case.equipment_tag,
+            cause_id=case.cause_canonical_id,
             tanggal_kejadian=case.occurred_on,
             gejala=list(case.symptom_codes),
             penyelesaian=case.resolution,
+            sitasi_khusus=_sitasi_khusus(case, documents),
             downtime_jam=(
                 (Decimal(case.downtime_minutes) / Decimal(60)).quantize(Decimal("0.01"))
                 if case.downtime_minutes
@@ -168,7 +191,11 @@ def _precedents(cases: list[HistoricalCase], documents: tuple[DocumentRef, ...])
     ]
 
 
-def _causal_chain(open_case: OpenCase, leader: ScoredCandidate | None) -> list[MataRantai]:
+def _causal_chain(
+    open_case: OpenCase,
+    leader: ScoredCandidate | None,
+    parts: list[SparepartKritis] | None = None,
+) -> list[MataRantai]:
     """Symptom → Cause → Damage → Part, only as far as the facts reach.
 
     A link is omitted rather than invented when the data stops. A chain that
@@ -188,6 +215,24 @@ def _causal_chain(open_case: OpenCase, leader: ScoredCandidate | None) -> list[M
     )
     if damaged:
         chain.append(MataRantai(peran="damage", label=f"Komponen terdampak: {damaged}"))
+
+    # Mata rantai terakhir: suku cadang yang melayani komponen itu. Sudah dihitung
+    # untuk `Finding`, tetapi rantainya berhenti di kerusakan -- padahal justru
+    # lompatan ke suku cadang yang menyambungkan diagnosis dengan tindakan.
+    if parts:
+        part = parts[0]
+        chain.append(
+            MataRantai(
+                peran="part",
+                label=f"{part.part_number} — {part.nama}" if part.nama else part.part_number,
+                detail=(
+                    f"Lead time {part.lead_time_minggu} minggu, "
+                    f"{part.jumlah_vendor} vendor, dipakai {len(part.pabrik_terdampak)} pabrik"
+                    if part.lead_time_minggu is not None
+                    else None
+                ),
+            )
+        )
     return chain
 
 
@@ -378,12 +423,13 @@ def build_finding(
         pabrik=open_case.plant,
         model_equipment=open_case.equipment_model,
         gejala=list(open_case.symptom_names),
+        gejala_kode=list(open_case.symptom_codes),
         keyakinan=_confidence(verdict),
         perlu_eskalasi=verdict.needs_human,
         alasan_eskalasi=verdict.reason if verdict.needs_human else None,
         kandidat=candidates,
         preseden=precedents,
-        rantai_kausal=_causal_chain(open_case, leader),
+        rantai_kausal=_causal_chain(open_case, leader, parts),
         sparepart=parts,
         jejak_penalaran=trail or [],
         rekomendasi=(

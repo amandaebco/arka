@@ -64,9 +64,18 @@ class Preseden(BaseModel):
     failure_event_id: str
     pabrik: str
     equipment_tag: str
+    # Penyebab terverifikasi kasus ini. Dibawa serta supaya pembaca -- termasuk
+    # tampilan -- bisa menghubungkan tiap preseden ke kandidat yang ia dukung,
+    # tanpa menebak dari kesamaan nama.
+    cause_id: str | None = None
     tanggal_kejadian: date
     gejala: list[str] = Field(default_factory=list)
     penyelesaian: str | None = Field(default=None, description="Solusi yang terbukti berhasil")
+    # Sitasi yang menyebut kasus ini secara khusus -- dokumen yang judul atau
+    # kutipannya menyebut pabrik atau tag mesinnya. Dipisah dari `sitasi`, yang
+    # berlaku untuk seluruh temuan: pembaca berhak tahu mana rujukan yang benar-
+    # benar tentang kasus ini dan mana yang sekadar relevan bagi temuannya.
+    sitasi_khusus: list[Sitasi] = Field(default_factory=list)
     downtime_jam: Decimal | None = None
     sitasi: list[Sitasi] = Field(default_factory=list)
 
@@ -132,6 +141,10 @@ class Finding(BaseModel):
     model_equipment: str | None = None
 
     gejala: list[str] = Field(default_factory=list)
+    # Kode gejala, sejajar urutan dengan `gejala`. Nama untuk dibaca manusia,
+    # kode untuk dicocokkan -- dan irisan kode inilah yang menerangkan kenapa
+    # sebuah preseden terpilih, jadi tampilan membutuhkan keduanya.
+    gejala_kode: list[str] = Field(default_factory=list)
     keyakinan: Keyakinan = "sedang"
     perlu_eskalasi: bool = Field(
         default=False,
