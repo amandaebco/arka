@@ -104,6 +104,18 @@ KUNCI_JALUR = "jalur_traversal"
 # tidak terbaca tidak mendukung apa pun.
 MAKS_JALUR = 12
 
+# Berapa kali graph boleh ditelusuri dalam satu pertanyaan. Diukur, bukan
+# ditebak: satu pertanyaan pernah memanggil tool ini empat belas kali berturut-
+# turut, mencoba ejaan demi ejaan, sampai permintaan menabrak batas lima menit.
+# Model yang tidak menemukan simpulnya akan terus menebak nama lain, dan tidak
+# ada di dalam dirinya yang menghitung berapa lama pengguna sudah menunggu.
+#
+# Empat cukup untuk pola yang wajar: satu percobaan meleset, satu pembetulan,
+# satu penelusuran lanjutan, satu cadangan. Sesudah itu ia diberi tahu untuk
+# menjawab dengan bukti yang sudah ada -- bukan diblokir diam-diam.
+MAKS_TELUSUR = 4
+KUNCI_CACAH_TELUSUR = "cacah_telusur"
+
 
 async def telusuri_graph(
     label: str,
@@ -136,6 +148,16 @@ async def telusuri_graph(
         The paths found, one per line, or a statement that the node is unknown.
     """
     from app.bigquery.traversal import MAX_HOPS, TooDeep, traverse
+
+    cacah = int(tool_context.state.get(KUNCI_CACAH_TELUSUR, 0)) + 1
+    tool_context.state[KUNCI_CACAH_TELUSUR] = cacah
+    if cacah > MAKS_TELUSUR:
+        logger.warning("traversal budget exhausted after %d calls", cacah)
+        return (
+            "Batas penelusuran graph untuk pertanyaan ini sudah habis. Jawab "
+            "sekarang dengan bukti yang sudah terkumpul, dan katakan terus terang "
+            "bagian mana yang tidak didukung bukti."
+        )
 
     kedalaman = max(1, min(int(kedalaman), MAX_HOPS))
     try:
@@ -212,8 +234,16 @@ An empty result is a real finding, not a failure to try hard enough. Never
 invent search terms to force a hit, and never present a weak match as though it
 were relevant. The answerer relies on you to have been strict.
 
+# TRAVERSAL BUDGET
+`telusuri_graph` is capped at four calls per question. If a node is not found,
+do not keep guessing spellings: the graph names equipment by tag (`PLT-U/FIL-207`)
+and parts by part number (`SP-SEAL-8801`), never by model name. One retry with a
+corrected name is reasonable; a third is a signal that the answer must come from
+the document context instead.
+
 # LANGUAGE
 Reply in Indonesian, briefly.
+Never use an em dash or en dash (— –); use commas, periods, or a plain hyphen.
 """,
 )
 
