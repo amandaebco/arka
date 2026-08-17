@@ -3,6 +3,14 @@
 Model bahasa tidak dipanggil di sini. Yang diuji adalah perilaku tool saat
 menerima masukan model yang cacat: JSON rusak, temuan hilang, narasi
 bermuatan angka, temuan tanpa sitasi.
+
+Perendernya juga tidak dipanggil. `render_dokumen_pdf` menjalankan Chromium
+sungguhan, dan tes yang menuntut peramban terpasang lulus di laptop lalu gagal
+di CI — persis yang terjadi 17 Agt, lima tes merah karena runner tidak punya
+Chromium. Yang diuji di sini adalah kontrak tool: apa yang tersimpan, dengan
+nama apa, dan apa yang dilaporkan ketika sesuatu gagal. Bahwa Chromium benar-
+benar menghasilkan PDF diuji terpisah, dan tes itu melewati dirinya sendiri
+kalau peramban tidak ada.
 """
 
 import json
@@ -39,6 +47,16 @@ class ToolContextPalsu:
 @pytest.fixture
 def ctx():
     return ToolContextPalsu()
+
+
+@pytest.fixture(autouse=True)
+def pdf_palsu(monkeypatch):
+    """Ganti perender dengan yang mengembalikan bita, tanpa memanggil peramban."""
+
+    async def render(*_args, **_kwargs):
+        return b"%PDF-1.7 palsu untuk tes"
+
+    monkeypatch.setattr(rep, "render_dokumen_pdf", render)
 
 
 @pytest.fixture
