@@ -64,6 +64,63 @@ ada yang beririsan. Di bawahnya satu baris kecil: `RAG biasa → 0 hasil`.
 
 ---
 
+## Slide 3b — Kenapa knowledge graph, bukan RAG biasa (1 mnt)
+
+**Judul:** Jawabannya tidak ada di dokumen mana pun
+
+**Teks di slide:**
+> Pabrik sudah punya catatan kegagalan yang pernah terjadi — penyebab yang
+> terbukti, tindakan yang berhasil. Kasus baru hari ini sering sudah pernah
+> dipecahkan, cuma di pabrik lain.
+>
+> **Entitas:** Plant · Equipment · Component · FailureEvent · Symptom · Cause ·
+> FailureMode · WorkOrder · MaintenanceActivity
+> **Relasi:** `LOCATED_IN` · `HAS_COMPONENT` · `HAS_FAILURE_EVENT` ·
+> `HAS_SYMPTOM` · `HAS_VERIFIED_CAUSE` · `HAS_DAMAGE` · `HAS_ACTIVITY`
+>
+> Tidak ada satu laporan pun yang berbunyi *"kegagalan di Pabrik Utara hari ini
+> sama dengan kasus Pabrik Barat delapan bulan lalu."* Kalimat itu lahir dari
+> menyambungkan lima catatan terpisah.
+
+**Yang diucapkan:**
+
+> "ARKA menghubungkannya lewat knowledge graph: mesin terhubung ke komponennya,
+> komponen ke kegagalannya, kegagalan ke gejala, penyebab terverifikasi, dan
+> tindakan perbaikan yang dikerjakan. Jadi dari satu kegagalan yang terbuka hari
+> ini, ia bisa berjalan ke kegagalan lain di pabrik berbeda yang **model
+> mesinnya sama, komponennya sama, gejalanya muncul lagi, dan kasusnya sudah
+> tuntas**.
+>
+> RAG biasa tidak bisa sampai ke sana, dan alasannya bukan kualitas model —
+> jawabannya memang tidak ada di dokumen mana pun. RAG mengambil potongan teks
+> yang mirip pertanyaannya. Ia tidak bisa menyaring 'yang statusnya sudah
+> selesai', tidak bisa menghitung 'terulang tiga kali di tiga pabrik', dan tidak
+> bisa meneruskan penelusurannya ke suku cadang beserta pemasoknya. Itu semua
+> relasi, bukan kemiripan kalimat."
+
+**Kalau ditekan lebih jauh — satu contoh yang biasanya menutup diskusi:**
+
+> "Pertanyaan 'berapa pabrik yang memakai suku cadang ini dan berapa lead
+> time-nya' tidak akan pernah terjawab oleh pencarian dokumen — tidak ada dokumen
+> yang memuatnya. Itu hasil menelusuri graph dari komponen ke suku cadang ke
+> pemasok. Dan justru angka itu yang mengubah temuan jadi tindakan."
+
+⚠️ **Dua kata yang harus dijaga di slide ini:**
+
+1. **Jangan bilang "similarity".** Skor deteksi memakai **irisan gejala kanonik**
+   — cocok atau tidak, bukan kemiripan vektor. Menyebut "similarity" mengundang
+   pertanyaan "embedding apa?" dan jawabannya akan terdengar mundur. Katakan
+   *"gejala yang sama muncul lagi"*.
+2. **Sebut "knowledge graph", bukan "GraphRAG"**, untuk penelusuran deterministik
+   ini. GraphRAG di ARKA adalah lapisan tanya-jawab yang menggabungkan graph
+   dengan potongan dokumen — mesin berbeda, babak berbeda.
+
+**Visual:** graph kecil, satu FailureEvent terbuka di kiri menyala, jalur relasi
+melintas ke tiga FailureEvent tuntas di pabrik berbeda. Di bawahnya satu baris:
+`48.065 simpul · 49.093 relasi`.
+
+---
+
 ## Slide 4 — Lima agent, lima keputusan (30 dtk)
 
 **Judul:** Lima agent, masing-masing satu keputusan
