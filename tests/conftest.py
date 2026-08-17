@@ -1,6 +1,6 @@
 """Tes selalu membaca PostgreSQL, apa pun sumber bawaan produksi.
 
-`ARKA_STORE` bawaannya `bigquery` sejak BigQuery menjadi sumber. Tanpa berkas
+`ARKA_STORE` bawaannya `postgres` sejak 17 Agustus. Tanpa berkas
 ini, tes agent ikut terbawa ke sana — terukur: `test_scout_agent.py` melonjak
 dari sepersekian detik menjadi 47 detik per setup, dan suite penuh dari 12 detik
 menjadi 261.

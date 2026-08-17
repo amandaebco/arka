@@ -7,19 +7,24 @@ holds if exactly one place knows the difference; this is that place.
 
 Selected by `ARKA_STORE`:
 
-    bigquery  (default)  The canonical mirror — all 39 tables, the source
-    postgres             PostgreSQL + Apache AGE — the local path
+    postgres  (default)  PostgreSQL + Apache AGE — runs anywhere, no billing
+    bigquery             The canonical mirror in the cloud
 
 Both return identical dataclasses, and identical scores were verified on
 11 August against the same seeded data: 0.9071 / 0.8819, margin 0.0252,
 5 precedents, 8 citations, seal criticality 0.8667.
 
-⚠️ **The default is BigQuery, but the fallback is PostgreSQL** — and that
-asymmetry is deliberate. An unrecognised value must not reach for the cloud: a
-typo in an environment variable would otherwise quietly change where production
-data is read from, and a wrong answer from the wrong store looks exactly like a
-right one. Choosing the cloud takes spelling it correctly; falling back never
-does.
+⚠️ **Both the default and the fallback are PostgreSQL** — reaching for the
+cloud always takes saying so. A typo in an environment variable must not quietly
+change where data is read from, and a wrong answer from the wrong store looks
+exactly like a right one.
+
+The default was BigQuery until 17 August, on the reasoning that the cloud copy
+is the source. It stopped being a safe default the moment the project's billing
+was detached: an unset variable pointed the whole application at a store that
+cannot answer, and the failure surfaced as a broken page rather than as a
+misconfiguration. A default that only works for someone who read this file is
+not a default.
 
 The synthetic generator does not go through this module — it writes to
 PostgreSQL directly, because that is where the truth is while data is being
@@ -41,15 +46,15 @@ POSTGRES = "postgres"
 
 
 def active_store() -> str:
-    """Which backend is configured. BigQuery unless asked otherwise.
+    """Which backend is configured. PostgreSQL unless BigQuery is asked for.
 
-    Unset means BigQuery — it is the source. A *misspelt* value means
-    PostgreSQL, because reaching for the cloud should take getting the name
-    right; see the module docstring.
+    Unset means PostgreSQL, and so does a misspelt value: the cloud is never
+    reached for by accident. See the module docstring for why the default
+    changed.
     """
     mentah = os.getenv("ARKA_STORE")
     if mentah is None or not mentah.strip():
-        return BIGQUERY
+        return POSTGRES
 
     nama = mentah.strip().lower()
     if nama not in (BIGQUERY, POSTGRES):

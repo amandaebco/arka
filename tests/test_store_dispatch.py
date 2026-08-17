@@ -20,13 +20,20 @@ def bersihkan(monkeypatch):
 
 
 class TestBawaan:
-    def test_tanpa_variabel_memakai_bigquery(self):
-        """BigQuery adalah sumbernya; tidak menyetel apa pun berarti sumber."""
-        assert store.active_store() == store.BIGQUERY
+    def test_tanpa_variabel_memakai_postgres(self):
+        """Tidak menyetel apa pun berarti penyimpanan yang bisa dijalankan siapa pun.
+
+        Bawaannya BigQuery sampai 17 Agustus, dengan alasan salinan cloud adalah
+        sumbernya. Alasan itu gugur begitu billing project dilepas: variabel yang
+        tidak disetel mengarahkan seluruh aplikasi ke penyimpanan yang tidak bisa
+        menjawab, dan kegagalannya muncul sebagai halaman rusak, bukan sebagai
+        salah konfigurasi.
+        """
+        assert store.active_store() == store.POSTGRES
 
     def test_variabel_kosong_dianggap_tidak_disetel(self, monkeypatch):
         monkeypatch.setenv("ARKA_STORE", "   ")
-        assert store.active_store() == store.BIGQUERY
+        assert store.active_store() == store.POSTGRES
 
 
 class TestPemilihanEksplisit:
