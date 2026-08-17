@@ -45,3 +45,6 @@ htmlcov/
 
 # Catatan internal — JANGAN di-commit
 .context/
+
+# Keadaan sesi ADK -- runtime lokal, bukan sumber.
+.adk/
