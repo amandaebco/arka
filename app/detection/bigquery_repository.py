@@ -107,8 +107,11 @@ async def find_open_cases(_session=None) -> list[OpenCase]:
     sql = f"""
     SELECT f.id, f.canonical_id, f.started_at, f.description,
            e.tag_number, e.model, p.name AS plant, c.component_type,
+           -- Kedua larik diurutkan menurut kolom yang sama. Nama diurutkan
+           -- menurut namanya sendiri akan berpasangan salah dengan kodenya di
+           -- hilir, dan pasangan yang tertukar tidak memunculkan galat apa pun.
            ARRAY_AGG(DISTINCT s.code IGNORE NULLS ORDER BY s.code) AS symptom_codes,
-           ARRAY_AGG(DISTINCT s.name IGNORE NULLS ORDER BY s.name) AS symptom_names
+           ARRAY_AGG(s.name IGNORE NULLS ORDER BY s.code) AS symptom_names
     FROM {config.table_ref("failure_events")} f
     {_PLANT_JOIN}
     WHERE f.status IN UNNEST(@statuses)

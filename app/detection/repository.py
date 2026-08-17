@@ -152,11 +152,14 @@ async def _symptom_codes(session: AsyncSession, event_ids: list[str]) -> dict[st
 async def _symptom_names(session: AsyncSession, event_ids: list[str]) -> dict[str, list[str]]:
     if not event_ids:
         return {}
+    # Urut menurut kode, sama seperti `_symptom_codes`. Kode dan nama dipasangkan
+    # menurut indeks di hilir; mengurutkan yang satu menurut nama dan yang lain
+    # menurut kode membuat pasangannya tertukar tanpa satu pun galat muncul.
     rows = await session.execute(
         select(FailureEventSymptom.failure_event_id, Symptom.name)
         .join(Symptom, Symptom.id == FailureEventSymptom.symptom_id)
         .where(FailureEventSymptom.failure_event_id.in_(event_ids))
-        .order_by(Symptom.name)
+        .order_by(Symptom.code)
     )
     grouped: dict[str, list[str]] = {}
     for event_id, name in rows:
