@@ -479,9 +479,13 @@ async def bangun(
 
             # Setelah work order latar ada, karena notifikasi menempel padanya
             # dan work order yatim dibuat dengan melepas equipment-nya.
-            from app.synthetic.dirty_data import tulis_data_kotor
+            from app.synthetic.dirty_data import tulis_data_kotor, tulis_tag_kotor
 
             tambahan |= await tulis_data_kotor(sesi, seed)
+
+            # Setelah seluruh armada ada: katalog penamaan menutupi semuanya,
+            # bukan hanya jalur emas.
+            tambahan |= await tulis_tag_kotor(sesi, seed)
 
         # Setelah pekerjaan latar ada, karena aktivitas menempel padanya.
         from app.synthetic.aktivitas import tulis_semua as tulis_aktivitas

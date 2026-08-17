@@ -117,3 +117,41 @@ class TestDeterminisme:
         from app.synthetic.generator import bangun
 
         assert inspect.signature(bangun).parameters["volume_latar"].default is False
+
+
+class TestTagKotor:
+    """Katalog penamaan yang tidak seragam — kekotoran yang tidak boleh menular.
+
+    Nilainya ada pada satu jaminan: tabel ini tidak dibaca jalur deteksi, jadi
+    seburuk apa pun katalognya, skor tidak bergeser. Tes di sini menjaga
+    bentuk kekotorannya; paritas angkanya dijaga tes deteksi.
+    """
+
+    def test_satu_huruf_saja_yang_tertukar(self):
+        """Tag yang rusak dua tempat terbaca sebagai tag lain sama sekali."""
+        import random
+
+        from app.synthetic.dirty_data import _tag_salah_baca
+
+        asli = "PLT-U/FIL-207"
+        keliru = _tag_salah_baca(asli, random.Random(1))
+        assert keliru is not None
+        assert len(keliru) == len(asli)
+        assert sum(a != b for a, b in zip(asli, keliru, strict=True)) == 1
+
+    def test_tag_tanpa_huruf_tertukar_dibiarkan(self):
+        """Tidak semua tag punya karakter yang bisa salah dibaca."""
+        import random
+
+        from app.synthetic.dirty_data import _tag_salah_baca
+
+        assert _tag_salah_baca("PLT-X/FIL-347", random.Random(1)) is None
+
+    def test_hasilnya_deterministik(self):
+        import random
+
+        from app.synthetic.dirty_data import _tag_salah_baca
+
+        satu = _tag_salah_baca("PLT-U/FIL-207", random.Random(7))
+        dua = _tag_salah_baca("PLT-U/FIL-207", random.Random(7))
+        assert satu == dua

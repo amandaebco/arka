@@ -10,12 +10,13 @@ actually write. The argument for a graph over keyword search ("kebocoran produk
 di kepala pengisi" versus "produk merembes waktu pengisian") cannot be
 demonstrated on a corpus that never says the same thing twice differently.
 
-**Dirty data.** A real fleet of 211,634 equipment had work orders on 14% of it,
-notifications on 10%, and reliability observations on 2%. Three quarters of the
-observations that existed recorded MTBF as zero, which means "not recorded" and
-reads as "never fails". A dataset with none of that produces a demo that runs
-too smoothly to believe, and hides the failure mode that matters most: absence
-of evidence presenting itself as health.
+**Dirty data.** On a large maintenance fleet, only a small minority of
+equipment carries any work order, fewer carry notifications, and fewer still
+carry reliability observations. Where a reliability figure does exist it is
+often a placeholder zero, which means "not recorded" and reads as "never
+fails". A dataset with none of that produces a demo that runs too smoothly to
+believe, and hides the failure mode that matters most: absence of evidence
+presenting itself as health.
 
 ## Why this cannot move the demo numbers
 
@@ -37,6 +38,7 @@ from datetime import timedelta
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.assets import AssetIdentifier, Equipment
 from app.models.maintenance import MaintenanceNotification, WorkOrder
 from app.synthetic.jalur_emas import id_stabil
 
@@ -45,10 +47,10 @@ from app.synthetic.jalur_emas import id_stabil
 # setelah polanya berulang.
 JUMLAH_NOTIFIKASI = 400
 
-# Porsi work order yang kehilangan equipment-nya. Diambil dari kenyataan: pada
-# armada klien, 86% equipment tidak punya satu pun work order yang tertaut.
-# Delapan persen adalah sisi yang bisa kita tunjukkan -- perintah kerja yang
-# ada tetapi tidak bisa dipetakan ke mesin mana pun.
+# Porsi work order yang kehilangan equipment-nya. Pada armada besar, sebagian
+# besar equipment tidak punya satu pun work order yang tertaut. Delapan persen
+# adalah sisi yang bisa kita tunjukkan -- perintah kerja yang ada tetapi tidak
+# bisa dipetakan ke mesin mana pun.
 PORSI_WO_YATIM = 0.08
 
 # Notifikasi yang tidak membawa informasi apa pun. Setiap CMMS punya ini, dan
@@ -92,6 +94,11 @@ KELUHAN_SEMAKNA = (
     ),
 )
 
+# Huruf yang tertukar ketika tag dibaca mesin dari kertas atau pelat terpasang.
+# Bukan salah ketik acak: pasangan di bawah yang benar-benar tertukar, karena
+# bentuknya memang mirip pada cetakan kecil.
+TUKAR_OCR = (("0", "O"), ("O", "0"), ("1", "l"), ("l", "1"), ("5", "S"), ("8", "B"))
+
 # Keluhan yang terdengar mirip tetapi berakar lain. Ada supaya penelusuran
 # terlihat **menyingkirkan** kandidat, bukan sekadar mengumpulkan yang mirip.
 KELUHAN_MENYESATKAN = (
@@ -99,6 +106,104 @@ KELUHAN_MENYESATKAN = (
     "rembes dari gasket panel, lantai basah tapi mesin normal",
     "getaran dari conveyor sebelah, bukan dari filler",
 )
+
+
+def _tag_salah_baca(tag: str, acak: random.Random) -> str | None:
+    """Satu tag yang tertukar satu huruf, atau None kalau tidak ada yang cocok.
+
+    Hanya satu huruf yang diganti. Tag yang rusak dua tempat terbaca sebagai
+    tag lain sama sekali; yang rusak satu huruf tetap terlihat benar sampai ada
+    yang mencocokkannya -- dan itu bentuk kekotoran yang menyulitkan.
+    """
+    posisi = [
+        (i, ganti)
+        for i, huruf in enumerate(tag)
+        for asli, ganti in TUKAR_OCR
+        if huruf == asli
+    ]
+    if not posisi:
+        return None
+    i, ganti = acak.choice(posisi)
+    return tag[:i] + ganti + tag[i + 1 :]
+
+
+async def tulis_tag_kotor(sesi: AsyncSession, seed: int) -> dict[str, int]:
+    """Katalog penamaan aset yang tidak seragam, seperti katalog sungguhan.
+
+    Tiga bentuk, semuanya di `asset_identifiers` dan **tidak satu pun dibaca
+    jalur deteksi** -- modul di `app/detection/` tidak menyentuh tabel ini,
+    diperiksa bukan diandaikan. Jadi ini menambah kekotoran yang bisa
+    diperlihatkan tanpa menggeser satu digit pun pada skor.
+
+    1. Tag utama yang bersih, seperti yang tertulis di sistem induk.
+    2. Salinan hasil pembacaan mesin dengan satu huruf tertukar (`0` jadi `O`).
+       Inilah yang memperlihatkan pencocokan tetap menemukan mesinnya.
+    3. Nomor lama yang dulu dipakai mesin lain. Dua baris sah, satu nomor,
+       dan hanya sistem sumber yang membedakan -- persis alasan katalog
+       penamaan tidak pernah bisa dipercaya begitu saja.
+
+    Returns:
+        Cacah per bentuk yang ditulis.
+    """
+    acak = random.Random(seed ^ 0x7A61)
+    cacah = {"tag_utama": 0, "tag_salah_baca": 0, "tag_dipakai_ulang": 0}
+
+    armada = (
+        await sesi.execute(
+            select(Equipment.id, Equipment.tag_number).order_by(Equipment.tag_number)
+        )
+    ).all()
+    if not armada:
+        return cacah
+
+    penanda: list[AssetIdentifier] = []
+    for eq_id, tag in armada:
+        penanda.append(
+            AssetIdentifier(
+                id=id_stabil(seed, f"tag-utama:{tag}"),
+                equipment_id=eq_id,
+                source_system="katalog-induk",
+                identifier_type="tag_fungsional",
+                identifier_value=tag,
+                is_primary=True,
+            )
+        )
+        cacah["tag_utama"] += 1
+
+        # Seperempat armada pernah masuk lewat pemindaian dokumen. Bukan semua:
+        # katalog yang seluruhnya rusak tidak meyakinkan siapa pun.
+        if acak.random() < 0.25:
+            keliru = _tag_salah_baca(tag, acak)
+            if keliru and keliru != tag:
+                penanda.append(
+                    AssetIdentifier(
+                        id=id_stabil(seed, f"tag-ocr:{tag}"),
+                        equipment_id=eq_id,
+                        source_system="pemindaian-dokumen",
+                        identifier_type="tag_terbaca",
+                        identifier_value=keliru,
+                    )
+                )
+                cacah["tag_salah_baca"] += 1
+
+    # Nomor lama yang dipakai ulang: tag mesin A tercatat sebagai nomor lama
+    # mesin B. Sistem sumbernya berbeda, jadi keduanya sah menurut kunci unik --
+    # dan itulah yang membuat penggabungan katalog berbahaya.
+    for i in range(0, min(len(armada) - 1, 40), 2):
+        (eq_id, _tag), (_lain_id, tag_lain) = armada[i], armada[i + 1]
+        penanda.append(
+            AssetIdentifier(
+                id=id_stabil(seed, f"tag-lama:{tag_lain}:{i}"),
+                equipment_id=eq_id,
+                source_system="sistem-lama",
+                identifier_type="nomor_lama",
+                identifier_value=tag_lain,
+            )
+        )
+        cacah["tag_dipakai_ulang"] += 1
+
+    sesi.add_all(penanda)
+    return cacah
 
 
 async def tulis_data_kotor(sesi: AsyncSession, seed: int) -> dict[str, int]:
@@ -169,9 +274,9 @@ async def tulis_data_kotor(sesi: AsyncSession, seed: int) -> dict[str, int]:
 
     # --- work order yatim: TIDAK ditulis, dan alasannya penting ------------
     #
-    # Pada armada klien, 86% equipment tidak punya satu pun work order tertaut,
-    # dan pekerjaan yang tidak bisa dipetakan ke mesin adalah bentuk kekotoran
-    # yang paling sering ditemui. Ia tidak bisa ditulis di sini: `work_orders`
+    # Pekerjaan yang tidak bisa dipetakan ke mesin adalah bentuk kekotoran yang
+    # paling sering ditemui di lapangan. Ia tidak bisa ditulis di sini:
+    # `work_orders`
     # menyatakan `equipment_id` NOT NULL, jadi skema kanonik melarang keadaan
     # itu ada sama sekali.
     #
