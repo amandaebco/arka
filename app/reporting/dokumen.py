@@ -29,6 +29,12 @@ class KonteksDokumen(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    # Keterangan tambahan yang murni untuk dibaca, diisi lapisan API dan tidak
+    # pernah menyentuh skor. Dipisah dari `Finding` dengan sengaja: `Finding`
+    # adalah bukti yang dipakai mengambil keputusan, sedangkan ini catatan
+    # pelengkap yang boleh hilang tanpa mengubah satu angka pun.
+    langkah_perawatan: tuple[dict, ...] = ()
+
     nomor: str | None = Field(default=None, description="Nomor surat, mis. 001/ARKA/VIII/2026")
     kepada: str | None = None
     dari: str | None = None
